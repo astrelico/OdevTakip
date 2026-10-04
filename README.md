@@ -15,12 +15,16 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 - Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
   al; detay ekranındaki büyük düğme de aynen çalışır
 - **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu), "Tamamlananları
-  gizle" ve teslim öncesi hatırlatma aralığı; tercihler cihazda kalıcı
+  gizle" ve teslim öncesi hatırlatmalar; tercihler cihazda kalıcı
   saklanır, değişiklik anında uygulanır. Bildirim izni kapalıysa hatırlatma
   kartında uyarı satırı ve sistem ayarlarına kısayol belirir
-- **Teslim öncesi hatırlatma**: Kapalı / 3 saat önce / teslim günü sabahı /
-  1 gün önce. Her ödev için tek seferlik iş kurulur; ödev tamamlanınca,
-  silinince ya da aralık kapanınca hem iş hem gölgedeki bildirim kaldırılır
+- **Teslim öncesi hatırlatma**: 3 saat önce / teslim günü sabahı / 1 gün önce
+  aralıklarından **birden fazlası seçilebilir** (ör. hem 1 gün önce hem teslim
+  günü sabahı). İşaretlerin tamamı kaldırıldığında hatırlatma kapanır ve arayüz
+  bunu kartta ayrıca yazar. Her aralık için ödev başına tek seferlik iş kurulur
+  ve hepsi aynı bildirim kimliğine yazar; böylece sırayla gelen hatırlatmalar
+  üst üste yığılmaz, yenisi eskisinin yerini alır. Ödev tamamlanınca ya da
+  silinince hem bekleyen işler hem gölgedeki bildirim kaldırılır
 - Hatırlatma bildirimine dokununca doğrudan o ödevin **detay** ekranı açılır
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)

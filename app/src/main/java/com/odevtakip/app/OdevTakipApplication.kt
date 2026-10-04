@@ -83,9 +83,10 @@ class OdevTakipApplication : Application() {
      * **Neden ViewModel'de değil?** Hatırlatma, verinin kendisinin değil, onun
      * arka plan görünümünün işidir ve altı ayrı kaynağın ortak sonucudur:
      * ekleme, düzenleme, tamamlama, tamamlamayı geri alma, silme ve
-     * ayarlardan aralık değişimi. Eylemlerin her birine bir "hatırlatmayı da
-     * güncelle" satırı eklemek yerine tek bir izleyici kurmak, unutulacak
-     * adım bırakmaz; yeni bir eylem eklenirken ayrıca hatırlatma düşünülmez.
+     * ayarlardan **seçili aralık kümesindeki** her değişiklik. Eylemlerin her
+     * birine bir "hatırlatmayı da güncelle" satırı eklemek yerine tek bir
+     * izleyici kurmak, unutulacak adım bırakmaz; yeni bir eylem eklenirken
+     * ayrıca hatırlatma düşünülmez.
      *
      * İlk emission aynı zamanda açılış eşitlemesidir: uygulama her
      * açıldığında plan gözden geçirilir, eksik ya da bozuk kalmış işler
@@ -99,14 +100,14 @@ class OdevTakipApplication : Application() {
         combine(
             odevRepository.tumOdevleri(),
             tercihler.hatirlatma,
-        ) { odevler, aralik -> odevler to aralik }
+        ) { odevler, secimler -> odevler to secimler }
             .distinctUntilChanged()
-            .onEach { (odevler, aralik) ->
+            .onEach { (odevler, secimler) ->
                 try {
                     HatirlatmaZamanlayici.eslestir(
                         context = this@OdevTakipApplication,
                         odevler = odevler,
-                        aralik = aralik,
+                        secimler = secimler,
                     )
                 } catch (e: CancellationException) {
                     throw e

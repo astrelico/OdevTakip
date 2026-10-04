@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -156,34 +157,54 @@ private fun TemaKarti(
 // ---- Hatırlatmalar ----
 
 /**
- * Teslim öncesi hatırlatma aralığı kartı.
+ * Teslim öncesi hatırlatma aralıkları kartı — **çoklu seçim**.
  *
  * Tema kartıyla aynı satır iskeletini kullanır: seçimin **oturumu** farklı olsa
- * da ekranda konuşulan dil tek olmalı. Aralığın uygulanması burada değil,
- * [com.odevtakip.app.OdevTakipApplication]'ın planlama akışındadır.
+ * da ekranda konuşan dil tek olmalı. Tek fark işaret radyo değil onay kutusudur:
+ * kullanıcı "1 gün önce" ile "teslim günü sabahı"nı aynı anda seçebilir ve her
+ * biri ayrı bir hatırlatma işi kurar.
+ *
+ * Bu yüzden kartta "Kapalı" satırı **yoktur** — bütün işaretler kaldırıldığında
+ * hatırlatma kapalıdır ve bu, [secili] boşken altta açıkça yazılır. Aksi hâlde
+ * kullanıcı ayarı kapatıp kapatmadığını anlamazdı.
  *
  * Kartın altına [IzinUyarisi] bağlanır: izin kapalıysa seçilen aralık ne
  * olursa olsun hiçbir bildirim gitmez ve bunun kullanıcıya söylenmesi gerekir.
+ *
+ * @param secili İşaretli aralıklar; boş küme kapalı demektir.
  */
 @Composable
 private fun HatirlatmaKarti(
-    secili: HatirlatmaAraligi,
-    onSecim: (HatirlatmaAraligi) -> Unit,
+    secili: Set<HatirlatmaAraligi>,
+    onSecim: (Set<HatirlatmaAraligi>) -> Unit,
 ) {
     AyarKarti(baslik = stringResource(R.string.ayarlar_hatirlatma_baslik),
         ipucu = stringResource(R.string.ayarlar_hatirlatma_ipucu)) {
         Column(
-            modifier = Modifier.selectableGroup(),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             HatirlatmaAraligi.entries.forEach { secenek ->
-                SecimSatiri(
+                OnayKutuluSatiri(
                     etiketRes = secenek.etiketRes,
                     aciklamaRes = secenek.aciklamaRes,
-                    secili = secenek == secili,
-                    onClick = { onSecim(secenek) },
+                    secili = secenek in secili,
+                    onClick = {
+                        val yeni =
+                            if (secenek in secili) secili - secenek else secili + secenek
+                        onSecim(yeni)
+                    },
                 )
             }
+        }
+
+        if (secili.isEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.ayarlar_hatirlatma_bos),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         IzinUyarisi()
@@ -245,7 +266,7 @@ private fun IzinUyarisi() {
 }
 
 /**
- * Radyo düğmeli seçenek satırı (tema ve hatırlatma kartları ortak kullanır).
+ * Radyo düğmeli seçenek satırı (yalnızca tema kartı).
  *
  * Satırın tamamı `selectable`; işaret kutusunun kendisi tıklanabilir değildir.
  * Böylece TalkBack satırı tek öğe olarak okur, iki ayrı odak oluşmaz.
@@ -270,17 +291,54 @@ private fun SecimSatiri(
     ) {
         RadioButton(selected = secili, onClick = null)
         Spacer(Modifier.width(8.dp))
-        Column {
-            Text(
-                text = stringResource(etiketRes),
-                style = MaterialTheme.typography.bodyLarge,
+        SatirMetni(etiketRes, aciklamaRes)
+    }
+}
+
+/**
+ * Onay kutulu seçenek satırı (yalnızca hatırlatma kartı).
+ *
+ * Satırın tamamı `toggleable`; onay kutusunun kendisi tıklanabilir değildir.
+ * Böylece TalkBack satırı "3 saat önce, onay kutusu, seçili" diye tek öğe
+ * olarak okur, iki ayrı odak oluşmaz.
+ */
+@Composable
+private fun OnayKutuluSatiri(
+    @StringRes etiketRes: Int,
+    @StringRes aciklamaRes: Int,
+    secili: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = secili,
+                onValueChange = { onClick() },
+                role = Role.Checkbox,
             )
-            Text(
-                text = stringResource(aciklamaRes),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = secili, onCheckedChange = null)
+        Spacer(Modifier.width(8.dp))
+        SatirMetni(etiketRes, aciklamaRes)
+    }
+}
+
+/** Seçim satırının metin bloğu — radyo ve onay kutusu satırları ortak kullanır. */
+@Composable
+private fun SatirMetni(@StringRes etiketRes: Int, @StringRes aciklamaRes: Int) {
+    Column {
+        Text(
+            text = stringResource(etiketRes),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text = stringResource(aciklamaRes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

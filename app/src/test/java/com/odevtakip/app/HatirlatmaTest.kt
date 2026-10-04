@@ -3,6 +3,7 @@ package com.odevtakip.app
 import com.odevtakip.app.data.HatirlatmaAraligi
 import com.odevtakip.app.util.tarihSaatiniDonustur
 import com.odevtakip.app.work.hatirlatmaZamani
+import com.odevtakip.app.work.hatirlatmaZamanlari
 import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
@@ -15,10 +16,12 @@ import org.junit.Test
  *
  * Saf fonksiyon olduğu için cihaz gerekmez; [HatirlatmaZamanlayici.eslestir]
  * içindeki WorkManager çağrıları ise cihaz gerektirdiğinden enstrümant test
- * alanındadır. Buradaki asıl görev iki kuralı kilitlemektir:
+ * alanındadır. Buradaki asıl görev üç kuralı kilitlemektir:
  *
  *  1. Bildirim **asla teslimden sonra gitmez.**
  *  2. Plan, gece yarısını aşan bir saatte **uyandırmaz.**
+ *  3. Birden çok aralık seçilince her biri ayrı an üretir, **aynı ana
+ *     düşenler tek planda birleşir** ve hiç seçilmediğinde plan boştur.
  */
 class HatirlatmaTest {
 
@@ -27,12 +30,6 @@ class HatirlatmaTest {
         tarihSaatiniDonustur(LocalDate.of(yil, ay, gun), LocalTime.of(saat, dakika))
 
     // ---- hatirlatmaZamani ----
-
-    @Test
-    fun `kapali secenek hicbir zaman hatirlatma uretmez`() {
-        assertNull(hatirlatmaZamani(an(2026, 10, 5, 23, 59), HatirlatmaAraligi.KAPALI))
-        assertNull(hatirlatmaZamani(an(2026, 10, 5, 9, 0), HatirlatmaAraligi.KAPALI))
-    }
 
     @Test
     fun `uc saat once teslimden tam uc saat onceki ani verir`() {
@@ -88,15 +85,16 @@ class HatirlatmaTest {
         // Tek tek örnekler yetmez: sabah saati bir çeyrek geciktirdiği için
         // bazı saatlerde sınır ihlal edilebilirdi. Saat aralığı taranarak
         // hiçbir kombinasyonda teslimi aşmayan tek bir an bile üretilmemesi
-        // garanti altına alınır.
-        val araliklar = HatirlatmaAraligi.entries.filter { it != HatirlatmaAraligi.KAPALI }
+        // garanti altına alınır. Seçim kümesi tamamı olduğu için çoklu
+        // seçimin ürettiği birleşik plan da aynı geçerlilikte test edilir.
+        val tumAraliklar = HatirlatmaAraligi.entries.toSet()
         var uretilen = 0
 
         for (gun in 1..7) {
             for (saat in listOf(0, 1, 6, 7, 8, 9, 12, 17, 20, 23)) {
                 for (dakika in listOf(0, 45)) {
                     val sonTarih = an(2026, 10, gun, saat, dakika)
-                    for (aralik in araliklar) {
+                    for (aralik in tumAraliklar) {
                         val plan = hatirlatmaZamani(sonTarih, aralik) ?: continue
                         uretilen++
                         assertTrue(
@@ -105,6 +103,19 @@ class HatirlatmaTest {
                             plan < sonTarih,
                         )
                     }
+                    val birlesik = hatirlatmaZamanlari(sonTarih, tumAraliklar)
+                    assertEquals(
+                        "Birleşik plan, tek tek planlardan farklı olmamalı",
+                        tumAraliklar.mapNotNull { hatirlatmaZamani(sonTarih, it) }
+                            .distinct()
+                            .sorted(),
+                        birlesik,
+                    )
+                    assertTrue(
+                        "Birleşik plan teslimden sonra üretildi: " +
+                            "teslim=$sonTarih plan=$birlesik",
+                        birlesik.all { it < sonTarih },
+                    )
                 }
             }
         }
@@ -112,21 +123,119 @@ class HatirlatmaTest {
         assertTrue("Hiçbir plan üretilmedi; test boşu boşuna geçti", uretilen > 0)
     }
 
-    // ---- HatirlatmaAraligi.guvenliDeger ----
+    // ---- hatirlatmaZamanlari (çoklu seçim) ----
 
     @Test
-    fun `bilinen aralik metni dogru cozumlenir`() {
-        HatirlatmaAraligi.entries.forEach { secenek ->
-            assertEquals(secenek, HatirlatmaAraligi.guvenliDeger(secenek.name))
+    fun `hic secim yapilmamissa hicbir zaman uretilmez`() {
+        // "Kapalı" adlı bir seçenek yoktur: hatırlatmanın kapanması, hiçbir
+        // aralığın işaretli olmamasıdır. Planın boş olması bunun tek kanıtıdır.
+        assertTrue(hatirlatmaZamanlari(an(2026, 10, 5, 23, 59), emptySet()).isEmpty())
+        assertTrue(hatirlatmaZamanlari(an(2026, 10, 5, 9, 0), emptySet()).isEmpty())
+    }
+
+    @Test
+    fun `birden fazla secim sirali ve ayri zamanlar uretir`() {
+        // Teslim 6 Eki 17.00:
+        //   BIR_GUN -> 5 Eki 17.00
+        //   SABAH   -> 6 Eki 08.00
+        //   UC_SAAT -> 6 Eki 14.00
+        assertEquals(
+            listOf(
+                an(2026, 10, 5, 17, 0),
+                an(2026, 10, 6, 8, 0),
+                an(2026, 10, 6, 14, 0),
+            ),
+            hatirlatmaZamanlari(
+                an(2026, 10, 6, 17, 0),
+                setOf(
+                    HatirlatmaAraligi.UC_SAAT,
+                    HatirlatmaAraligi.SABAH,
+                    HatirlatmaAraligi.BIR_GUN,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `ayni ana denk gelen secimler tek planda birlesir`() {
+        // Teslim 10.00: "3 saat önce" 07.00'ye düşüp 08.00'e çekilir, "teslim
+        // günü sabahı" da zaten 08.00'dedir. İki ayrı iş kurulsaydı aynı anda
+        // iki kez tetiklenir, ikisi de aynı bildirim kimliğine yazardı.
+        assertEquals(
+            listOf(an(2026, 10, 5, 8, 0)),
+            hatirlatmaZamanlari(
+                an(2026, 10, 5, 10, 0),
+                setOf(HatirlatmaAraligi.UC_SAAT, HatirlatmaAraligi.SABAH),
+            ),
+        )
+    }
+
+    // ---- HatirlatmaAraligi secim kümesi ----
+
+    @Test
+    fun `secimler metne cevrilip geri ayni kume olur`() {
+        val ornekler = listOf(
+            emptySet<HatirlatmaAraligi>(),
+            setOf(HatirlatmaAraligi.UC_SAAT),
+            setOf(HatirlatmaAraligi.SABAH, HatirlatmaAraligi.BIR_GUN),
+            HatirlatmaAraligi.entries.toSet(),
+        )
+        ornekler.forEach { kume ->
+            assertEquals(
+                kume,
+                HatirlatmaAraligi.secimleriCozumle(HatirlatmaAraligi.secimleriYaz(kume)),
+            )
         }
     }
 
     @Test
-    fun `bilinmeyen veya bos aralik metni varsayilana doner`() {
-        // Güncelleme metni değişse bile uygulama hatırlatmasız kalmaz;
-        // sessizce varsayılan aralığa geçer.
-        assertEquals(HatirlatmaAraligi.UC_SAAT, HatirlatmaAraligi.guvenliDeger(null))
-        assertEquals(HatirlatmaAraligi.UC_SAAT, HatirlatmaAraligi.guvenliDeger(""))
-        assertEquals(HatirlatmaAraligi.UC_SAAT, HatirlatmaAraligi.guvenliDeger("HER_GUN"))
+    fun `secim sirasi fark etmez ayni kume uretir`() {
+        // Yer imi sırası tıklama sırasını izleseydi aynı seçim iki farklı
+        // metin üretir, her açılışta gereksiz yeniden planlama tetiklenirdi.
+        assertEquals(
+            setOf(HatirlatmaAraligi.BIR_GUN, HatirlatmaAraligi.UC_SAAT),
+            HatirlatmaAraligi.secimleriCozumle(
+                HatirlatmaAraligi.secimleriYaz(
+                    setOf(HatirlatmaAraligi.UC_SAAT, HatirlatmaAraligi.BIR_GUN),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `tek secimli eski deger dogru kume olur`() {
+        // Tek aralık seçebilen eski sürüm aynı anahtara tek ad yazıyordu;
+        // değer olduğu gibi okunur, kullanıcı yanlışlıkla ikinci bir
+        // hatırlatma almaz.
+        assertEquals(
+            setOf(HatirlatmaAraligi.UC_SAAT),
+            HatirlatmaAraligi.secimleriCozumle("UC_SAAT"),
+        )
+        // Eski "Kapalı" artık listede yok; o kullanıcının zaten kapatmak
+        // istemesiyle aynı sonucu verir: boş küme.
+        assertEquals(
+            emptySet<HatirlatmaAraligi>(),
+            HatirlatmaAraligi.secimleriCozumle("KAPALI"),
+        )
+    }
+
+    @Test
+    fun `anahtar yoksa varsayilan secim gelir bos metin kapali olur`() {
+        // Hiç kayıt yok (yeni kurulum) -> varsayılan tek aralık işaretlidir.
+        assertEquals(
+            HatirlatmaAraligi.varsayilanSecimler(),
+            HatirlatmaAraligi.secimleriCozumle(null),
+        )
+        // Kullanıcı her şeyin işaretini kaldırmış -> boş küme, yani kapalı.
+        assertEquals(
+            emptySet<HatirlatmaAraligi>(),
+            HatirlatmaAraligi.secimleriCozumle(HatirlatmaAraligi.secimleriYaz(emptySet())),
+        )
+        // Gelecekte adı değişen bir seçenek sessizce atlanır, uygulama
+        // açılamaz hâle gelmez.
+        assertEquals(
+            emptySet<HatirlatmaAraligi>(),
+            HatirlatmaAraligi.secimleriCozumle("HIKAYE"),
+        )
     }
 }

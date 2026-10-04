@@ -88,15 +88,14 @@
 
     <!-- Teslim öncesi hatırlatma -->
     <string name="ayarlar_hatirlatma_baslik">Hatırlatmalar</string>
-    <string name="ayarlar_hatirlatma_ipucu">Tesliminden ne kadar önce hatırlatılsın?</string>
-    <string name="hatirlatma_kapali">Kapalı</string>
-    <string name="hatirlatma_kapali_aciklama">Yalnızca süre geçtiğinde bildirim gönderilir</string>
+    <string name="ayarlar_hatirlatma_ipucu">Tesliminden önce ne zaman hatırlatılsın? Birden fazla seçilebilir.</string>
     <string name="hatirlatma_uc_saat">3 saat önce</string>
     <string name="hatirlatma_uc_saat_aciklama">Bugün teslim edilecek ödevler için</string>
     <string name="hatirlatma_sabah">Teslim günü sabahı</string>
     <string name="hatirlatma_sabah_aciklama">Okuldan önce, sabah 08:00\'de</string>
     <string name="hatirlatma_bir_gun">1 gün önce</string>
     <string name="hatirlatma_bir_gun_aciklama">Ertesi gün teslim edilecek ödevler için</string>
+    <string name="ayarlar_hatirlatma_bos">Hiçbiri seçilmedi — teslim öncesi hatırlatma gönderilmez.</string>
 
     <!-- Bildirim izni durumu (yalnızca izin kapalıyken görünür) -->
     <string name="ayarlar_izin_kapali">Bildirim izni kapalı — gecikme ve hatırlatma bildirimleri gönderilmiyor.</string>
