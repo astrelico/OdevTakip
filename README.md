@@ -12,7 +12,8 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 - Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan
 - **Takvim** sekmesi: yatay gün şeridi, seçili günün ödevleri, "Bugün" düğmesi
   şeridi bugüne döndürür
-- Kart üzerindeki onay kutusuyla tek dokunuşta tamamla / geri al
+- Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
+  al; detay ekranındaki büyük düğme de aynen çalışır
 - **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu) ve "Tamamlananları
   gizle"; tercihler cihazda kalıcı saklanır, değişiklik anında uygulanır
 - Açık ve koyu tema, dinamik renk kapalı

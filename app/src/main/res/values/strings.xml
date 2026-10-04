@@ -65,6 +65,7 @@
 
     <!-- Genel -->
     <string name="geri">Geri</string>
+    <string name="geri_al">Geri al</string>
     <string name="kapat">Kapat</string>
     <string name="tarih_sec">Tarih seç</string>
     <string name="saat_sec">Saat seç</string>

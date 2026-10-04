@@ -146,6 +146,7 @@ fun TakvimEkrani(
                     items(odevler, key = { it.id }) { odev ->
                         OdevKarti(
                             odev = odev,
+                            modifier = Modifier.animateItem(),
                             onSec = { onOdevSec(odev.id) },
                             onDegistir = { tamamlandi ->
                                 if (tamamlandi) viewModel.tamamla(odev.id)

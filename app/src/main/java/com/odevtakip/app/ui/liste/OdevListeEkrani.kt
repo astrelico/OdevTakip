@@ -122,6 +122,9 @@ fun OdevListeEkrani(
                     items(odevler, key = { it.id }) { odev ->
                         OdevKarti(
                             odev = odev,
+                            // Kaydırarak tamamlanan kart listeyi terk ederken
+                            // olduğu yerden uçmasın, yeni sırasına kaydıkça gitsin.
+                            modifier = Modifier.animateItem(),
                             onSec = { onOdevSec(odev.id) },
                             onDegistir = { tamamlandi ->
                                 if (tamamlandi) viewModel.tamamla(odev.id)
