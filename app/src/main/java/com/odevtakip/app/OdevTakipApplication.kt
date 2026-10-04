@@ -4,6 +4,7 @@ import android.app.Application
 import com.odevtakip.app.bildirim.BildirimYonetici
 import com.odevtakip.app.data.OdevDatabase
 import com.odevtakip.app.data.OdevRepository
+import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.work.DurumZamanlayici
 
 /**
@@ -18,6 +19,15 @@ class OdevTakipApplication : Application() {
     val odevRepository: OdevRepository by lazy {
         OdevRepository(OdevDatabase.getInstance(this).odevDao())
     }
+
+    /**
+     * Kullanıcı tercihleri (tema, liste görünürlüğü).
+     *
+     * Tek örnek olarak tutulur; böylece ayarlar ekranı bir değeri değiştirince
+     * [OdevViewModel] aynı [Tercihler] üzerindeki akışı izlediği için liste ve
+     * tema anında güncellenir.
+     */
+    val tercihler: Tercihler by lazy { Tercihler(this) }
 
     override fun onCreate() {
         super.onCreate()

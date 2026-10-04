@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,7 +37,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.odevtakip.app.data.TemaSecenegi
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.ayarlar.AyarlarEkrani
+import com.odevtakip.app.ui.ayarlar.AyarlarViewModel
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
@@ -49,6 +54,7 @@ private object Rotalar {
     const val TAKVIM = "takvim"
     const val FORM = "form/{odevId}"
     const val DETAY = "detay/{odevId}"
+    const val AYARLAR = "ayarlar"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -72,7 +78,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            OdevTakipTheme {
+            // Ayarlar ekranındaki tema seçimi bu akıştan okunur; akış anında
+            // güncellendiği için seçim uygulamayı yeniden başlatmadan uygulanır.
+            val tercihler = (application as OdevTakipApplication).tercihler
+            val tema by tercihler.tema.collectAsStateWithLifecycle()
+
+            OdevTakipTheme(
+                darkTheme = tema.koyuTemayaDonusur(isSystemInDarkTheme()),
+            ) {
                 OdevUygulamasi()
             }
         }
@@ -85,8 +98,8 @@ class MainActivity : ComponentActivity() {
  * Çizim sırası şöyle kurulur:
  *
  *  - **Liste** ve **Takvim** ana ekranlardır; alt menü yalnızca onlarda görünür.
- *  - **Form** ve **detay** üst üste itilen tam ekran rotalardır; menü gizlenir
- *    böylece klavye/açılır listeyle boğuşmazlar.
+ *  - **Form**, **detay** ve **ayarlar** üst üste itilen tam ekran rotalardır;
+ *    menü gizlenir böylece klavye/açılır listeyle boğuşmazlar.
  *  - Her ekran kendi üst barını diker. Bu yüzden dış `Scaffold`'un
  *    `contentWindowInsets`'i sıfırlanır; sistem çubuğu ücreti iki kez
  *    ödenirse başlık durum çubuğunun altına kayar.
@@ -143,6 +156,7 @@ private fun OdevUygulamasi(
                 OdevListeEkrani(
                     viewModel = viewModel,
                     onOdevSec = { navController.navigate(Rotalar.detay(it)) },
+                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
                 )
             }
 
@@ -150,6 +164,7 @@ private fun OdevUygulamasi(
                 TakvimEkrani(
                     viewModel = viewModel,
                     onOdevSec = { navController.navigate(Rotalar.detay(it)) },
+                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
                 )
             }
 
@@ -178,6 +193,14 @@ private fun OdevUygulamasi(
                     viewModel = viewModel,
                     onGeri = { navController.popBackStack() },
                     onDuzenle = { navController.navigate(Rotalar.form(it)) },
+                )
+            }
+
+            // Ayarlar tam ekran bir rota: alt menü gizlenir, geri düğmesi döner.
+            composable(Rotalar.AYARLAR) {
+                AyarlarEkrani(
+                    viewModel = viewModel(factory = AyarlarViewModel.Factory),
+                    onGeri = { navController.popBackStack() },
                 )
             }
         }

@@ -228,13 +228,14 @@ private val OdevSekilleri = Shapes(
 )
 
 /**
- * Uygulamanın teması. Koyu tema sistem ayarını izler.
+ * Uygulamanın teması. Koyu tema hangi ayarla açılır, [com.odevtakip.app.data.TemaSecenegi] söyler.
  *
  * Dinamik renk (Material You) **kasten kapalıdır**: kullanıcı sistem rengini
  * seçtiğinde de uygulamanın okunabilir, tasarlanmış kimliği korunur.
  *
- * İleride ayarlar ekranında elle tema seçimi eklenecek; o zaman bu tek
- * parametre kullanıcı tercihine bağlanır, renk paleti olduğu gibi kalır.
+ * Tema seçimi [com.odevtakip.app.data.Tercihler] üzerinden yapılır; kullanıcı
+ * "Açık / Koyu / Sistem" dese de renk paleti değişmez, yalnızca koyu şema
+ * ile açık şema arasında geçiş yapılır.
  */
 @Composable
 fun OdevTakipTheme(

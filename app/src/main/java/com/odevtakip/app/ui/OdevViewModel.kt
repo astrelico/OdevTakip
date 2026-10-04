@@ -10,6 +10,7 @@ import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
+import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.util.yerelTarih
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -30,9 +32,15 @@ import kotlinx.coroutines.launch
  * Veri her zaman [OdevRepository] üzerinden akar; ViewModel kopya tutmaz.
  * Bu sayede bir eylem (ekleme/silme/tamamlama) sonrası liste kendiliğinden
  * güncellenir — ekranı elle tazelemek gerekmez.
+ *
+ * [Tercihler] de aynı mantıkla akar: ayarlar ekranındaki tek bir anahtar
+ * buradaki listeyi yeniden hesaplatır, ekranlar arası senkron gerekmez.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
+class OdevViewModel(
+    private val repository: OdevRepository,
+    private val tercihler: Tercihler,
+) : ViewModel() {
 
     private val _filtre = MutableStateFlow(OdevFiltresi.TUMU)
     val filtre: StateFlow<OdevFiltresi> = _filtre.asStateFlow()
@@ -41,14 +49,28 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
      * Seçili filtreye uyan ödevler, gösterim sırasıyla.
      * Ayrıntı için [suzulVeSirala] fonksiyonuna bak.
      */
-    val odevler: StateFlow<List<Odev>> = _filtre
-        .flatMapLatest { seciliFiltre ->
-            repository.tumOdevleri().map { it.suzulVeSirala(seciliFiltre) }
+    val odevler: StateFlow<List<Odev>> = combine(
+        _filtre,
+        tercihler.tamamlananlariGizle,
+    ) { seciliFiltre, gizle -> seciliFiltre to gizle }
+        .flatMapLatest { (seciliFiltre, gizle) ->
+            repository.tumOdevleri().map { it.suzulVeSirala(seciliFiltre, gizle) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** Her filtre için ödev sayısı (çip rozetleri). */
-    val sayilar: StateFlow<Map<OdevFiltresi, Int>> = repository.tumOdevleri()
+    /**
+     * Her filtre için ödev sayısı (çip rozetleri).
+     *
+     * Gizleme açıksa tamamlananlar sayıma girmez: çipte yazan sayı, listede
+     * gerçekten görünen satır sayısıyla aynı olmalı — "Tümü (5)" yazıp iki
+     * satır göstermek kullanıcıyı yanıltırdı.
+     */
+    val sayilar: StateFlow<Map<OdevFiltresi, Int>> = combine(
+        repository.tumOdevleri(),
+        tercihler.tamamlananlariGizle,
+    ) { liste, gizle ->
+        if (gizle) liste.filter { it.durum != Durum.TAMAMLANDI } else liste
+    }
         .map { liste ->
             val simdi = System.currentTimeMillis()
             OdevFiltresi.entries.associateWith { f -> liste.count { f.eslesir(it, simdi) } }
@@ -58,6 +80,25 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
             SharingStarted.WhileSubscribed(5_000),
             OdevFiltresi.entries.associateWith { 0 }
         )
+
+    /**
+     * Filtre ve gizlemeden bağımsız toplam kayıt sayısı.
+     *
+     * [OdevListeEkrani]'ndeki boş durum metni bundan beslenir: gizleme
+     * açıkken liste boşsa bile "henüz ödev yok" demek doğru değildir.
+     */
+    val toplamSayi: StateFlow<Int> = repository.tumOdevleri()
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /**
+     * "Tamamlananları gizle" anahtarının anlık değeri.
+     *
+     * Liste boşsa boş durum metnini seçmek için gereken tek bilgi budur:
+     * gizleme açıkken "henüz ödev yok" demek yanlıştır, kayıt vardır ama
+     * gizlenmektedir.
+     */
+    val tamamlananlariGizle: StateFlow<Boolean> = tercihler.tamamlananlariGizle
 
     // ---- Takvim ----
 
@@ -198,7 +239,10 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val uygulama = this[APPLICATION_KEY] as OdevTakipApplication
-                OdevViewModel(uygulama.odevRepository)
+                OdevViewModel(
+                    repository = uygulama.odevRepository,
+                    tercihler = uygulama.tercihler,
+                )
             }
         }
     }
@@ -206,6 +250,9 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
 
 /**
  * Filtreler ve sıralama.
+ *
+ * `tamamlananlariGizle` açıksa tamamlananlar daha ilk adımda elenir;
+ * geriye kalan sıralama aynen uygulanır.
  *
  * Kural:
  *  1. Filtreye uymayanlar atılır.
@@ -216,9 +263,17 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
  * Tamamlanan ödevler en sonda kaldığı için liste iş bitince kendiliğinden
  * "temizlenir"; kullanıcı aynı anda hem bekleyen hem bitenleri görür.
  */
-private fun List<Odev>.suzulVeSirala(filtre: OdevFiltresi): List<Odev> {
+internal fun List<Odev>.suzulVeSirala(
+    filtre: OdevFiltresi,
+    tamamlananlariGizle: Boolean,
+): List<Odev> {
     val simdi = System.currentTimeMillis()
-    val uygun = filter { filtre.eslesir(it, simdi) }
+    val havuz = if (tamamlananlariGizle) {
+        filter { it.durum != Durum.TAMAMLANDI }
+    } else {
+        this
+    }
+    val uygun = havuz.filter { filtre.eslesir(it, simdi) }
 
     val bekleyenler = uygun
         .filter { it.durum != Durum.TAMAMLANDI }

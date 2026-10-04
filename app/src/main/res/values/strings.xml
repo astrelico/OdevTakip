@@ -12,6 +12,7 @@
 
     <string name="liste_bos">Henüz ödev yok.\nAlttaki + düğmesiyle ilk ödevini ekle.</string>
     <string name="filtre_bos">Bu filtrede ödev yok.</string>
+    <string name="liste_bos_gizli">Gösterilecek ödev yok. Ayarlar ekranından gizlemeyi kapatabilirsin.</string>
 
     <!-- Alt menü -->
     <string name="nav_odevler">Ödevler</string>
@@ -67,6 +68,22 @@
     <string name="kapat">Kapat</string>
     <string name="tarih_sec">Tarih seç</string>
     <string name="saat_sec">Saat seç</string>
+
+    <!-- Ayarlar -->
+    <string name="ayarlar_baslik">Ayarlar</string>
+    <string name="ayarlar_tema_baslik">Tema</string>
+    <string name="ayarlar_tema_ipucu">Uygulamanın hangi görünümde açılacağını seç.</string>
+    <string name="tema_sistem">Sistem ayarını izle</string>
+    <string name="tema_sistem_aciklama">Cihazın açık/koyu tercihine göre değişir</string>
+    <string name="tema_acik">Açık tema</string>
+    <string name="tema_acik_aciklama">Açık zemin, lacivert-mavi vurgu</string>
+    <string name="tema_koyu">Koyu tema</string>
+    <string name="tema_koyu_aciklama">Koyu zemin, açık mavi vurgu</string>
+    <string name="ayarlar_liste_baslik">Ödev listesi</string>
+    <string name="ayarlar_liste_ipucu">Listede ne görüneceğini seç.</string>
+    <string name="gizleme_baslik">Tamamlananları gizle</string>
+    <string name="gizleme_aciklama">Biten ödevler listede ve çip sayımlarında gösterilmez.</string>
+    <string name="ayarlar_alt_ipucu">Tercihler bu cihazda saklanır.</string>
 
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>

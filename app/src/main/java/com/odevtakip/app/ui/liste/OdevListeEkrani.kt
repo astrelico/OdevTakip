@@ -2,6 +2,7 @@
 
 package com.odevtakip.app.ui.liste
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,10 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,20 +51,33 @@ import com.odevtakip.app.ui.OdevViewModel
  *
  * Yeni ödev düğmesi bu ekranda değil, alt menünün üzerindeki ortak
  * `+` düğmesinde durur (bkz. `MainActivity`).
+ *
+ * @param onAyarlar Üst bardaki dişli düğmesinin açtığı ayarlar ekranı.
  */
 @Composable
 fun OdevListeEkrani(
     viewModel: OdevViewModel,
     onOdevSec: (Long) -> Unit,
+    onAyarlar: () -> Unit,
 ) {
     val filtre by viewModel.filtre.collectAsStateWithLifecycle()
     val odevler by viewModel.odevler.collectAsStateWithLifecycle()
     val sayilar by viewModel.sayilar.collectAsStateWithLifecycle()
+    val toplamSayi by viewModel.toplamSayi.collectAsStateWithLifecycle()
+    val gizlemeAcik by viewModel.tamamlananlariGizle.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.liste_baslik)) },
+                actions = {
+                    IconButton(onClick = onAyarlar) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.ayarlar_baslik),
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
@@ -82,7 +98,11 @@ fun OdevListeEkrani(
 
             if (odevler.isEmpty()) {
                 BosDurum(
-                    tumListeBos = sayilar.getValue(OdevFiltresi.TUMU) == 0,
+                    mesajRes = when {
+                        toplamSayi == 0 -> R.string.liste_bos
+                        gizlemeAcik && filtre == OdevFiltresi.TUMU -> R.string.liste_bos_gizli
+                        else -> R.string.filtre_bos
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(32.dp),
@@ -172,7 +192,7 @@ private fun FiltreCipleri(
 // ---- Boş durum ----
 
 @Composable
-private fun BosDurum(tumListeBos: Boolean, modifier: Modifier = Modifier) {
+private fun BosDurum(@StringRes mesajRes: Int, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -186,9 +206,7 @@ private fun BosDurum(tumListeBos: Boolean, modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = stringResource(
-                if (tumListeBos) R.string.liste_bos else R.string.filtre_bos
-            ),
+            text = stringResource(mesajRes),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

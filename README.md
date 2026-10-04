@@ -9,11 +9,13 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 - Ödev ekleme / düzenleme / silme (başlık, açıklama, teslim tarihi ve saati)
 - Otomatik durum: **Bekliyor → Gecikti → Tamamlandı**. Durum ayrıca bir iş
   karıştırmadan, listenin çizildiği an `sonTarih`'e göre hesaplanır.
-- Filtre çipleri: Tümü / Geciken / Bugünün / Yaklaşan
+- Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan
 - **Takvim** sekmesi: yatay gün şeridi, seçili günün ödevleri, "Bugün" düğmesi
   şeridi bugüne döndürür
 - Kart üzerindeki onay kutusuyla tek dokunuşta tamamla / geri al
-- Açık ve koyu tema (sistem ayarını izler), dinamik renk kapalı
+- **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu) ve "Tamamlananları
+  gizle"; tercihler cihazda kalıcı saklanır, değişiklik anında uygulanır
+- Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
 
 ## Teknoloji
@@ -39,14 +41,14 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 
 ```
 app/src/main/java/com/odevtakip/app/
-├── MainActivity.kt          # gezinme grafiği + alt menü
-├── data/                    # Room varlıkları, DAO, repository
+├── MainActivity.kt          # gezinme grafiği + alt menü + tema seçimi
+├── data/                    # Room varlıkları, DAO, repository, tercihler
 ├── work/                    # WorkManager işçisi
 ├── util/                    # Türkçe tarih biçimleri, dil sabitleme
 └── ui/
-    ├── OdevViewModel.kt     # tek ViewModel
+    ├── OdevViewModel.kt     # liste ve takvimin VM'si
     ├── OdevKarti.kt         # liste/takvim ekranlarının ortak kartı
-    ├── liste/  takvim/  form/  detay/
+    ├── liste/  takvim/  form/  detay/  ayarlar/
     └── theme/               # Odak Mavisi paleti (açık/koyu)
 ```
 
