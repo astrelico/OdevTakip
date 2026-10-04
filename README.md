@@ -78,3 +78,11 @@ gün şeridi) için kullanılmıştır. Renk paleti mavi tonda tutulmuş; tüm i
 çizim ve bileşenler uygulama içinde Jetpack Compose ile **native** olarak
 yazılmıştır. Tasarımdan hiçbir SVG, PNG veya diğer bir varlık içe
 aktarılmamıştır.
+
+Uygulama ikonu da aynı kuraldadır. `drawable/ic_launcher_background.xml`,
+`ic_launcher_foreground.xml` ve `ic_launcher_monochrome.xml` içindeki çizimler
+(beyaz ödev kartı, onay işareti, "Odak Mavisi" zemin) elle yazılmış
+vektörlerdir. `minSdk` 24 olduğundan adaptive icon'un kullanamadığı API 24/25
+için gereken `mipmap-*/ic_launcher*.png` dosyaları ise `tools/uret-ikon.ps1`
+tarafından **aynı ölçülerden** üretilir — yine içe aktarılmış tek bir görsel
+yoktur.

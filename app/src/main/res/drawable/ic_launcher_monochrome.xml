@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 13+ "temalı ikon" (themed icon) katmanı.
+
+  Sistem bu çizimi alıp duvar kâğıdından türeyen tek bir renge boyar; bu
+  yüzden çizim tek renkten ve alfa kanalından ibaret olmalıdır. Gövdesi
+  opak, içi boş bıraktığımız her yer zeminden görünür.
+
+  Kartın kendisi burada **çizilmez**: dolu bir kart, sistem tarafından
+  tek renge boyandığında içindeki onayı yutardı (delik açmak VectorDrawable
+  ile düzgün yapılamıyor). Geriye kalan tek şey, uygulamanın simgesi olan
+  onay işaretidir — sadeleştirilmiş hâli bu, tıpkı Material'ın kendi
+  temalı ikonlarında olduğu gibi.
+
+  Geometri [com.odevtakip.app]/drawable/ic_launcher_foreground ile aynıdır;
+  yalnızca dolgu yok, kontur var.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M34,54 L46,66 L73,43" />
+</vector>
