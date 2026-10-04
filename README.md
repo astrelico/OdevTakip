@@ -16,7 +16,8 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   al; detay ekranındaki büyük düğme de aynen çalışır
 - **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu), "Tamamlananları
   gizle" ve teslim öncesi hatırlatma aralığı; tercihler cihazda kalıcı
-  saklanır, değişiklik anında uygulanır
+  saklanır, değişiklik anında uygulanır. Bildirim izni kapalıysa hatırlatma
+  kartında uyarı satırı ve sistem ayarlarına kısayol belirir
 - **Teslim öncesi hatırlatma**: Kapalı / 3 saat önce / teslim günü sabahı /
   1 gün önce. Her ödev için tek seferlik iş kurulur; ödev tamamlanınca,
   silinince ya da aralık kapanınca hem iş hem gölgedeki bildirim kaldırılır

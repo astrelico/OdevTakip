@@ -98,6 +98,10 @@
     <string name="hatirlatma_bir_gun">1 gün önce</string>
     <string name="hatirlatma_bir_gun_aciklama">Ertesi gün teslim edilecek ödevler için</string>
 
+    <!-- Bildirim izni durumu (yalnızca izin kapalıyken görünür) -->
+    <string name="ayarlar_izin_kapali">Bildirim izni kapalı — gecikme ve hatırlatma bildirimleri gönderilmiyor.</string>
+    <string name="ayarlar_izin_ac">Bildirim ayarlarını aç</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>

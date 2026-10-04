@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -19,9 +20,11 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,23 +32,30 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
+import com.odevtakip.app.bildirim.BildirimYonetici
 import com.odevtakip.app.data.HatirlatmaAraligi
 import com.odevtakip.app.data.TemaSecenegi
 
 /**
- * Ayarlar: tema, liste görünürlüğü ve teslim öncesi hatırlatma.
+ * Ayarlar: tema, liste görünürlüğü, teslim öncesi hatırlatma ve bildirim izni.
  *
  * Değerler anında uygulanır — burada "Kaydet" yoktur. Seçili tema
  * [com.odevtakip.app.ui.theme.OdevTakipTheme]'ı besleyen akışla aynı
@@ -151,6 +161,9 @@ private fun TemaKarti(
  * Tema kartıyla aynı satır iskeletini kullanır: seçimin **oturumu** farklı olsa
  * da ekranda konuşulan dil tek olmalı. Aralığın uygulanması burada değil,
  * [com.odevtakip.app.OdevTakipApplication]'ın planlama akışındadır.
+ *
+ * Kartın altına [IzinUyarisi] bağlanır: izin kapalıysa seçilen aralık ne
+ * olursa olsun hiçbir bildirim gitmez ve bunun kullanıcıya söylenmesi gerekir.
  */
 @Composable
 private fun HatirlatmaKarti(
@@ -171,6 +184,62 @@ private fun HatirlatmaKarti(
                     onClick = { onSecim(secenek) },
                 )
             }
+        }
+
+        IzinUyarisi()
+    }
+}
+
+// ---- Bildirim izni ----
+
+/**
+ * Bildirim izni kapalıysa kartın altında beliren uyarı satırı ve yönlendirme.
+ *
+ * Ekran **izni istemez**, yalnızca durumu anlatıp kullanıcıyı sisteme götürür.
+ * İki nedenle:
+ *
+ *  1. Android 13+ izin bir kez reddedildikten sonra aynı diyaloğu bir daha
+ *     göstermez. Tek meşru yol sistem ayarıdır; kendiliğinden tekrar denemek
+ *     kullanıcıyı rahatsız eder.
+ *  2. İzin istemek eylem anında yapılmalıdır — ilk ödev kaydında zaten
+ *     yapılıyor. Sayfada otururken istemek doğru zamanlama değildir.
+ *
+ * Durum yalnızca sayfaya ilk gelişte değil, sistem ayarlarından **dönülünce**
+ * de tazelenir. Tazelenmezse kullanıcı izni açıp geri döndüğünde uyarı
+ * görünmeye devam eder ve ayarın işe yaramadığı sanılırdı.
+ *
+ * İzin verilmişse **hiçbir şey çizilmez** — normal kullanıcının gördüğü tek
+ * şey aralık listesidir.
+ */
+@Composable
+private fun IzinUyarisi() {
+    val context = LocalContext.current
+    var izinVar by remember { mutableStateOf(BildirimYonetici.izinVerilmis(context)) }
+
+    LifecycleResumeEffect(Unit) {
+        izinVar = BildirimYonetici.izinVerilmis(context)
+        onPauseOrDispose { }
+    }
+
+    if (!izinVar) {
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(10.dp))
+
+        Text(
+            text = stringResource(R.string.ayarlar_izin_kapali),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+
+        TextButton(onClick = { BildirimYonetici.bildirimAyalariniAc(context) }) {
+            Icon(
+                imageVector = Icons.Rounded.Notifications,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.ayarlar_izin_ac))
         }
     }
 }

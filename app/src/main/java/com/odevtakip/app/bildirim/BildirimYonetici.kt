@@ -8,7 +8,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -261,6 +263,32 @@ object BildirimYonetici {
      */
     fun yaklasaniIptal(context: Context, odevId: Long) {
         NotificationManagerCompat.from(context).cancel(yaklasanId(odevId))
+    }
+
+    /**
+     * Kullanıcıyı sistemin bu uygulamaya ait bildirim ayarlarına götürür.
+     *
+     * Uygulamanın izni kendisi isteyip değiştiremez. Android 13+ izin bir kez
+     * reddedildikten sonra aynı diyaloğu bir daha göstermez — tek meşru yol
+     * kullanıcıyı ayarlara yönlendirmektir. Ayrıca iki kanalın (geciken /
+     * yaklaşan) ayrı ayrı susturulabilmesi de yalnızca orada mümkündür.
+     *
+     * 8.0 öncesi kanal ayarı olmadığından genel uygulama bilgi sayfasına
+     * düşülür.
+     */
+    fun bildirimAyalariniAc(context: Context) {
+        val niyet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", context.packageName, null))
+        }
+
+        // Activity dışı bir bağlamdan çağrılıyorsa ayrı görevde açılması gerekir.
+        if (context !is Activity) niyet.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        context.startActivity(niyet)
     }
 
     /**
