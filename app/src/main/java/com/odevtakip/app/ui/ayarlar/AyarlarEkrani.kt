@@ -2,6 +2,7 @@
 
 package com.odevtakip.app.ui.ayarlar
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,10 +41,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
+import com.odevtakip.app.data.HatirlatmaAraligi
 import com.odevtakip.app.data.TemaSecenegi
 
 /**
- * Ayarlar: tema seçimi ve liste görünürlüğü.
+ * Ayarlar: tema, liste görünürlüğü ve teslim öncesi hatırlatma.
  *
  * Değerler anında uygulanır — burada "Kaydet" yoktur. Seçili tema
  * [com.odevtakip.app.ui.theme.OdevTakipTheme]'ı besleyen akışla aynı
@@ -60,6 +62,7 @@ fun AyarlarEkrani(
 ) {
     val tema by viewModel.tema.collectAsStateWithLifecycle()
     val gizle by viewModel.tamamlananlariGizle.collectAsStateWithLifecycle()
+    val hatirlatma by viewModel.hatirlatma.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -97,6 +100,11 @@ fun AyarlarEkrani(
                 onDegistir = viewModel::tamamlananlariGizleAyarla,
             )
 
+            HatirlatmaKarti(
+                secili = hatirlatma,
+                onSecim = viewModel::hatirlatmaAyarla,
+            )
+
             Text(
                 text = stringResource(R.string.ayarlar_alt_ipucu),
                 style = MaterialTheme.typography.bodySmall,
@@ -124,8 +132,9 @@ private fun TemaKarti(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             TemaSecenegi.entries.forEach { secenek ->
-                TemaSatiri(
-                    secenek = secenek,
+                SecimSatiri(
+                    etiketRes = secenek.etiketRes,
+                    aciklamaRes = secenek.aciklamaRes,
                     secili = secenek == secili,
                     onClick = { onSecim(secenek) },
                 )
@@ -134,9 +143,48 @@ private fun TemaKarti(
     }
 }
 
+// ---- Hatırlatmalar ----
+
+/**
+ * Teslim öncesi hatırlatma aralığı kartı.
+ *
+ * Tema kartıyla aynı satır iskeletini kullanır: seçimin **oturumu** farklı olsa
+ * da ekranda konuşulan dil tek olmalı. Aralığın uygulanması burada değil,
+ * [com.odevtakip.app.OdevTakipApplication]'ın planlama akışındadır.
+ */
 @Composable
-private fun TemaSatiri(
-    secenek: TemaSecenegi,
+private fun HatirlatmaKarti(
+    secili: HatirlatmaAraligi,
+    onSecim: (HatirlatmaAraligi) -> Unit,
+) {
+    AyarKarti(baslik = stringResource(R.string.ayarlar_hatirlatma_baslik),
+        ipucu = stringResource(R.string.ayarlar_hatirlatma_ipucu)) {
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            HatirlatmaAraligi.entries.forEach { secenek ->
+                SecimSatiri(
+                    etiketRes = secenek.etiketRes,
+                    aciklamaRes = secenek.aciklamaRes,
+                    secili = secenek == secili,
+                    onClick = { onSecim(secenek) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Radyo düğmeli seçenek satırı (tema ve hatırlatma kartları ortak kullanır).
+ *
+ * Satırın tamamı `selectable`; işaret kutusunun kendisi tıklanabilir değildir.
+ * Böylece TalkBack satırı tek öğe olarak okur, iki ayrı odak oluşmaz.
+ */
+@Composable
+private fun SecimSatiri(
+    @StringRes etiketRes: Int,
+    @StringRes aciklamaRes: Int,
     secili: Boolean,
     onClick: () -> Unit,
 ) {
@@ -155,11 +203,11 @@ private fun TemaSatiri(
         Spacer(Modifier.width(8.dp))
         Column {
             Text(
-                text = stringResource(secenek.etiketRes),
+                text = stringResource(etiketRes),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                text = stringResource(secenek.aciklamaRes),
+                text = stringResource(aciklamaRes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -1,6 +1,7 @@
 package com.odevtakip.app
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,7 +25,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -74,9 +77,31 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(newBase.turkceyeSabitle())
     }
 
+    /**
+     * Bildirimden gelinen ödev kimliği.
+     *
+     * İki yoldan yazılır: [onCreate] (uygulama kapalıyken dokunulmuşsa) ve
+     * [onNewIntent] (arkadayken dokunulmuşsa). Değer bir kez tüketilince
+     * `null` yapılır; aksi hâlde geri tuşuyla listeye dönüldüğünde aynı
+     * detay yeniden açılırdı.
+     *
+     * Extra ayrıca **okunur okunmaz silinir**. Silinmezse aktivite
+     * öldürülüp yeniden kurulduğunda (kayıt durumu geri yüklenirken) eski
+     * niyet tekrar okunur ve kullanıcı çıktığı yerden değil bildirimden
+     * geldiği yerden başlardı.
+     */
+    private val hedefOdevId = mutableStateOf<Long?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Kayıt durumu geri yükleniyorsa gezinme zaten korunmuştur; niyeti
+        // bir daha işlemek çift gezinme yapardı.
+        if (savedInstanceState == null) {
+            hedefOdevId.value = intent.odevKimligi()
+        }
+
         setContent {
             // Ayarlar ekranındaki tema seçimi bu akıştan okunur; akış anında
             // güncellendiği için seçim uygulamayı yeniden başlatmadan uygulanır.
@@ -86,9 +111,40 @@ class MainActivity : ComponentActivity() {
             OdevTakipTheme(
                 darkTheme = tema.koyuTemayaDonusur(isSystemInDarkTheme()),
             ) {
-                OdevUygulamasi()
+                OdevUygulamasi(
+                    hedefOdevId = hedefOdevId.value,
+                    onHedefTukendi = { hedefOdevId.value = null },
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val kimlik = intent.odevKimligi()
+        setIntent(intent)
+        hedefOdevId.value = kimlik
+    }
+
+    /**
+     * Niyetten ödev kimliğini okur ve extra'yı siler.
+     *
+     * @return Hedef ödev varsa kimliği, yoksa `null`.
+     */
+    private fun Intent.odevKimligi(): Long? {
+        val kimlik = getLongExtra(EXTRA_ODEV_ID, -1L)
+        removeExtra(EXTRA_ODEV_ID)
+        return kimlik.takeIf { it > 0 }
+    }
+
+    companion object {
+        /**
+         * Yaklaşan teslim bildiriminin açtığı ödev.
+         *
+         * [com.odevtakip.app.bildirim.BildirimYonetici] bu anahtarı yazar;
+         * bu yüzden özel olamaz.
+         */
+        const val EXTRA_ODEV_ID = "odevId"
     }
 }
 
@@ -106,9 +162,15 @@ class MainActivity : ComponentActivity() {
  *
  * [OdevViewModel] aktivite kapsamında tek örnek olarak tutulur; böylece
  * filtre, seçili gün ve liste durumu ekranlar arasında kaybolmaz.
+ *
+ * @param hedefOdevId Bildirimden gelinen ödev; `null` ise normal açılış.
+ * @param onHedefTukendi Hedef bir kez işlendikten sonra çağrılır — bkz.
+ *   [MainActivity] içindeki `hedefOdevId`.
  */
 @Composable
 private fun OdevUygulamasi(
+    hedefOdevId: Long?,
+    onHedefTukendi: () -> Unit,
     viewModel: OdevViewModel = viewModel(factory = OdevViewModel.Factory),
 ) {
     val navController = rememberNavController()
@@ -127,6 +189,17 @@ private fun OdevUygulamasi(
             launchSingleTop = true
             restoreState = true
         }
+    }
+
+    // Bildirime dokunulduğunda hedef ödevin detayına in.
+    //
+    // `LaunchedEffect`, bütün kompozisyon uygulandıktan sonra çalışır — yani
+    // NavHost aşağıda çizilip grafını kurduktan sonra. Hedef tükendiğinde
+    // parametre `null` olur ve etki yeniden başlayıp hiçbir şey yapmaz.
+    LaunchedEffect(hedefOdevId) {
+        val id = hedefOdevId ?: return@LaunchedEffect
+        navController.navigate(Rotalar.detay(id)) { launchSingleTop = true }
+        onHedefTukendi()
     }
 
     Scaffold(

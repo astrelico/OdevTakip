@@ -55,6 +55,45 @@ enum class TemaSecenegi(
 }
 
 /**
+ * Teslim öncesi hatırlatma aralığı.
+ *
+ * Her seçenek teslim anına göre farklı bir "önceden" tanımladığı için sabit bir
+ * milisaniye listesi yerine semantik adlar kullanılır; hangi ana hangi an
+ * karşılık geldiğini tek noktada [com.odevtakip.app.work.HatirlatmaZamanlayici]
+ * söyler.
+ *
+ * Varsayılan [UC_SAAT]: ödevlerin çoğu akşam teslim edildiği için günün içinde
+ * anlamlı bir an — günün son saatlerinde ya da okul öncesinde değil.
+ */
+enum class HatirlatmaAraligi(
+    @StringRes val etiketRes: Int,
+    @StringRes val aciklamaRes: Int,
+) {
+    /** Sadece mevcut davranış: süre geçince bildirim. */
+    KAPALI(R.string.hatirlatma_kapali, R.string.hatirlatma_kapali_aciklama),
+
+    /** Teslimden 3 saat önce. */
+    UC_SAAT(R.string.hatirlatma_uc_saat, R.string.hatirlatma_uc_saat_aciklama),
+
+    /** Teslim gününün sabahı, okuldan önce. */
+    SABAH(R.string.hatirlatma_sabah, R.string.hatirlatma_sabah_aciklama),
+
+    /** Teslimden bir gün önce, aynı saatte. */
+    BIR_GUN(R.string.hatirlatma_bir_gun, R.string.hatirlatma_bir_gun_aciklama);
+
+    companion object {
+        /**
+         * Depodaki metni çözer; bilinmeyen değer sessizce varsayılana döner.
+         *
+         * Aynı caydırma [TemaSecenegi.guvenliDeger] içindedir: güncellemede
+         * anahtar değişse bile uygulama hatırlatmasız kalmaz, sessizce varsayılana geçer.
+         */
+        fun guvenliDeger(metin: String?): HatirlatmaAraligi =
+            entries.firstOrNull { it.name == metin } ?: UC_SAAT
+    }
+}
+
+/**
  * Kalıcı kullanıcı tercihleri (SharedPreferences).
  *
  * Neden DataStore değil? Tek bir seçenek + tek bir bayrak var; `apply()`
@@ -77,6 +116,18 @@ class Tercihler(context: Context) {
     private val _tamamlananlariGizle = MutableStateFlow(depo.getBoolean(ANAHTAR_GIZLE, false))
     val tamamlananlariGizle: StateFlow<Boolean> = _tamamlananlariGizle.asStateFlow()
 
+    /**
+     * Teslim öncesi hatırlatma aralığı.
+     *
+     * Akış olması burada kritik: değer değiştiğinde
+     * [com.odevtakip.app.OdevTakipApplication] bunu izleyip tüm hatırlatmaları
+     * yeniden planlar — ekranın ayrıca bir şey yapması gerekmez.
+     */
+    private val _hatirlatma = MutableStateFlow(
+        HatirlatmaAraligi.guvenliDeger(depo.getString(ANAHTAR_HATIRLATMA, null))
+    )
+    val hatirlatma: StateFlow<HatirlatmaAraligi> = _hatirlatma.asStateFlow()
+
     fun temaAyarla(secenek: TemaSecenegi) {
         _tema.value = secenek
         depo.edit().putString(ANAHTAR_TEMA, secenek.name).apply()
@@ -87,9 +138,15 @@ class Tercihler(context: Context) {
         depo.edit().putBoolean(ANAHTAR_GIZLE, deger).apply()
     }
 
+    fun hatirlatmaAyarla(secenek: HatirlatmaAraligi) {
+        _hatirlatma.value = secenek
+        depo.edit().putString(ANAHTAR_HATIRLATMA, secenek.name).apply()
+    }
+
     private companion object {
         const val DOSYA_ADI = "tercihler"
         const val ANAHTAR_TEMA = "tema"
         const val ANAHTAR_GIZLE = "tamamlananlari_gizle"
+        const val ANAHTAR_HATIRLATMA = "hatirlatma"
     }
 }

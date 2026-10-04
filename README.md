@@ -14,10 +14,16 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   şeridi bugüne döndürür
 - Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
   al; detay ekranındaki büyük düğme de aynen çalışır
-- **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu) ve "Tamamlananları
-  gizle"; tercihler cihazda kalıcı saklanır, değişiklik anında uygulanır
+- **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu), "Tamamlananları
+  gizle" ve teslim öncesi hatırlatma aralığı; tercihler cihazda kalıcı
+  saklanır, değişiklik anında uygulanır
+- **Teslim öncesi hatırlatma**: Kapalı / 3 saat önce / teslim günü sabahı /
+  1 gün önce. Her ödev için tek seferlik iş kurulur; ödev tamamlanınca,
+  silinince ya da aralık kapanınca hem iş hem gölgedeki bildirim kaldırılır
+- Hatırlatma bildirimine dokununca doğrudan o ödevin **detay** ekranı açılır
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
+  ve teslim öncesi hatırlatmalar
 
 ## Teknoloji
 
@@ -43,8 +49,10 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 ```
 app/src/main/java/com/odevtakip/app/
 ├── MainActivity.kt          # gezinme grafiği + alt menü + tema seçimi
+├── OdevTakipApplication.kt  # yaşam döngüsü kökü: senkron + hatırlatma planı
 ├── data/                    # Room varlıkları, DAO, repository, tercihler
-├── work/                    # WorkManager işçisi
+├── work/                    # WorkManager: durum senkronu + hatırlatma
+├── bildirim/                # kanallar, bildirim içeriği, derin bağlantı
 ├── util/                    # Türkçe tarih biçimleri, dil sabitleme
 └── ui/
     ├── OdevViewModel.kt     # liste ve takvimin VM'si

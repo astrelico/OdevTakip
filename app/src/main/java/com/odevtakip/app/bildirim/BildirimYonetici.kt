@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -16,17 +17,28 @@ import androidx.core.content.ContextCompat
 import com.odevtakip.app.MainActivity
 import com.odevtakip.app.R
 import com.odevtakip.app.data.Odev
+import com.odevtakip.app.util.formatliSaat
+import com.odevtakip.app.util.formatliTarih
 
 /**
- * Geciken ödev bildirimlerini yönetir: kanal oluşturur, izin ister, bildirim atar.
+ * Ödev bildirimlerini yönetir: kanalları oluşturur, izin ister, bildirim atar.
  *
- * Kapsam bilinçli olarak dar tutuldu:
- *  - **Tek bir kanal** — kullanıcı ayarlardan toptan açıp kapatabilsin.
- *  - **Yalnızca geçiş anında** bildirim: `DurumGuncelleWorker` yeni bir ödev
- *    geciktiğinde çağırır. Zaten gecikmiş ödevler her periyotta **tekrar
- *    hatırlatılmaz**; bu, uygulamayı spam'e çevirirdi.
- *  - Bildirim merkezine dokununca uygulama açılır (derin bağlantı bilinçli
- *    olarak yalnızca ana ekrana — kapsamı küçük tutmak için).
+ * Kapsam iki bildirim türü ve **iki kanal** ile sınırlı:
+ *
+ *  - **Geciken ödevler** ([KANAL_ID]) — yalnızca geçiş anında çalışır:
+ *    [com.odevtakip.app.work.DurumGuncelleWorker] yeni bir ödev geciktiğinde
+ *    çağırır. Zaten gecikmiş ödevler her periyotta **tekrar hatırlatılmaz**;
+ *    bu, uygulamayı spam'e çevirirdi.
+ *
+ *  - **Yaklaşan teslimler** ([YAKLASAN_KANAL_ID]) — tesliminden önce tek sefer
+ *    ([com.odevtakip.app.work.HatirlatmaZamanlayici] planlar,
+ *    [com.odevtakip.app.work.HatirlatmaWorker] gönderir). Ayrı kanal olması
+ *    bilinçlidir: kullanıcı yaklaşanı susturup gecikenleri açık bırakabilsin.
+ *
+ * Kanalların ayrı olması, derin bağlantının da ayrı olması demek: gecikme
+ * bildirimi bir **grup** bildirimidir (tek bir hedefe inemez) ve ana ekrana
+ * açılır; yaklaşan teslim bildirimi tek bir ödevi anlatır ve doğrudan o
+ * ödevin **detayına** iner.
  */
 object BildirimYonetici {
 
@@ -37,10 +49,38 @@ object BildirimYonetici {
      */
     const val KANAL_ID = "geciken_odevler"
 
+    /**
+     * Yaklaşan teslim bildirimlerinin kanal kimliği.
+     *
+     * Ayrı kanal, Android'in kullanıcıya tanıdığı ayrı susturma anahtarı
+     * demektir — ikisi tek kanalda toplansaydı "ödev gecikince haber ver ama
+     * önceden uyarma" seçilemezdi.
+     */
+    const val YAKLASAN_KANAL_ID = "yaklasan_teslim"
+
     /** Bildirim kimliği. Dışa açıktır; testler aktif bildirimi bununla bulur. */
     const val BILDIRIM_ID = 1001
 
+    /**
+     * Yaklaşan teslim bildirimlerinin kimlik tabanı.
+     *
+     * Her ödev kendi kimliğini alır (`taban + ödev kimliği`); böylece iki
+     * ödev aynı anda yaklaşsa birbirinin bildirimini ezmezler ve tek tek
+     * iptal edilebilirler. `BILDIRIM_ID` ile çakışmaz.
+     */
+    const val YAKLASAN_ID_BASLANGIC = 2000
+
     private const val IZIN_ISTEK_KODU = 4401
+
+    /**
+     * Ana ekran (extra'sız) açılış niyetinin istek kodu.
+     *
+     * `PendingIntent`, aynı istek kodu + aynı bileşen verildiğinde tek kayıtta
+     * birleşir ve en son yazılan **extra**'lar hepsine uygulanır. Bu yüzden
+     * gecikme bildirimi (ana ekrana açılır) ile yaklaşan teslim bildirimi
+     * (bir ödevin detayına açılır) **farklı** kodlar kullanmak zorundadır.
+     */
+    private const val ANA_ISTEK_KODU = 0
 
     // İzin en fazla bir kez istenir; kullanıcı reddettikten sonra tekrar
     // sorulmaz (sistem de sormaz, ama uygulama da ısrar etmez).
@@ -50,20 +90,36 @@ object BildirimYonetici {
     // ---- Kanal ----
 
     /**
-     * Bildirim kanalını oluşturur. Android 8.0 (API 26) öncesi kanal gerektirmez.
+     * Bildirim kanallarını oluşturur. Android 8.0 (API 26) öncesi kanal gerekmez.
      *
      * [com.odevtakip.app.OdevTakipApplication.onCreate] içinde, ilk bildirimden
-     * **önce** çağrılır — kanal yoksa bildirim sessizce kaybolur.
+     * **önce** çağrılır — kanal yoksa bildirim sessizce kaybolur. Aynı fonksiyon
+     * iki kanalı da açar; ayrı ayrı çağırmak unutulan kanal demektir.
      */
     fun kanaliOlustur(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
+        kanalEkle(context, KANAL_ID, R.string.bildirim_kanal_adi, R.string.bildirim_kanal_tanimi)
+        kanalEkle(
+            context,
+            YAKLASAN_KANAL_ID,
+            R.string.bildirim_yaklasan_kanal_adi,
+            R.string.bildirim_yaklasan_kanal_tanimi,
+        )
+    }
+
+    private fun kanalEkle(
+        context: Context,
+        kimlik: String,
+        @StringRes adRes: Int,
+        @StringRes tanimRes: Int,
+    ) {
         val kanal = NotificationChannel(
-            KANAL_ID,
-            context.getString(R.string.bildirim_kanal_adi),
+            kimlik,
+            context.getString(adRes),
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = context.getString(R.string.bildirim_kanal_tanimi)
+            description = context.getString(tanimRes)
         }
 
         context.getSystemService(NotificationManager::class.java)
@@ -133,7 +189,7 @@ object BildirimYonetici {
             .setSmallIcon(R.drawable.ic_bildirim_odev)
             .setContentTitle(baslik)
             .setContentText(satir)
-            .setContentIntent(acilisNiyeti(context))
+            .setContentIntent(acilisNiyeti(context, odevId = null, istekKodu = ANA_ISTEK_KODU))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
@@ -155,14 +211,82 @@ object BildirimYonetici {
         NotificationManagerCompat.from(context).notify(BILDIRIM_ID, bildirim)
     }
 
-    /** Bildirime dokununca ana ekranı açar. */
-    private fun acilisNiyeti(context: Context): PendingIntent {
+    // ---- Yaklaşan teslim ----
+
+    /**
+     * Tek bir ödev için teslim öncesi hatırlatma bildirimi gönderir.
+     *
+     * Gecikme bildiriminin aksine burada tek bir hedef vardır, bu yüzden
+     * derin bağlantı anlamlıdır: dokunulduğunda doğrudan o ödevin detayı açılır.
+     *
+     * Metin **mutlak** tarih verir ("Son teslim: 5 Eki 2026 23:59"), göreli
+     * değil: bildirim gölgede saatlerce yatabilir ve "Bugün" o an bayatlamış
+     * olur.
+     *
+     * İzin yoksa **geri dönüp `false` döner** — hatırlatma bir ikramiyedir,
+     * veri yazmak değil. Dönen değer önemli: çağıran Worker aksi hâlde
+     * "bildirildi" diye loglayıp kuyruktaki işi başarılı sanırdı ve neden
+     * bildirim gitmediği anlaşılamazdı.
+     *
+     * @return Bildirim gerçekten sistemden geçtiyse `true`.
+     */
+    fun yaklasanBildir(context: Context, odev: Odev): Boolean {
+        if (!izinVerilmis(context)) return false
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+
+        val teslim = "${odev.sonTarih.formatliTarih()} ${odev.sonTarih.formatliSaat()}"
+
+        val bildirim = NotificationCompat.Builder(context, YAKLASAN_KANAL_ID)
+            .setSmallIcon(R.drawable.ic_bildirim_odev)
+            .setContentTitle(odev.baslik)
+            .setContentText(context.getString(R.string.bildirim_yaklasan_metin, teslim))
+            .setContentIntent(acilisNiyeti(context, odev.id, yaklasanId(odev.id)))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        NotificationManagerCompat.from(context)
+            .notify(yaklasanId(odev.id), bildirim)
+
+        return true
+    }
+
+    /**
+     * Bir ödevin bekleyen teslim öncesi bildirimini kaldırır.
+     *
+     * [com.odevtakip.app.work.HatirlatmaZamanlayici] bunu, ödev artık
+     * hatırlatılmaya değer olmadığında (tamamlandı, silindi ya da süresi
+     * geçti) çağırır. Bildirim gölgede duruyorsa burada temizlenir; yoksa
+     * eski bir tarih göstermeye devam ederdi.
+     */
+    fun yaklasaniIptal(context: Context, odevId: Long) {
+        NotificationManagerCompat.from(context).cancel(yaklasanId(odevId))
+    }
+
+    /**
+     * Ödevin teslim öncesi bildirimi için kullanılan tekil sayı.
+     *
+     * Hem bildirim kimliği hem de açılış niyetinin istek kodu olabilir: ikisi
+     * farklı alanlardır ve bu ödev için **aynı** sayıyı taşımak sakıncasızdır —
+     * asıl şart, birbirinden farklı ödevlerin birbirini ezmemesidir.
+     */
+    private fun yaklasanId(odevId: Long): Int = YAKLASAN_ID_BASLANGIC + odevId.toInt()
+
+    /** Bildirime dokunulunca açılacak niyet; `odevId` verilirse detaya iner. */
+    private fun acilisNiyeti(
+        context: Context,
+        odevId: Long?,
+        istekKodu: Int,
+    ): PendingIntent {
         val niyet = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (odevId != null && odevId > 0) {
+                putExtra(MainActivity.EXTRA_ODEV_ID, odevId)
+            }
         }
         return PendingIntent.getActivity(
             context,
-            0,
+            istekKodu,
             niyet,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

@@ -86,9 +86,24 @@
     <string name="gizleme_aciklama">Biten ödevler listede ve çip sayımlarında gösterilmez.</string>
     <string name="ayarlar_alt_ipucu">Tercihler bu cihazda saklanır.</string>
 
+    <!-- Teslim öncesi hatırlatma -->
+    <string name="ayarlar_hatirlatma_baslik">Hatırlatmalar</string>
+    <string name="ayarlar_hatirlatma_ipucu">Tesliminden ne kadar önce hatırlatılsın?</string>
+    <string name="hatirlatma_kapali">Kapalı</string>
+    <string name="hatirlatma_kapali_aciklama">Yalnızca süre geçtiğinde bildirim gönderilir</string>
+    <string name="hatirlatma_uc_saat">3 saat önce</string>
+    <string name="hatirlatma_uc_saat_aciklama">Bugün teslim edilecek ödevler için</string>
+    <string name="hatirlatma_sabah">Teslim günü sabahı</string>
+    <string name="hatirlatma_sabah_aciklama">Okuldan önce, sabah 08:00\'de</string>
+    <string name="hatirlatma_bir_gun">1 gün önce</string>
+    <string name="hatirlatma_bir_gun_aciklama">Ertesi gün teslim edilecek ödevler için</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>
     <string name="bildirim_tek_metin">Son teslim tarihi geçti</string>
     <string name="bildirim_cok_baslik">%1$d ödev gecikti</string>
+    <string name="bildirim_yaklasan_kanal_adi">Yaklaşan teslimler</string>
+    <string name="bildirim_yaklasan_kanal_tanimi">Teslimine kısa süre kalan ödevleri önceden hatırlatır</string>
+    <string name="bildirim_yaklasan_metin">Son teslim: %1$s</string>
 </resources>
