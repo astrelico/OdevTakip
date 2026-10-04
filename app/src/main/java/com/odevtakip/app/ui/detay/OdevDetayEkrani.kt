@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -122,6 +124,9 @@ fun OdevDetayEkrani(
                         }
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
             )
         },
         bottomBar = {
@@ -204,8 +209,9 @@ private fun OdevIcerik(odev: Odev, modifier: Modifier = Modifier) {
         Card(
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
-                containerColor = renk.copy(alpha = 0.10f)
+                containerColor = MaterialTheme.colorScheme.surface
             ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),
@@ -308,7 +314,12 @@ private fun TamamlaDugmesi(
     onTamamla: () -> Unit,
     onGeriAl: () -> Unit,
 ) {
-    Surface(tonalElevation = 3.dp) {
+    // Dış Scaffold'ta contentWindowInsets sıfırlandığı için alt çubuk
+    // sistem navigasyon çubuğunun altına düşer; burada kendi payını alır.
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.navigationBarsPadding(),
+    ) {
         val tamamlandi = odev.durum == Durum.TAMAMLANDI
         Button(
             onClick = if (tamamlandi) onGeriAl else onTamamla,

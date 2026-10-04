@@ -16,6 +16,16 @@ import androidx.compose.ui.unit.sp
 /**
  * Ödev Takip'in görsel teması — "Odak Mavisi".
  *
+ * ### Yüzey ayrımı
+ * `background` ve `surface` **bilerek farklı** tutuluyor:
+ *
+ *  - `background`: ekranın zemini (açık temada hafif gri-lavanta).
+ *  - `surface`: ekranda duran nesnelerin zemini — beyaz kart, diyalog, alan.
+ *
+ * Böylece "beyaz kart, açık zemin" düzeni her iki temada da aynı yöne çalışır:
+ * açık temada kart zeminden *açık*, koyu temada kart zeminden *açık* kalır.
+ * `background == surface` olduğu sürece kartlar zemine yapışık görünürdü.
+ *
  * ### Renkler
  * Ana renk, ders/odak çağrıştıran **lacivert-mavi**. Yanında arka plana çok
  * az mavi bulaşan, gözün kolay yorulduğu uzun listeler için neredeyse nötr bir
@@ -65,21 +75,23 @@ private val AcikRenkler = lightColorScheme(
     tertiaryContainer = Color(0xFFFFE9A8),
     onTertiaryContainer = Color(0xFF221A00),
 
-    background = Color(0xFFF8F9FF),
+    // Zemin, kartlardan (surface) bir tık koyu olmalı; kartlar böylece
+    // hem renk hem de gölge ile zeminden ayrılır.
+    background = Color(0xFFE8EAF3),
     onBackground = Color(0xFF1A1C22),
-    surface = Color(0xFFF8F9FF),
+    surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF1A1C22),
     surfaceVariant = Color(0xFFE0E2EC),
     onSurfaceVariant = Color(0xFF44474F),
 
     // Yüzey merdiveni: açık temada yükseltilmiş yüzeyler yüzeyin *karartır*.
     surfaceDim = Color(0xFFD8DAE8),
-    surfaceBright = Color(0xFFF8F9FF),
+    surfaceBright = Color(0xFFFFFFFF),
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF2F3FD),
-    surfaceContainer = Color(0xFFECEDF7),
-    surfaceContainerHigh = Color(0xFFE7E8F1),
-    surfaceContainerHighest = Color(0xFFE1E2EB),
+    surfaceContainerLow = Color(0xFFF5F6FD),
+    surfaceContainer = Color(0xFFEFF0FA),
+    surfaceContainerHigh = Color(0xFFE9EBF4),
+    surfaceContainerHighest = Color(0xFFE3E5EE),
 
     inverseSurface = Color(0xFF2F3138),
     inverseOnSurface = Color(0xFFF1F0F7),
@@ -127,21 +139,23 @@ private val KoyuRenkler = darkColorScheme(
     tertiaryContainer = Color(0xFF574500),
     onTertiaryContainer = Color(0xFFFFE9A8),
 
-    background = Color(0xFF11141A),
+    // Koyu temada da aynı yön geçerli: zemin kartsız alandan daha koyu,
+    // kart (surface) daha açık. Gölge görünmediği için farkın kendisi taşırır.
+    background = Color(0xFF0A0C11),
     onBackground = Color(0xFFE2E2E9),
-    surface = Color(0xFF11141A),
+    surface = Color(0xFF1A1D24),
     onSurface = Color(0xFFE2E2E9),
     surfaceVariant = Color(0xFF44474F),
     onSurfaceVariant = Color(0xFFC4C6D0),
 
     // Koyu temada merdiven tersine döner: yükseltilmiş yüzeyler yüzeyin *açılır*.
-    surfaceDim = Color(0xFF0C0F14),
-    surfaceBright = Color(0xFF373941),
-    surfaceContainerLowest = Color(0xFF0B0E14),
-    surfaceContainerLow = Color(0xFF191C22),
-    surfaceContainer = Color(0xFF1D2026),
-    surfaceContainerHigh = Color(0xFF282B31),
-    surfaceContainerHighest = Color(0xFF33363C),
+    surfaceDim = Color(0xFF05070A),
+    surfaceBright = Color(0xFF41444C),
+    surfaceContainerLowest = Color(0xFF14171C),
+    surfaceContainerLow = Color(0xFF202329),
+    surfaceContainer = Color(0xFF24272D),
+    surfaceContainerHigh = Color(0xFF2A2E36),
+    surfaceContainerHighest = Color(0xFF30343D),
 
     inverseSurface = Color(0xFFE2E2E9),
     inverseOnSurface = Color(0xFF2F3138),
@@ -218,6 +232,9 @@ private val OdevSekilleri = Shapes(
  *
  * Dinamik renk (Material You) **kasten kapalıdır**: kullanıcı sistem rengini
  * seçtiğinde de uygulamanın okunabilir, tasarlanmış kimliği korunur.
+ *
+ * İleride ayarlar ekranında elle tema seçimi eklenecek; o zaman bu tek
+ * parametre kullanıcı tercihine bağlanır, renk paleti olduğu gibi kalır.
  */
 @Composable
 fun OdevTakipTheme(

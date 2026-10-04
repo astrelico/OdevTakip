@@ -20,20 +20,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -70,6 +74,10 @@ private const val GUN_MS = 86_400_000L
  *
  * Tarih/saat tek bir `Long` (epoch millis) olarak saklanır; dönüşümler
  * [tarihSaatiniDonustur] üzerinden yapılır, böylece saat dilimi kayması olmaz.
+ *
+ * Kaydetme üst barda değil, formun **sonunda tam genişlikte** duruyor:
+ * referans tasarımdaki gibi ve başparmak erişiminde. Üst barda yalnızca geri
+ * düğmesi kalır.
  */
 @Composable
 fun OdevFormEkrani(
@@ -139,11 +147,9 @@ fun OdevFormEkrani(
                         )
                     }
                 },
-                actions = {
-                    TextButton(onClick = ::kaydet) {
-                        Text(stringResource(R.string.kaydet))
-                    }
-                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
             )
         },
     ) { innerPadding ->
@@ -156,38 +162,27 @@ fun OdevFormEkrani(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(
-                value = baslik,
-                onValueChange = {
+            Alan(
+                deger = baslik,
+                onDegisim = {
                     baslik = it
                     if (it.isNotBlank()) baslikHatasi = false
                 },
-                label = { Text(stringResource(R.string.alan_baslik)) },
-                placeholder = { Text(stringResource(R.string.alan_baslik_ipucu)) },
-                singleLine = true,
-                isError = baslikHatasi,
-                supportingText = if (baslikHatasi) {
-                    { Text(stringResource(R.string.baslik_zorunlu)) }
-                } else {
-                    null
-                },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier.fillMaxWidth(),
+                etiket = stringResource(R.string.alan_baslik),
+                ipucu = stringResource(R.string.alan_baslik_ipucu),
+                tekSatir = true,
+                hata = if (baslikHatasi) stringResource(R.string.baslik_zorunlu) else null,
+                imeAction = ImeAction.Next,
             )
 
-            OutlinedTextField(
-                value = aciklama,
-                onValueChange = { aciklama = it },
-                label = { Text(stringResource(R.string.alan_aciklama)) },
-                placeholder = { Text(stringResource(R.string.alan_aciklama_ipucu)) },
-                minLines = 3,
-                maxLines = 6,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    imeAction = ImeAction.Default,
-                ),
-                modifier = Modifier.fillMaxWidth(),
+            Alan(
+                deger = aciklama,
+                onDegisim = { aciklama = it },
+                etiket = stringResource(R.string.alan_aciklama),
+                ipucu = stringResource(R.string.alan_aciklama_ipucu),
+                tekSatir = false,
+                satirlar = 3,
+                imeAction = ImeAction.Default,
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -204,6 +199,19 @@ fun OdevFormEkrani(
                     ikon = Icons.Rounded.Schedule,
                     onClick = { saatDialogGoster = true },
                     modifier = Modifier.weight(1f),
+                )
+            }
+
+            Button(
+                onClick = ::kaydet,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Text(
+                    text = stringResource(R.string.kaydet),
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
         }
@@ -235,6 +243,56 @@ fun OdevFormEkrani(
 private fun baslangicTarihi(): Long =
     tarihSaatiniDonustur(LocalDate.now(), LocalTime.of(23, 59))
 
+// ---- Metin alanları ----
+
+/**
+ * Tek metin alanı.
+ *
+ * Zemini bilinçli olarak `surface` (açık temada beyaz) yapılıyor: ekran zemini
+ * `background` olduğundan alanlar zeminden ayrılır, referanstaki gibi okunur.
+ */
+@Composable
+private fun Alan(
+    deger: String,
+    onDegisim: (String) -> Unit,
+    etiket: String,
+    ipucu: String,
+    tekSatir: Boolean,
+    imeAction: ImeAction,
+    modifier: Modifier = Modifier,
+    hata: String? = null,
+    satirlar: Int = 1,
+) {
+    val renkler = MaterialTheme.colorScheme
+    val alanRenkleri = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = renkler.surface,
+        unfocusedContainerColor = renkler.surface,
+        disabledContainerColor = renkler.surface,
+        errorContainerColor = renkler.surface,
+    )
+
+    OutlinedTextField(
+        value = deger,
+        onValueChange = onDegisim,
+        label = { Text(etiket) },
+        placeholder = { Text(ipucu) },
+        singleLine = tekSatir,
+        minLines = if (tekSatir) 1 else satirlar,
+        maxLines = if (tekSatir) 1 else satirlar + 3,
+        isError = hata != null,
+        supportingText = if (hata != null) {
+            { Text(hata) }
+        } else {
+            null
+        },
+        colors = alanRenkleri,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            imeAction = imeAction,
+        ),
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
 // ---- Tarih/saat seçici düğmeleri ----
 
 @Composable
@@ -245,7 +303,15 @@ private fun TarihSaatSecici(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedCard(onClick = onClick, modifier = modifier) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,

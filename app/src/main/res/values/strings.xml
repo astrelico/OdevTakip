@@ -10,8 +10,17 @@
     <string name="yeni_odev_ekle">Yeni ödev ekle</string>
     <string name="odev_sayisi">%1$d ödev</string>
 
-    <string name="liste_bos">Henüz ödev yok.\nSağ alttaki + düğmesiyle ilk ödevini ekle.</string>
+    <string name="liste_bos">Henüz ödev yok.\nAlttaki + düğmesiyle ilk ödevini ekle.</string>
     <string name="filtre_bos">Bu filtrede ödev yok.</string>
+
+    <!-- Alt menü -->
+    <string name="nav_odevler">Ödevler</string>
+    <string name="nav_takvim">Takvim</string>
+
+    <!-- Takvim -->
+    <string name="takvim_baslik">Takvim</string>
+    <string name="takvim_gun_etiketi">%1$s, %2$s</string>
+    <string name="takvim_bos">Bu günde ödev yok.</string>
 
     <!-- Durumlar -->
     <string name="durum_bekliyor">Bekliyor</string>

@@ -10,6 +10,8 @@ import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
+import com.odevtakip.app.util.yerelTarih
+import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,6 +58,38 @@ class OdevViewModel(private val repository: OdevRepository) : ViewModel() {
             SharingStarted.WhileSubscribed(5_000),
             OdevFiltresi.entries.associateWith { 0 }
         )
+
+    // ---- Takvim ----
+
+    /**
+     * Takvim ekranının seçili günü.
+     *
+     * Tek örnek olarak tutulur; kullanıcı liste sekmesine geçip geri döndüğünde
+     * seçtiği gün kaybolmaz.
+     */
+    private val _seciliGun = MutableStateFlow(LocalDate.now())
+    val seciliGun: StateFlow<LocalDate> = _seciliGun.asStateFlow()
+
+    /** Seçili günün ödevleri, teslim saatine göre artan (bitenler en sonda). */
+    val gununOdevleri: StateFlow<List<Odev>> = _seciliGun
+        .flatMapLatest { gun ->
+            repository.tumOdevleri().map { it.guneGore(gun) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Güne göre ödev sayısı — tarih şeridindeki nokta göstergesi için.
+     *
+     * Tamamlanmış ödevler de sayılır; nokta "bu günde kayıt var" der,
+     * durum bilgisini rozet zaten veriyor.
+     */
+    val gunSayilari: StateFlow<Map<LocalDate, Int>> = repository.tumOdevleri()
+        .map { liste -> liste.groupingBy { it.sonTarih.yerelTarih() }.eachCount() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    fun gunAyarla(gun: LocalDate) {
+        _seciliGun.value = gun
+    }
 
     /** Detay ekranının izlediği ödev. Silinirse null olur. */
     private val _seciliOdevYuklendi = MutableStateFlow(false)
@@ -195,4 +229,18 @@ private fun List<Odev>.suzulVeSirala(filtre: OdevFiltresi): List<Odev> {
         .sortedByDescending { it.sonTarih }
 
     return bekleyenler + tamamlananlar
+}
+
+/**
+ * Bir güne düşen ödevler, takvim listesinin sırası.
+ *
+ * Sıralama kuralı listeyle aynı: bekleyenler önce (teslim saatine göre artan),
+ * tamamlananlar sonra. Gün içinde hangi ödevin önce ele alınacağı böylece
+ * hem listede hem takvimde aynı olur.
+ */
+private fun List<Odev>.guneGore(gun: LocalDate): List<Odev> {
+    val uygun = filter { it.sonTarih.yerelTarih() == gun }
+    return uygun.sortedWith(
+        compareBy({ it.durum == Durum.TAMAMLANDI }, { it.sonTarih })
+    )
 }

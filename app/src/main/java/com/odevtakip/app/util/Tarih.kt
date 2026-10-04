@@ -17,10 +17,16 @@ import java.util.Locale
  */
 
 private val yerelSaatDilimi: ZoneId get() = ZoneId.systemDefault()
-private val tr: Locale = Locale("tr")
+private val tr: Locale = Locale.forLanguageTag("tr")
 
 private val tarihBicim = DateTimeFormatter.ofPattern("d MMM yyyy", tr)
 private val saatBicim = DateTimeFormatter.ofPattern("HH:mm", tr)
+
+// Takvim ekranı için uzun biçimler.
+private val gunKisaBicim = DateTimeFormatter.ofPattern("EEE", tr)
+private val gunUzunBicim = DateTimeFormatter.ofPattern("EEEE", tr)
+private val ayBicim = DateTimeFormatter.ofPattern("MMMM yyyy", tr)
+private val uzunTarihBicim = DateTimeFormatter.ofPattern("d MMMM yyyy", tr)
 
 /** Tarih yaklaşımlarını betimler; arayüz bunu metne çevirir. */
 enum class TarihYaklasimi { BUGUN, YARIN, DUN, UZAK }
@@ -50,6 +56,18 @@ fun Long.formatliTarih(): String = yerelTarih().format(tarihBicim)
 
 /** "14:30" biçiminde yerel saat metni üretir. */
 fun Long.formatliSaat(): String = yerelSaat().format(saatBicim)
+
+/** "Cmt" biçiminde günün kısa adını üretir — takvim şeridi üstü. */
+fun LocalDate.gunKisaAdi(): String = format(gunKisaBicim)
+
+/** "Cumartesi" biçiminde günün uzun adını üretir. */
+fun LocalDate.gunUzunAdi(): String = format(gunUzunBicim)
+
+/** "Ekim 2026" biçiminde ay ve yılı üretir. */
+fun LocalDate.ayAdiVeYili(): String = format(ayBicim)
+
+/** "3 Ekim 2026" biçiminde tam tarih metni üretir. */
+fun LocalDate.tarihMetni(): String = format(uzunTarihBicim)
 
 /**
  * Tarihin bugüne göre yaklaşımını döndürür.
