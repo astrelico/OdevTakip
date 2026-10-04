@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "068b88262b8542baae442d4f649e4e4c",
+    "entities": [
+      {
+        "tableName": "odevler",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `baslik` TEXT NOT NULL, `aciklama` TEXT NOT NULL, `sonTarih` INTEGER NOT NULL, `durum` TEXT NOT NULL, `olusturmaTarihi` INTEGER NOT NULL, `tamamlanmaTarihi` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baslik",
+            "columnName": "baslik",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aciklama",
+            "columnName": "aciklama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sonTarih",
+            "columnName": "sonTarih",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durum",
+            "columnName": "durum",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "olusturmaTarihi",
+            "columnName": "olusturmaTarihi",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tamamlanmaTarihi",
+            "columnName": "tamamlanmaTarihi",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '068b88262b8542baae442d4f649e4e4c')"
+    ]
+  }
+}

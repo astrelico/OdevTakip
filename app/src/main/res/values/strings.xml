@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">Ödev Takip</string>
+
+    <!-- Ana liste -->
+    <string name="liste_baslik">Ödev Takip</string>
+    <string name="filtre_tumu">Tümü</string>
+    <string name="filtre_geciken">Geciken</string>
+    <string name="filtre_bugun">Bugün</string>
+    <string name="filtre_yaklasan">Yaklaşan</string>
+    <string name="yeni_odev_ekle">Yeni ödev ekle</string>
+    <string name="odev_sayisi">%1$d ödev</string>
+
+    <string name="liste_bos">Henüz ödev yok.\nSağ alttaki + düğmesiyle ilk ödevini ekle.</string>
+    <string name="filtre_bos">Bu filtrede ödev yok.</string>
+
+    <!-- Durumlar -->
+    <string name="durum_bekliyor">Bekliyor</string>
+    <string name="durum_gecikti">Gecikti</string>
+    <string name="durum_tamamlandi">Tamamlandı</string>
+
+    <!-- Göreli tarihler -->
+    <string name="bugun">Bugün</string>
+    <string name="yarin">Yarın</string>
+    <string name="dun">Dün</string>
+
+    <!-- Ödev formu -->
+    <string name="odev_ekle">Ödev Ekle</string>
+    <string name="odev_duzenle">Ödevi Düzenle</string>
+    <string name="alan_baslik">Ödev başlığı</string>
+    <string name="alan_baslik_ipucu">Örn. Matematik 3. ünite soruları</string>
+    <string name="alan_aciklama">Açıklama</string>
+    <string name="alan_aciklama_ipucu">İsteğe bağlı not ekle</string>
+    <string name="baslik_zorunlu">Ödev başlığı boş olamaz</string>
+    <string name="teslim_tarihi">Teslim tarihi</string>
+    <string name="teslim_saati">Teslim saati</string>
+    <string name="kaydet">Kaydet</string>
+    <string name="tamam">Tamam</string>
+
+    <!-- Detay -->
+    <string name="odev_detay">Ödev Detayı</string>
+    <string name="aciklama_yok">Açıklama eklenmemiş.</string>
+    <string name="etiket_teslim">Teslim</string>
+    <string name="etiket_olusturma">Eklenme</string>
+    <string name="etiket_tamamlanma">Tamamlanma</string>
+    <string name="tamamla">Tamamlandı olarak işaretle</string>
+    <string name="tamamlamayi_geri_al">Tamamlama işaretini geri al</string>
+    <string name="duzenle">Düzenle</string>
+    <string name="sil">Sil</string>
+    <string name="odev_bulunamadi">Bu ödev bulunamadı.</string>
+
+    <!-- Silme onayı -->
+    <string name="sil_onay_baslik">Ödev silinsin mi?</string>
+    <string name="sil_onay_metin">\"%1$s\" silinecek. Bu işlem geri alınamaz.</string>
+    <string name="iptal">İptal</string>
+
+    <!-- Genel -->
+    <string name="geri">Geri</string>
+    <string name="kapat">Kapat</string>
+    <string name="tarih_sec">Tarih seç</string>
+    <string name="saat_sec">Saat seç</string>
+
+    <!-- Bildirimler -->
+    <string name="bildirim_kanal_adi">Geciken ödevler</string>
+    <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>
+    <string name="bildirim_tek_metin">Son teslim tarihi geçti</string>
+    <string name="bildirim_cok_baslik">%1$d ödev gecikti</string>
+</resources>
