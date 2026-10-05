@@ -101,6 +101,37 @@
     <string name="ayarlar_izin_kapali">Bildirim izni kapalı — gecikme ve hatırlatma bildirimleri gönderilmiyor.</string>
     <string name="ayarlar_izin_ac">Bildirim ayarlarını aç</string>
 
+    <!-- Dersler (Faz 12) -->
+    <string name="ders">Ders</string>
+    <string name="ders_secilmedi">Ders seçilmedi</string>
+    <string name="ders_sec">Ders seç</string>
+    <string name="ders_zorunlu">Bir ders seçmelisin</string>
+    <string name="dersler_baslik">Dersler</string>
+    <string name="ders_yok">Henüz ders yok.</string>
+    <string name="ders_yok_ipucu">Dersleri Ayarlar ekranından ekleyebilirsin.</string>
+
+    <!-- Ödevler listesindeki Filtreler tuşu -->
+    <string name="filtreler">Filtreler</string>
+    <string name="tum_dersler">Tüm dersler</string>
+    <string name="ders_filtre_baslik">Ders filtresi</string>
+
+    <!-- Ayarlar: ders listesi -->
+    <string name="ayarlar_ders_baslik">Dersler</string>
+    <string name="ayarlar_ders_ipucu">Ödevlerde kullanacağın ders listesi.</string>
+    <string name="ayarlar_ders_ac">Ders ekle-değiştir</string>
+    <string name="ayarlar_ders_sayi">%1$d ders</string>
+
+    <!-- Ders ekle-değiştir ekranı -->
+    <string name="ders_adi">Ders adı</string>
+    <string name="ders_adi_ipucu">Örn. Matematik</string>
+    <string name="ders_ekle">Ekle</string>
+    <string name="ders_ekran_bos">Henüz ders yok. Yukarıdaki alandan ilk dersini ekleyebilirsin.</string>
+    <string name="ders_zaten_var">Bu ders zaten listede var.</string>
+    <string name="ders_adi_bos">Ders adı boş olamaz.</string>
+    <string name="ders_sil_ikon">Dersi sil</string>
+    <string name="ders_sil_baslik">Ders silinsin mi?</string>
+    <string name="ders_sil_metin">%1$s listeden kalkacak. Bu dersi kullanan ödevler silinmez.</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>

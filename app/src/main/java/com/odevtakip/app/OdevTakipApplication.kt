@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.onEach
 class OdevTakipApplication : Application() {
 
     val odevRepository: OdevRepository by lazy {
-        OdevRepository(OdevDatabase.getInstance(this).odevDao())
+        val veritabani = OdevDatabase.getInstance(this)
+        OdevRepository(veritabani.odevDao(), veritabani.dersDao())
     }
 
     /**

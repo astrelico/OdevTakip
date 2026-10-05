@@ -6,10 +6,16 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 
 ## Özellikler
 
-- Ödev ekleme / düzenleme / silme (başlık, açıklama, teslim tarihi ve saati)
+- Ödev ekleme / düzenleme / silme (ders, başlık, açıklama, teslim tarihi ve saati)
 - Otomatik durum: **Bekliyor → Gecikti → Tamamlandı**. Durum ayrıca bir iş
   karıştırmadan, listenin çizildiği an `sonTarih`'e göre hesaplanır.
-- Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan
+- **Dersler**: formda zorunlu ders seçimi (alttan açılan panel), kartın
+  üstünde ders etiketi ve Ayarlar → **Ders ekle-değiştir** ekranından
+  ekleme / silme. Varsayılan dokuz ders kurulumda hazır gelir; bir dersi
+  silmek onu kullanan ödevleri silmez, yalnızca listeden kalkar
+- Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan. Çiplerin sağındaki
+  **Filtreler** tuşu ödevleri derse göre süzer (yalnızca Ödevler sekmesinde;
+  Takvim etkilenmez), açıkken tuşun yazısı seçili ders adına döner
 - **Takvim** sekmesi: yatay gün şeridi, seçili günün ödevleri, "Bugün" düğmesi
   şeridi bugüne döndürür
 - Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
@@ -63,6 +69,7 @@ app/src/main/java/com/odevtakip/app/
     ├── OdevViewModel.kt     # liste ve takvimin VM'si
     ├── OdevKarti.kt         # liste/takvim ekranlarının ortak kartı
     ├── liste/  takvim/  form/  detay/  ayarlar/
+    ├── dersler/           # ders seçim paneli + ders ekle-değiştir ekranı
     └── theme/               # Odak Mavisi paleti (açık/koyu)
 ```
 

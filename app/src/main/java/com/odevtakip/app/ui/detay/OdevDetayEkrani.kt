@@ -251,6 +251,15 @@ private fun OdevIcerik(odev: Odev, modifier: Modifier = Modifier) {
             textDecoration = if (tamamlandi) TextDecoration.LineThrough else null,
         )
 
+        // Ders
+        if (odev.ders.isNotBlank()) {
+            Text(
+                text = odev.ders,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
         HorizontalDivider()
 
         // Açıklama

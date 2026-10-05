@@ -1,0 +1,103 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "8f4864581a8ea7d8b5ca9f9c608979a5",
+    "entities": [
+      {
+        "tableName": "odevler",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `baslik` TEXT NOT NULL, `aciklama` TEXT NOT NULL, `ders` TEXT NOT NULL DEFAULT '', `sonTarih` INTEGER NOT NULL, `durum` TEXT NOT NULL, `olusturmaTarihi` INTEGER NOT NULL, `tamamlanmaTarihi` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baslik",
+            "columnName": "baslik",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aciklama",
+            "columnName": "aciklama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ders",
+            "columnName": "ders",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "sonTarih",
+            "columnName": "sonTarih",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durum",
+            "columnName": "durum",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "olusturmaTarihi",
+            "columnName": "olusturmaTarihi",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tamamlanmaTarihi",
+            "columnName": "tamamlanmaTarihi",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "dersler",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ad` TEXT NOT NULL, `olusturmaTarihi` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ad",
+            "columnName": "ad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "olusturmaTarihi",
+            "columnName": "olusturmaTarihi",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8f4864581a8ea7d8b5ca9f9c608979a5')"
+    ]
+  }
+}

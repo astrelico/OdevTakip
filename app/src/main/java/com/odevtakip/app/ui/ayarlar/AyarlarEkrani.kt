@@ -3,6 +3,7 @@
 package com.odevtakip.app.ui.ayarlar
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,6 +72,7 @@ import com.odevtakip.app.data.TemaSecenegi
 fun AyarlarEkrani(
     viewModel: AyarlarViewModel,
     onGeri: () -> Unit,
+    onDersler: () -> Unit,
 ) {
     val tema by viewModel.tema.collectAsStateWithLifecycle()
     val gizle by viewModel.tamamlananlariGizle.collectAsStateWithLifecycle()
@@ -110,6 +113,8 @@ fun AyarlarEkrani(
                 gizle = gizle,
                 onDegistir = viewModel::tamamlananlariGizleAyarla,
             )
+
+            DersKarti(onAc = onDersler)
 
             HatirlatmaKarti(
                 secili = hatirlatma,
@@ -377,6 +382,43 @@ private fun ListeKarti(
             }
             Spacer(Modifier.width(12.dp))
             Switch(checked = gizle, onCheckedChange = null)
+        }
+    }
+}
+
+// ---- Dersler ----
+
+/**
+ * Ders listesinin kapısı.
+ *
+ * Kartın içi tek bir tıklanabilir satırdır: satırın tamamı hedeftir, böylece
+ * TalkBack onu tek öğe olarak okur ve işaret parmağıyla hedef geniş olur.
+ * Derslerin kendisi ayrı tam ekran rotada düzenlenir (bkz. `DersEkrani`).
+ */
+@Composable
+private fun DersKarti(onAc: () -> Unit) {
+    AyarKarti(
+        baslik = stringResource(R.string.ayarlar_ders_baslik),
+        ipucu = stringResource(R.string.ayarlar_ders_ipucu),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onAc)
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.ayarlar_ders_ac),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.Rounded.Edit,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }

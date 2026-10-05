@@ -8,8 +8,41 @@ import kotlinx.coroutines.flow.Flow
  * ViewModel'ler doğrudan [OdevDao] yerine bu sınıfı görür; böylece iş kuralları
  * (ne zaman "gecikti", ne zaman "tamamlandı") tek yerde toplanır ve
  * arayüz ile WorkManager aynı kuralı paylaşır.
+ *
+ * Ders listesi de buradan geçer: bir dersin eklenip silinmesi iş kuralı
+ * (yinelenen ad) barındırdığı için arayüzün doğrudan [DersDao] görmemesi gerekir.
  */
-class OdevRepository(private val dao: OdevDao) {
+class OdevRepository(
+    private val dao: OdevDao,
+    private val dersDao: DersDao,
+) {
+
+    // ---- Dersler ----
+
+    /** Dersleri ekleme sırasıyla yayınlar. */
+    fun tumDersleri(): Flow<List<Ders>> = dersDao.tumDersleriIzle()
+
+    /**
+     * Yeni ders ekler.
+     *
+     * @return Ders eklendiyse `true`; ad boş ya da listede zaten varsa
+     *   (büyük/küçük harf duyarsız) `false`.
+     */
+    suspend fun dersEkle(ad: String): Boolean {
+        val mevcut = dersDao.tumDersleriAl()
+        if (mevcut.dersAdiVarMi(ad)) return false
+        dersDao.ekle(Ders(ad = ad.temizDersAdi()))
+        return true
+    }
+
+    /**
+     * Dersi listeden siler.
+     *
+     * Onu kullanan ödevlere dokunmaz — [Odev.ders] yalnızca addır.
+     */
+    suspend fun dersSil(id: Long) {
+        dersDao.sil(id)
+    }
 
     // ---- Okuma ----
 

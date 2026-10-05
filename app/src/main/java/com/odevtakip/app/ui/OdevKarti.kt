@@ -144,6 +144,19 @@ fun OdevKarti(
                         .weight(1f)
                         .padding(end = 8.dp),
                 ) {
+                    // Ders adı başlığın üstünde küçük bir kategori etiketi gibi
+                    // durur; hangi derse ait olduğu tek bakışta belli olur.
+                    if (odev.ders.isNotBlank()) {
+                        Text(
+                            text = odev.ders,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(bottom = 2.dp),
+                        )
+                    }
+
                     Text(
                         text = odev.baslik,
                         style = MaterialTheme.typography.titleMedium,

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
+import com.odevtakip.app.data.Ders
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -46,30 +48,62 @@ class OdevViewModel(
     val filtre: StateFlow<OdevFiltresi> = _filtre.asStateFlow()
 
     /**
+     * Seçili ders filtresi; `null` = bütün dersler.
+     *
+     * Ödevler sekmesindeki "Filtreler" tuşu bu değeri kurar. Takvim ekranı
+     * bundan **etkilenmez** — kullanıcı bir günün dersine göre değil,
+     * gününe göre bakar.
+     */
+    private val _dersFiltresi = MutableStateFlow<String?>(null)
+    val dersFiltresi: StateFlow<String?> = _dersFiltresi.asStateFlow()
+
+    /** Ders listesi (formdaki seçici, filtre paneli ve ayarlar ekranı). */
+    val dersler: StateFlow<List<Ders>> = repository.tumDersleri()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    init {
+        // Seçili ders ayarlardan silinirse filtre sıfırlanır; aksi hâlde
+        // kullanıcı ekranda hiçbir açıklama göremeden boş listeyle kalırdı.
+        repository.tumDersleri()
+            .onEach { liste ->
+                val secili = _dersFiltresi.value
+                if (secili != null && liste.none { it.ad == secili }) {
+                    _dersFiltresi.value = null
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
      * Seçili filtreye uyan ödevler, gösterim sırasıyla.
      * Ayrıntı için [suzulVeSirala] fonksiyonuna bak.
      */
     val odevler: StateFlow<List<Odev>> = combine(
         _filtre,
         tercihler.tamamlananlariGizle,
-    ) { seciliFiltre, gizle -> seciliFiltre to gizle }
-        .flatMapLatest { (seciliFiltre, gizle) ->
-            repository.tumOdevleri().map { it.suzulVeSirala(seciliFiltre, gizle) }
+        _dersFiltresi,
+    ) { seciliFiltre, gizle, ders -> Triple(seciliFiltre, gizle, ders) }
+        .flatMapLatest { (seciliFiltre, gizle, ders) ->
+            repository.tumOdevleri().map { it.suzulVeSirala(seciliFiltre, gizle, ders) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
      * Her filtre için ödev sayısı (çip rozetleri).
      *
-     * Gizleme açıksa tamamlananlar sayıma girmez: çipte yazan sayı, listede
-     * gerçekten görünen satır sayısıyla aynı olmalı — "Tümü (5)" yazıp iki
-     * satır göstermek kullanıcıyı yanıltırdı.
+     * Gizleme açıksa tamamlanmayanlar sayıma girmez; ders filtresi varsa yalnızca
+     * o derse ait kayıtlar sayılır. Çipte yazan sayı, listede gerçekten görünen
+     * satır sayısıyla aynı olmalı — "Tümü (5)" yazıp iki satır göstermek
+     * kullanıcıyı yanıltırdı.
      */
     val sayilar: StateFlow<Map<OdevFiltresi, Int>> = combine(
         repository.tumOdevleri(),
         tercihler.tamamlananlariGizle,
-    ) { liste, gizle ->
-        if (gizle) liste.filter { it.durum != Durum.TAMAMLANDI } else liste
+        _dersFiltresi,
+    ) { liste, gizle, ders ->
+        liste
+            .filter { !gizle || it.durum != Durum.TAMAMLANDI }
+            .filter { ders == null || it.ders == ders }
     }
         .map { liste ->
             val simdi = System.currentTimeMillis()
@@ -159,6 +193,35 @@ class OdevViewModel(
         _filtre.value = yeni
     }
 
+    /**
+     * Ders filtresini kurar. `null` bütün dersler demektir.
+     *
+     * Girdi doğrulanmaz: değer zaten ekrandaki listeden gelir. Seçili ders
+     * sonradan silinirse filtre [init] içinde kendiliğinden sıfırlanır.
+     */
+    fun dersFiltresiAyarla(ad: String?) {
+        _dersFiltresi.value = ad
+    }
+
+    // ---- Dersler ----
+
+    /**
+     * Yeni ders ekler.
+     *
+     * @param onBasarili `true` eklendiğini, `false` adın boş ya da zaten
+     *   listede olduğunu bildirir (ekran hata metnini ona göre gösterir).
+     */
+    fun dersEkle(ad: String, onBasarili: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            onBasarili(repository.dersEkle(ad))
+        }
+    }
+
+    /** Dersi listeden siler; onu kullanan ödevlere dokunmaz. */
+    fun dersSil(id: Long) {
+        viewModelScope.launch { repository.dersSil(id) }
+    }
+
     // ---- Seçili ödev ----
 
     fun seciliOdeviAyarla(id: Long?) {
@@ -190,12 +253,15 @@ class OdevViewModel(
      * tarih ileri alındıysa "gecikti" geri "bekliyor"ya döner.
      *
      * @param odevId Yeni ekleme için `0` ya da negatif.
+     * @param ders Seçilen dersin adı; zorunlu alan olduğu için arayüz bunu
+     *   boş göndermemeli.
      * @param onBasarili Kayıt başarılıysa çağrılır.
      */
     fun formuKaydet(
         odevId: Long,
         baslik: String,
         aciklama: String,
+        ders: String,
         sonTarih: Long,
         onBasarili: () -> Unit,
     ) {
@@ -206,6 +272,7 @@ class OdevViewModel(
                     id = mevcut?.id ?: 0,
                     baslik = baslik.trim(),
                     aciklama = aciklama.trim(),
+                    ders = ders.trim(),
                     sonTarih = sonTarih,
                     durum = mevcut?.durum ?: Durum.BEKLIYOR,
                     olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),
@@ -252,26 +319,34 @@ class OdevViewModel(
  * Filtreler ve sıralama.
  *
  * `tamamlananlariGizle` açıksa tamamlananlar daha ilk adımda elenir;
- * geriye kalan sıralama aynen uygulanır.
+ * `dersFiltresi` verilmişse yalnızca o derse ait kayıtlar kalır.
+ * Geriye kalan sıralama aynen uygulanır.
  *
  * Kural:
- *  1. Filtreye uymayanlar atılır.
- *  2. Tamamlanmayanlar önce, teslim tarihine göre artan sırada
+ *  1. Gizleme ve ders filtresi uygulanır.
+ *  2. Filtreye uymayanlar atılır.
+ *  3. Tamamlanmayanlar önce, teslim tarihine göre artan sırada
  *     (en yakın teslim en üstte).
- *  3. Tamamlanmışlar sonra, teslim tarihine göre azalan sırada.
+ *  4. Tamamlanmışlar sonra, teslim tarihine göre azalan sırada.
  *
  * Tamamlanan ödevler en sonda kaldığı için liste iş bitince kendiliğinden
  * "temizlenir"; kullanıcı aynı anda hem bekleyen hem bitenleri görür.
+ *
+ * @param dersFiltresi Süzülecek dersin adı; `null` bütün dersler.
  */
 internal fun List<Odev>.suzulVeSirala(
     filtre: OdevFiltresi,
     tamamlananlariGizle: Boolean,
+    dersFiltresi: String? = null,
 ): List<Odev> {
     val simdi = System.currentTimeMillis()
-    val havuz = if (tamamlananlariGizle) {
+    var havuz: List<Odev> = if (tamamlananlariGizle) {
         filter { it.durum != Durum.TAMAMLANDI }
     } else {
         this
+    }
+    if (dersFiltresi != null) {
+        havuz = havuz.filter { it.ders == dersFiltresi }
     }
     val uygun = havuz.filter { filtre.eslesir(it, simdi) }
 

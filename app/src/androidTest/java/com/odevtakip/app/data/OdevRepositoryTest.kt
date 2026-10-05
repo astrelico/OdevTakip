@@ -38,7 +38,7 @@ class OdevRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             OdevDatabase::class.java
         ).build()
-        repo = OdevRepository(db.odevDao())
+        repo = OdevRepository(db.odevDao(), db.dersDao())
     }
 
     @After

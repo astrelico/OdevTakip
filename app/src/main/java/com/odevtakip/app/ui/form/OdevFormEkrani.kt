@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,9 +55,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.bildirim.BildirimYonetici
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.dersler.DersSecimPaneli
 import com.odevtakip.app.util.formatliSaat
 import com.odevtakip.app.util.formatliTarih
 import com.odevtakip.app.util.tarihSaatiniDonustur
@@ -89,14 +92,18 @@ fun OdevFormEkrani(
 
     var baslik by rememberSaveable { mutableStateOf("") }
     var aciklama by rememberSaveable { mutableStateOf("") }
+    var ders by rememberSaveable { mutableStateOf("") }
     var sonTarihMillis by rememberSaveable {
         mutableStateOf(baslangicTarihi())
     }
     var baslikHatasi by rememberSaveable { mutableStateOf(false) }
+    var dersHatasi by rememberSaveable { mutableStateOf(false) }
 
     var tarihDialogGoster by remember { mutableStateOf(false) }
     var saatDialogGoster by remember { mutableStateOf(false) }
+    var dersPanelGoster by remember { mutableStateOf(false) }
 
+    val dersler by viewModel.dersler.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     // Düzenleme modunda mevcut kaydı forma yükle.
@@ -105,6 +112,7 @@ fun OdevFormEkrani(
             viewModel.odeviGet(odevId)?.let { odev ->
                 baslik = odev.baslik
                 aciklama = odev.aciklama
+                ders = odev.ders
                 sonTarihMillis = odev.sonTarih
             }
         }
@@ -115,10 +123,15 @@ fun OdevFormEkrani(
             baslikHatasi = true
             return
         }
+        if (ders.isBlank()) {
+            dersHatasi = true
+            return
+        }
         viewModel.formuKaydet(
             odevId = odevId,
             baslik = baslik,
             aciklama = aciklama,
+            ders = ders,
             sonTarih = sonTarihMillis,
             onBasarili = {
                 // Bağlamda iste: kullanıcı ilk ödevini kaydetti, yani
@@ -185,6 +198,16 @@ fun OdevFormEkrani(
                 imeAction = ImeAction.Default,
             )
 
+            TarihSaatSecici(
+                etiket = stringResource(R.string.ders),
+                deger = ders.ifBlank { stringResource(R.string.ders_secilmedi) },
+                ikon = Icons.Rounded.School,
+                onClick = { dersPanelGoster = true },
+                modifier = Modifier.fillMaxWidth(),
+                hata = if (dersHatasi) stringResource(R.string.ders_zorunlu) else null,
+                degerSoluk = ders.isBlank(),
+            )
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TarihSaatSecici(
                     etiket = stringResource(R.string.teslim_tarihi),
@@ -235,6 +258,20 @@ fun OdevFormEkrani(
             onSecim = { yeniSaat ->
                 sonTarihMillis = tarihSaatiniDonustur(sonTarihMillis.yerelTarih(), yeniSaat)
             },
+        )
+    }
+
+    if (dersPanelGoster) {
+        DersSecimPaneli(
+            baslik = stringResource(R.string.ders_sec),
+            dersler = dersler.map { it.ad },
+            secili = ders.takeIf { it.isNotBlank() },
+            tumDerslerSecenegi = false,
+            onSecim = { secilen ->
+                ders = secilen.orEmpty()
+                dersHatasi = false
+            },
+            onKapat = { dersPanelGoster = false },
         )
     }
 }
@@ -295,6 +332,12 @@ private fun Alan(
 
 // ---- Tarih/saat seçici düğmeleri ----
 
+/**
+ * Tarih / saat / ders seçici kartı.
+ *
+ * [hata] verilirse kartın altında hata cümlesi belirir — zorunlu alanlar
+ * (ders) seçilmemişken Kaydet'e basıldığında buradan uyarılır.
+ */
 @Composable
 private fun TarihSaatSecici(
     etiket: String,
@@ -302,35 +345,56 @@ private fun TarihSaatSecici(
     ikon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    hata: String? = null,
+    degerSoluk: Boolean = false,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Column(modifier = modifier) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
-            Icon(
-                imageVector = ikon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = etiket,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = ikon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
                 )
-                Text(text = deger, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = etiket,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = deger,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (degerSoluk) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
             }
+        }
+
+        if (hata != null) {
+            Text(
+                text = hata,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+            )
         }
     }
 }

@@ -5,16 +5,27 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 1. İleride alan eklenirse migration yazılacak;
- * şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 2. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ *
+ * ### Sürüm 2 (Faz 12)
+ *
+ *  - `odevler.ders` kolonu eklendi: mevcut kayıtlar `DEFAULT ''` ile taşmadan
+ *    güncellenir (dersi "seçilmedi" olarak okunur).
+ *  - `dersler` tablosu açıldı ve **yalnızca bir kez** dolduruldu: dosya yeni
+ *    oluşturulduğunda [ILK_OLUSTURMA] callback'i, sürüm 1'den yükseltirken
+ *    [MIGRATION_1_2] çalışır. Kullanıcı sonradan bütün dersleri silerse
+ *    geri gelmezler — iki yol da "tablo ilk kez oluşuyor" anında çalıştığı
+ *    için tekrar-tohumlama sorunu yoktur.
  */
 @Database(
-    entities = [Odev::class],
-    version = 1,
+    entities = [Odev::class, Ders::class],
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -22,7 +33,78 @@ abstract class OdevDatabase : RoomDatabase() {
 
     abstract fun odevDao(): OdevDao
 
+    abstract fun dersDao(): DersDao
+
     companion object {
+
+        /**
+         * İlk açılışta hazır gelen dersler.
+         *
+         * Değer **ekleme sırası**dır (`olusturmaTarihi`): liste ekleme
+         * sırasına göre dizilir, sonradan eklenenler en alta düşer.
+         */
+        private val VARSAYILAN_DERSLER = listOf(
+            "Matematik",
+            "Türkçe",
+            "Fen Bilimleri",
+            "İngilizce",
+            "Tarih",
+            "Coğrafya",
+            "Fizik",
+            "Kimya",
+            "Biyoloji",
+        )
+
+        /**
+         * Varsayılan dersleri yazar; tablo zaten doluysa hiçbir şey yapmaz.
+         *
+         * Hem migration hem `onCreate` callback'i bu fonksiyonu çağırır. İki
+         * yol da yalnızca tablonun **ilk oluştuğu** anda çalıştığı için aynı
+         * açılışta iki kez çağırmak yine de güvenlidir (sayım koruması).
+         */
+        private fun varsayilanDersleriBasla(db: SupportSQLiteDatabase) {
+            val mevcut = db.query("SELECT COUNT(*) FROM dersler").use { imlec ->
+                if (imlec.moveToFirst()) imlec.getInt(0) else 0
+            }
+            if (mevcut > 0) return
+
+            VARSAYILAN_DERSLER.forEachIndexed { sira, ad ->
+                // sira 1..9; yeni eklenen dersler currentTimeMillis aldığı için
+                // ekleme sırası bozulmadan listenin sonuna geçer.
+                db.execSQL(
+                    "INSERT INTO dersler (ad, olusturmaTarihi) VALUES (?, ?)",
+                    arrayOf<Any>(ad, sira.toLong() + 1L),
+                )
+            }
+        }
+
+        /** Sürüm 1 → 2: ders kolonu + dersler tablosu. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE odevler ADD COLUMN ders TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `dersler` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`ad` TEXT NOT NULL, " +
+                        "`olusturmaTarihi` INTEGER NOT NULL)"
+                )
+                varsayilanDersleriBasla(db)
+            }
+        }
+
+        /**
+         * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
+         *
+         * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
+         * gereken durumlarda ise dosya zaten var olduğu için hiç çalışmaz —
+         * varsayılanlar o durumu [MIGRATION_1_2] yazar.
+         */
+        private val ILK_OLUSTURMA = object : Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                varsayilanDersleriBasla(db)
+            }
+        }
+
         @Volatile
         private var INSTANCE: OdevDatabase? = null
 
@@ -33,6 +115,8 @@ abstract class OdevDatabase : RoomDatabase() {
                     OdevDatabase::class.java,
                     "odev-takip.db"
                 )
+                    .addMigrations(MIGRATION_1_2)
+                    .addCallback(ILK_OLUSTURMA)
                     .build()
                     .also { INSTANCE = it }
             }

@@ -44,6 +44,7 @@ import com.odevtakip.app.data.TemaSecenegi
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.ayarlar.AyarlarEkrani
 import com.odevtakip.app.ui.ayarlar.AyarlarViewModel
+import com.odevtakip.app.ui.dersler.DersEkrani
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
@@ -58,6 +59,7 @@ private object Rotalar {
     const val FORM = "form/{odevId}"
     const val DETAY = "detay/{odevId}"
     const val AYARLAR = "ayarlar"
+    const val DERSLER = "dersler"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -273,6 +275,19 @@ private fun OdevUygulamasi(
             composable(Rotalar.AYARLAR) {
                 AyarlarEkrani(
                     viewModel = viewModel(factory = AyarlarViewModel.Factory),
+                    onGeri = { navController.popBackStack() },
+                    onDersler = {
+                        navController.navigate(Rotalar.DERSLER) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+
+            // Ders listesi de ayarların altındaki tam ekran bir rotadır.
+            composable(Rotalar.DERSLER) {
+                DersEkrani(
+                    viewModel = viewModel,
                     onGeri = { navController.popBackStack() },
                 )
             }
