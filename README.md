@@ -13,6 +13,10 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   üstünde ders etiketi ve Ayarlar → **Ders ekle-değiştir** ekranından
   ekleme / silme. Varsayılan dokuz ders kurulumda hazır gelir; bir dersi
   silmek onu kullanan ödevleri silmez, yalnızca listeden kalkar
+- **Aciliyet**: teslim gününe girilmiş ya da **yarın** teslimi olan ve hâlâ
+  tamamlanmamış ödevler kırmızı çerçeveli bir kutucuğa dönüşür; durum
+  rozetinin soluna **Acil** / **Yarın teslim** rozeti düşer. Gecikenler
+  ayrıca kırmızı yazı ve "Gecikti" rozetiyle durur, ikinci uyarı almaz
 - Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan. Çiplerin sağındaki
   **Filtreler** tuşu ödevleri derse göre süzer (yalnızca Ödevler sekmesinde;
   Takvim etkilenmez), açıkken tuşun yazısı seçili ders adına döner

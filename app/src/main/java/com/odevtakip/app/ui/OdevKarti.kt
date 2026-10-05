@@ -1,6 +1,8 @@
 package com.odevtakip.app.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,12 +37,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.odevtakip.app.R
+import com.odevtakip.app.data.AcilDurumu
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
+import com.odevtakip.app.data.acilDurumu
 import com.odevtakip.app.data.gercekDurum
 import kotlinx.coroutines.launch
 
@@ -53,6 +58,11 @@ import kotlinx.coroutines.launch
  * Görünüm mantığı referans tasarımla uyumludur: zemin daima [MaterialTheme]'ın
  * `surface`'idir (açık temada beyaz), ayrım çerçevelerle değil **gölgeyle**
  * kurulur. Durum; üstü çizili başlık ve renkli rozet ile bildirilir.
+ *
+ * Tek istisna **aciliyet**tir: teslim gününe girilmiş ya da yarın teslim
+ * varsa ve iş bitmemişse kart, kırmızı çerçeveli bir kutucuğa dönüşür ve
+ * durum rozetinin soluna "Acil" / "Yarın teslim" rozeti düşer. Bu bilgi
+ * [Odev.acilDurumu] ile çizim anında hesaplanır, saklanmaz.
  *
  * ### Tamamlama: kaydırma
  *
@@ -71,9 +81,20 @@ fun OdevKarti(
     onDegistir: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val durum = odev.gercekDurum(System.currentTimeMillis())
+    val simdi = System.currentTimeMillis()
+    val durum = odev.gercekDurum(simdi)
     val tamamlandi = durum == Durum.TAMAMLANDI
     val renk = durumRengi(durum)
+
+    // Teslim gününe girildiyse ya da yarın teslim varsa kart bir kutucuğa
+    // alınır: kırmızı çerçeve + "Acil"/"Yarın teslim" rozeti.
+    val acil = odev.acilDurumu(simdi)
+    val hata = MaterialTheme.colorScheme.error
+    val cerceve: BorderStroke? = when (acil) {
+        AcilDurumu.BUGUN -> BorderStroke(width = 2.dp, color = hata)
+        AcilDurumu.YARIN -> BorderStroke(width = 1.dp, color = hata.copy(alpha = 0.7f))
+        AcilDurumu.YOK -> null
+    }
 
     val swipeDurumu = rememberSwipeToDismissBoxState()
     val hiz = rememberCoroutineScope()
@@ -119,6 +140,15 @@ fun OdevKarti(
             onClick = onSec,
             modifier = Modifier
                 .fillMaxWidth()
+                // Çerçeve kartın kendi şeklinin üstünde durur; gölge dışarıda,
+                // çerçeve tam kenarda — kırmızı kutucuk bu yüzden kesilmez.
+                .then(
+                    if (cerceve != null) {
+                        Modifier.border(cerceve, MaterialTheme.shapes.large)
+                    } else {
+                        Modifier
+                    }
+                )
                 // Kaydırma jesti TalkBack'te kullanılamaz; aynı eylem
                 // kartın erişilebilirlik menüsüne elle eklenir.
                 .semantics {
@@ -198,7 +228,15 @@ fun OdevKarti(
                     }
                 }
 
-                DurumRozeti(durum = durum, renk = renk)
+                // Aciliyet rozeti, durum rozetinin **solunda**: kullanıcı önce
+                // "ne kadar acil" sonra "ne durumda" okur.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (acil.acilMi) {
+                        AcilRozeti(acil = acil)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    DurumRozeti(durum = durum, renk = renk)
+                }
             }
         }
     }
@@ -249,6 +287,34 @@ private fun SwipeArkaPlani(
                 Etiket(stringResource(R.string.durum_tamamlandi), icerikRengi)
             }
         }
+    }
+}
+
+/**
+ * Aciliyet rozeti: "Acil" (teslim günü) ya da "Yarın teslim".
+ *
+ * Zemini [DurumRozeti] gibi %14 tonlu, metni tam `error` rengidir; ayrıca
+ * **kalın** yazılır — kartın çerçevesi uzaktan fark edilse de rozet, ne
+ * olduğunun cevabını okunur hâlde tutar.
+ */
+@Composable
+private fun AcilRozeti(acil: AcilDurumu) {
+    val hata = MaterialTheme.colorScheme.error
+    Surface(
+        color = hata.copy(alpha = if (acil.vurgulu) 0.16f else 0.12f),
+        contentColor = hata,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Text(
+            text = stringResource(
+                if (acil.vurgulu) R.string.acil else R.string.yarin_teslim
+            ),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

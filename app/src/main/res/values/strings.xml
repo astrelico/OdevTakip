@@ -132,6 +132,10 @@
     <string name="ders_sil_baslik">Ders silinsin mi?</string>
     <string name="ders_sil_metin">%1$s listeden kalkacak. Bu dersi kullanan ödevler silinmez.</string>
 
+    <!-- Aciliyet rozeti (teslim günü / bir gün kala) -->
+    <string name="acil">Acil</string>
+    <string name="yarin_teslim">Yarın teslim</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>
