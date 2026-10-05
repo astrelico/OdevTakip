@@ -65,3 +65,4 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 
 [keep-a-changelog]: https://keepachangelog.com/tr/1.1.0/
 [semver]: https://semver.org/lang/tr/
+[1.1]: https://github.com/astrelico/OdevTakip/releases/tag/v1.1
