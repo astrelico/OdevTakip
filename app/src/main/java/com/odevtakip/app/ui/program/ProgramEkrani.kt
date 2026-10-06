@@ -230,10 +230,12 @@ fun ProgramEkrani(
                     .fillMaxWidth()
                     .verticalScroll(kaydirma)
                     .padding(horizontal = 16.dp)
-                    // Alt menünün tabanı içerik alanının bittiği yerdir;
-                    // dolgu, son satırın 64 dp yukarıda duran + düğmesinin
-                    // altında kalmamasını sağlar.
-                    .padding(bottom = 80.dp),
+                    // Bu sekmede FAB yok (yalnızca Ödevler/Takvim'de
+                    // çizilir), o yüzden dolgu yalnızca alt menünün üstünde
+                    // nefes payı bırakacak kadar: 80 dp değil 16 dp. Kazanılan
+                    // ~64 dp, 9. satırın "Ders ekle" ile ekrana sığmasını
+                    // sağlar.
+                    .padding(bottom = 16.dp),
             ) {
                 SaatlerKarti(
                     saatler = saatler,

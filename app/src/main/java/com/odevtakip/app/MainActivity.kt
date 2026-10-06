@@ -318,6 +318,16 @@ private fun OdevUygulamasi(
  * tam da ortaya düşer ve ortadaki sekmenin ikonunu kapatırdı. Düğmenin
  * yukarı taşınmasıyla bu çakışma kalktı; ekranların alt dolgusu (80 dp)
  * listenin son satırını düğmenin üstünde tutar.
+ *
+ * Düğme yalnızca **ödevle ilgili** iki sekmede çizilir: işi yeni ödev
+ * formunu açmaktır ve Ders Programı o eylemi yapmaz — orada kartın altında
+ * zaten "Ders ekle" duruyor, iki ayrı "+" eylemi yan yana gezmez. Takvim'de
+ * kalmasının nedeni, ileride seçili güne ödev ekleme yolunun oradan
+ * geçmesi. FAB'ın olmadığı sekmede ekran 80 dp değil 16 dp dolgu öder.
+ *
+ * @param seciliRota FAB'ın çizilip çizilmeyeceğini belirler; yalnızca
+ *   [Rotalar.LISTE] ve [Rotalar.TAKVIM] için doğru (üç ana sekme dışındaki
+ *   ekranlarda alt menü zaten hiç çizilmez).
  */
 @Composable
 private fun AltMenu(
@@ -352,19 +362,24 @@ private fun AltMenu(
             )
         }
 
-        FloatingActionButton(
-            onClick = onYeniOdev,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-64).dp),
-            shape = CircleShape,
-            containerColor = renkler.primary,
-            contentColor = renkler.onPrimary,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = stringResource(R.string.yeni_odev_ekle),
-            )
+        // FAB yalnızca ödevle ilgili iki sekmede: Ders Programı'nda hem
+        // gereksiz hem de kartın altındaki "Ders ekle" satırının ortasına
+        // biniyordu.
+        if (seciliRota == Rotalar.LISTE || seciliRota == Rotalar.TAKVIM) {
+            FloatingActionButton(
+                onClick = onYeniOdev,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-64).dp),
+                shape = CircleShape,
+                containerColor = renkler.primary,
+                contentColor = renkler.onPrimary,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.yeni_odev_ekle),
+                )
+            }
         }
     }
 }
