@@ -6,13 +6,15 @@ import com.odevtakip.app.util.gunUzunAdi
 import java.time.LocalDate
 
 /**
- * Bir okul gününde **varsayılan** ders saati sayısı — aynı zamanda alt sınırdır.
+ * Bir okul gününün **varsayılan** ders saati sayısı.
  *
  * Program **haftalık**dır: kullanıcı haftanın gününü seçip o günün
  * [GUNLUK_DERS_SAYISI] satırını doldurur; her hafta aynı düzen tekrarlanır.
- * Okul günü daha uzunsa satır ekranın altındaki "Ders ekle" ile 9'a, 10'a
- * çıkarılabilir; aşağı düşürülmez. Günün kaç satır çizeceği
- * [gununDersSayisi] ile okunur.
+ * Okul gününe göre satır ekranın altındaki "Ders ekle" ile 9'a, 10'a
+ * çıkarılabilir, "Son dersi kaldır" ile geri indirilebilir ve sonunda
+ * **0'a** boşaltılabilir — dersi olmayan bir gün (hafta sonu) böylece
+ * tamamen boş bırakılır. Günün kaç satır çizeceği [gununDersSayisi]
+ * ile okunur.
  */
 const val GUNLUK_DERS_SAYISI: Int = 8
 
@@ -21,15 +23,29 @@ const val GUNLUK_DERS_SAYISI: Int = 8
  *
  * Tabloda yalnızca **dolu** satırlar değil, "Ders ekle" ile açılmış — belki
  * hâlâ boş — satırlar da durur; bu yüzden sayı o günün en büyük sıra
- * numarasından türer. Hiç satır yoksa ya da en büyük sıra 8'den küçükse
- * sonuç [GUNLUK_DERS_SAYISI] olur: 8 hem varsayılan hem alt sınırdır.
+ * numarasından türer. İki durum ayrıştırılır:
+ *
+ * - **İşaret satırı varsa** ([ProgramSatiri.SIRA_ISARET]) gün kullanıma
+ *   alınmış demektir ve sayı doğrudan en büyük sıradır. Kullanıcı 8'den
+ *   aşağı indiyse sayı da o kadardır; günün tamamı boşaltılmışsa yalnızca
+ *   işaret kalır ve sonuç **0** olur.
+ * - **İşaret yoksa** gün ya hiç dokunulmamıştır (varsayılan
+ *   [GUNLUK_DERS_SAYISI] satır), ya da yalnızca atanan saatlerin yazıldığı
+ *   eski veridir. Her ikisinde de en az [GUNLUK_DERS_SAYISI] gösterilir;
+ *   olmayan satırlar "Ders seç" olarak çizilir.
  *
  * @param gun ISO günü (0 = pazartesi).
  * @param program Program tablosunun tamamı; işlev yalnızca [gun] satırlarına bakar.
  */
-fun gununDersSayisi(gun: Int, program: List<ProgramSatiri>): Int =
-    (program.filter { it.gun == gun }.maxOfOrNull { it.sira } ?: 0)
-        .coerceAtLeast(GUNLUK_DERS_SAYISI)
+fun gununDersSayisi(gun: Int, program: List<ProgramSatiri>): Int {
+    val siralar = program.filter { it.gun == gun }.map { it.sira }
+
+    return if (ProgramSatiri.SIRA_ISARET in siralar) {
+        siralar.max()
+    } else {
+        maxOf(GUNLUK_DERS_SAYISI, siralar.maxOrNull() ?: 0)
+    }
+}
 
 /**
  * Haftanın günü.
@@ -92,8 +108,12 @@ enum class HaftaGunu(val sira: Int) {
  * burada bir **işarettir**, o saatin var olduğunu ama henüz ders
  * atanmadığını söyler.
  *
+ * Bunların dışında günün **kendisine** ait tek bir satır daha vardır:
+ * [SIRA_ISARET]. O bir ders saati değildir — bkz. companion.
+ *
  * @property gun ISO günü: 0 = pazartesi … 6 = pazar.
- * @property sira Ders saatinin sırası, 1'den başlar.
+ * @property sira Ders saatinin sırası, 1'den başlar; [SIRA_ISARET] bunun
+ *   dışında tek değerdir.
  * @property ders Atanan ders adı; atanmadıysa `""`.
  */
 @Entity(tableName = "program", primaryKeys = ["gun", "sira"])
@@ -104,4 +124,19 @@ data class ProgramSatiri(
 ) {
     /** Bu ders saatine henüz ders atanmadı mı? */
     val bosMu: Boolean get() = ders.isBlank()
+
+    companion object {
+        /**
+         * Günün **kullanıma alındığını** söyleyen işaret satırı — bir ders
+         * saati değil, `sira` alanının tek dışı değeri.
+         *
+         * Sayaç satırlardan türetildiği için "hiç satır yok" iki farklı şey
+         * anlamına gelebilirdi: gün hiç dokunulmadı (sekiz satır çizilir) ya
+         * da kullanıcı tamamen boşalttı (hiç satır çizilmez). İşaret satırı
+         * bu ikisini ayırır — varsa sayı [gununDersSayisi] içinde doğrudan en
+         * büyük sıradır ve tek başına kalan bir gün **0 ders** demektir.
+         * Arayüz bu satırı asla çizmez, sayı daima 1'den başlar.
+         */
+        const val SIRA_ISARET: Int = 0
+    }
 }

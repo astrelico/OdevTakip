@@ -148,6 +148,7 @@
     <string name="program_saat_kaldir">Son dersi kaldır</string>
     <string name="program_kaldir_onay_baslik">Ders saati kaldırılsın mı?</string>
     <string name="program_kaldir_onay_metin">%1$d. ders saati ve bu saate atanan %2$s programdan kalkacak.</string>
+    <string name="program_gun_bos">Bu günde ders yok.</string>
     <string name="kaldir">Kaldır</string>
 
     <!-- Bildirimler -->

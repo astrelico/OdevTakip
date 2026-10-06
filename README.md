@@ -26,7 +26,9 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   seç, o günün **8 ders saatinin** her birine elle ders ata. Satıra dokununca
   mevcut dersler alttan açılır; dolu bir saatte **"Bu dersi boşalt"** seçeneği
   de görünür. Kartın altındaki **"Ders ekle"** o güne 9., 10., … satırını açar,
-  **"Son dersi kaldır"** geri indirir (sekize düşülmez). Satır sayısı güne
+  **"Son dersi kaldır"** geri indirir — **0 satıra kadar**, yani dersi olmayan
+  bir gün (hafta sonu) tümüyle boşaltılabilir; gün bu noktaya inince kartta
+  yalnızca **"Ders ekle"** kalır. Satır sayısı güne
   özeldir — bir gün uzatıldığında diğerleri etkilenmez — ve ayrı bir yerde
   tutulmaz: ekran satırları doğrudan veritabanından sayar. Dolu bir satır
   kaldırılırken ders adıyla birlikte onay sorulur. Program haftalık tekrarlanır,

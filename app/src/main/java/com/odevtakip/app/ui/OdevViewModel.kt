@@ -9,7 +9,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Ders
 import com.odevtakip.app.data.Durum
-import com.odevtakip.app.data.GUNLUK_DERS_SAYISI
 import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
@@ -262,8 +261,8 @@ class OdevViewModel(
      *
      * Yalnızca **seçili** güne yazılır: okul günlerinin uzunluğu günden güne
      * değişebildiği için satır sayısını hafta geneline yaymak yerine kullanıcı
-     * o gün kadarını açar. Alt sınır [com.odevtakip.app.data.GUNLUK_DERS_SAYISI]
-     * olduğundan eksiltme yolu yoktur.
+     * o gün kadarını açar. Sınır yoktur — ders sayısı 0'a da inebilir 20'ye de
+     * çıkabilir, karar tamamen kullanıcının okul gününe bağlıdır.
      */
     fun saatAc(gun: Int) {
         viewModelScope.launch { repository.saatAc(gun) }
@@ -272,12 +271,15 @@ class OdevViewModel(
     /**
      * Bir ders saatini — ve o saate atanmış dersi — programdan kaldırır.
      *
-     * Arayüz yalnızca 8'i aşan sıralar için bu düğmeyi gösterir; yine de
-     * sınırın altı repository'de de korumaya bırakılmıştır.
+     * Arayüz en az bir satır kala kadar bu düğmeyi çizer; 0'a inmek de
+     * mümkündür, dolayısıyla hafta sonu gibi dersi olmayan günler
+     * tamamen boşaltılabilir. [com.odevtakip.app.data.ProgramSatiri.SIRA_ISARET]
+     * satırı ise kaldırılamaz: sayaç ancak orada "bu gün boş" ile "bu güne hiç
+     * dokunulmadı" ayrımını yapabilir.
      */
     fun saatKaldir(gun: Int, sira: Int) {
         viewModelScope.launch {
-            if (sira > GUNLUK_DERS_SAYISI) {
+            if (sira > ProgramSatiri.SIRA_ISARET) {
                 repository.saatKaldir(gun, sira)
             }
         }

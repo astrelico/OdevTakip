@@ -29,11 +29,28 @@ interface ProgramDao {
     suspend fun kaydet(satir: ProgramSatiri)
 
     /**
-     * Bir ders saatini tablodan siler — gün ve sıra eşleşen satır(lar) gider.
+     * Satır **yoksa** ekler, varsa hiçbir şey yapmaz.
      *
-     * "Son dersi kaldır" düğmesi bunu çağırır: 8. satır alt sınır olduğu için
-     * arayüz yalnızca ondan uzun günlerde kaldırma gösterir, dolayısıyla
-     * `[GUNLUK_DERS_SAYISI]` altına inen bir kayıt oluşmaz.
+     * [com.odevtakip.app.data.OdevRepository.gunuHazirla] eski verideki eksik
+     * saatleri bu yolla tamamlar: satır zaten varsa — üzerinde atanmış bir
+     * ders bile olsa — ezilmez. Yazma yollarının geri kalanı [kaydet]ı
+     * kullanır, çünkü orada eski değeri değiştirmek istenir.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun ekle(satir: ProgramSatiri)
+
+    /** Belirtilen sıradaki satır var mı? — işareti okumak için kullanılır. */
+    @Query("SELECT EXISTS(SELECT 1 FROM program WHERE gun = :gun AND sira = :sira)")
+    suspend fun satirVarMi(gun: Int, sira: Int): Boolean
+
+    /**
+     * Bir ders saatini — ve o saate atanmış dersi — tablodan siler;
+     * gün ve sıra eşleşen satır gider.
+     *
+     * "Son dersi kaldır" bunu çağırır. Sıra 1'e ve sonunda 0'a kadar
+     * inebilir; ancak [ProgramSatiri.SIRA_ISARET] satırı bir saat
+     * olmadığından kaldırma yolunun dışında tutulur — sayaç ancak orada
+     * durabilir.
      *
      * @return Silinen satır sayısı.
      */
@@ -46,6 +63,10 @@ interface ProgramDao {
      * "Ders ekle" bunu okuyup bir fazlasını yazar: sayaç ekrandaki
      * kompozisyon durumundan değil, her zaman tablodan türetilir. Böylece
      * kullanıcı aynı anda iki kez dokunsa da iki farklı satır açılır.
+     *
+     * İşaret satırının sırası 0 olduğundan sonuç ondan etkilenmez — gün
+     * tamamen boşaltılmışsa dönen değer 0 olur ve bir sonraki satır 1'e
+     * yazılır.
      */
     @Query("SELECT COALESCE(MAX(sira), 0) FROM program WHERE gun = :gun")
     suspend fun gununSonSirasi(gun: Int): Int

@@ -11,11 +11,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Ders programının saf kısımlarının birim testleri (Faz 14–15).
+ * Ders programının saf kısımlarının birim testleri (Faz 14–15 ve 0'a kadar
+ * boşaltma).
  *
  * Burada veritabanı değil, ızgaranın **eşleme kuralları** sınanır: sıra →
- * gün dönüşümü, Türkçe gün adları, bir saatin boş olup olmadığı ve satır
- * sayısının nasıl türrediği. Ekranın çizimi Compose testiyle değil, elle
+ * gün dönüşümü, Türkçe gün adları, bir saatin boş olup olmadığı, satır
+ * sayısının nasıl türrediği ve **işaret satırının** 0 ile "hiç dokunulmamış
+ * günü" nasıl ayırdığı. Ekranın çizimi Compose testiyle değil, elle
  * gözle doğrulanır — projenin genel kuralıyla aynı.
  */
 class ProgramTest {
@@ -159,5 +161,68 @@ class ProgramTest {
 
         assertEquals(9, gununDersSayisi(gun = 0, program = dokuz))
         assertEquals(GUNLUK_DERS_SAYISI, gununDersSayisi(gun = 0, program = sekiz))
+    }
+
+    // ---- İşaret satırı (0'a kadar boşaltma) ----
+
+    @Test
+    fun `isaret sifirdir ve ders saatleri bir baslar`() {
+        // 0 yalnızca işarete aittir; arayüz satırları 1'den çizer.
+        assertEquals(0, ProgramSatiri.SIRA_ISARET)
+        assertTrue((1..GUNLUK_DERS_SAYISI).none { it == ProgramSatiri.SIRA_ISARET })
+    }
+
+    @Test
+    fun `isaret tek basina gunun bos oldugunu soyler`() {
+        // Hafta sonu gibi dersi olmayan gün: sayaç 0, arayüz hiç satır çizmez.
+        val program = listOf(ProgramSatiri(gun = 0, sira = ProgramSatiri.SIRA_ISARET))
+
+        assertEquals(0, gununDersSayisi(gun = 0, program = program))
+    }
+
+    @Test
+    fun `isaretli gunun sayisi alt siniri ezmez`() {
+        // İşaret varsa "hiç dokunulmamış gün" kuralı geçersizdir: kullanıcı
+        // 8'den aşağı indiyse sayı da o kadardır.
+        val program = listOf(ProgramSatiri(gun = 0, sira = ProgramSatiri.SIRA_ISARET)) +
+            (1..3).map { sira ->
+                ProgramSatiri(gun = 0, sira = sira, ders = if (sira == 2) "Matematik" else "")
+            }
+
+        assertEquals(3, gununDersSayisi(gun = 0, program = program))
+    }
+
+    @Test
+    fun `isaretsiz ayni satirlar yine sekizde kalir`() {
+        // Aynı üç satır işaretsizse eski veri sayılır: sayı 8'e sabitlenir ve
+        // eksik saatler "Ders seç" olarak çizilir. Farkı yaratan tek şey
+        // işaret satırıdır.
+        val isaretsiz = (1..3).map { ProgramSatiri(gun = 0, sira = it) }
+
+        assertEquals(GUNLUK_DERS_SAYISI, gununDersSayisi(gun = 0, program = isaretsiz))
+    }
+
+    @Test
+    fun `bos gun yeniden bir satirla acilir`() {
+        val bos = listOf(ProgramSatiri(gun = 0, sira = ProgramSatiri.SIRA_ISARET))
+        val acilmis = bos + ProgramSatiri(gun = 0, sira = 1, ders = "Matematik")
+
+        assertEquals(0, gununDersSayisi(gun = 0, program = bos))
+        assertEquals(1, gununDersSayisi(gun = 0, program = acilmis))
+    }
+
+    @Test
+    fun `isaret yalnizca kendi gununu etkiler`() {
+        // Pazartesi boşaltılmış olsa bile cumartesi sekizde kalır:
+        // işaret de sayaç da güne özeldir.
+        val program = listOf(
+            ProgramSatiri(gun = HaftaGunu.PAZARTESI.sira, sira = ProgramSatiri.SIRA_ISARET),
+        )
+
+        assertEquals(0, gununDersSayisi(gun = HaftaGunu.PAZARTESI.sira, program = program))
+        assertEquals(
+            GUNLUK_DERS_SAYISI,
+            gununDersSayisi(gun = HaftaGunu.CUMARTESI.sira, program = program),
+        )
     }
 }

@@ -71,11 +71,11 @@ import com.odevtakip.app.ui.dersler.DersSecimPaneli
  *
  * **Satır sayısı güne özeldir.** Her gün [GUNLUK_DERS_SAYISI] satırla başlar;
  * kartın altındaki "Ders ekle" o güne 9., 10., … satırı açar, "Son dersi
- * kaldır" geri indirir (alt sınıfa inilmez). Okul günleri günden güne
- * değişebildiği için sayı hafta geneline yayılmaz — kullanıcı istediği günü
- * uzatır. Sayaç ayrı bir yerde tutulmaz: [gununDersSayisi] satırları
- * doğrudan tablodan sayar, bu yüzden "Ders ekle" ile açılan — belki henüz
- * boş — satır da varlığını sürdürür.
+ * kaldır" onu geri indirir — 1'e, nihayetinde **0'a** kadar. Okul günleri
+ * günden güne değişebildiği için sayı hafta geneline yayılmaz; dersi olmayan
+ * bir gün (hafta sonu) tamamen boşaltılabilir. Sayaç ayrı bir yerde
+ * tutulmaz: [gununDersSayisi] satırları doğrudan tablodan sayar, bu yüzden
+ * "Ders ekle" ile açılan — belki henüz boş — satır da varlığını sürdürür.
  *
  * Veri [OdevViewModel.program] akışından gelir. Kaydı olmayan saatin metni
  * "Ders seç" olarak boş görünür.
@@ -348,8 +348,9 @@ private fun GunCipleri(
  * aralık — kullanır, böylece yazı sütunu saatlerle hizalanır; farkı renk ve
  * ikon verir: "Ders ekle" `primary`, kaldırma `error`.
  *
- * Kaldırma satırı yalnızca [GUNLUK_DERS_SAYISI] üzerindeki günlerde çizilir:
- * sekiz satır alt sınırdır, arayüz onu eksiltmeye açık bırakmaz.
+ * Kaldırma satırı **en az bir saat varsa** çizilir; 1 satır kalana kadar
+ * değil, 0'a inilene kadar. Gün tamamen boşaltıldığında kartta yalnızca
+ * yer tutucu metin ve "Ders ekle" kalır.
  */
 @Composable
 private fun SaatlerKarti(
@@ -379,6 +380,20 @@ private fun SaatlerKarti(
             )
         }
 
+        // Gün 0'a boşaltılmış: kartın içi bomboş kalmasın, hemen altındaki
+        // "Ders ekle" zaten devam yolunu gösterir.
+        if (saatler.isEmpty()) {
+            Text(
+                text = stringResource(R.string.program_gun_bos),
+                style = MaterialTheme.typography.bodyMedium,
+                color = renkler.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+            )
+        }
+
         HorizontalDivider(color = renkler.outlineVariant)
         EylemSatiri(
             ikon = Icons.Rounded.Add,
@@ -387,7 +402,8 @@ private fun SaatlerKarti(
             onClick = onSaatEkle,
         )
 
-        if (dersSayisi > GUNLUK_DERS_SAYISI) {
+        // Kaldırmanın alt sınırı yok: satır kalmayana kadar basılabilir.
+        if (dersSayisi > 0) {
             HorizontalDivider(color = renkler.outlineVariant)
             EylemSatiri(
                 ikon = Icons.Rounded.Remove,

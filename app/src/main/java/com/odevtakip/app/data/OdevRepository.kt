@@ -30,6 +30,7 @@ class OdevRepository(
      *   silinmez — bkz. [ProgramSatiri].
      */
     suspend fun programaYaz(gun: Int, sira: Int, ders: String) {
+        gunuHazirla(gun)
         programDao.kaydet(ProgramSatiri(gun = gun, sira = sira, ders = ders.trim()))
     }
 
@@ -43,21 +44,51 @@ class OdevRepository(
      *
      * Satır boş (`ders = ""`) yazılır: tabloda olmak, o saatin **var olduğu**
      * anlamına gelir (bkz. [ProgramSatiri]). Dolu bir saat asla ezilmez,
-     * çünkü sıra numarası zaten dolu saatlerin ilerisindedir.
+     * çünkü sıra numarası zaten dolu saatlerin ilerisindedir. Gün 0'a
+     * boşaltılmışsa ilk satır 1'e yazılır.
      */
     suspend fun saatAc(gun: Int) {
-        val sira = maxOf(GUNLUK_DERS_SAYISI, programDao.gununSonSirasi(gun)) + 1
+        gunuHazirla(gun)
+        val sira = programDao.gununSonSirasi(gun) + 1
         programDao.kaydet(ProgramSatiri(gun = gun, sira = sira, ders = ""))
     }
 
     /**
      * Bir ders saatini — ve o saate atanmış dersi — programdan kaldırır.
      *
-     * Satır yoksa sessizce biter; arayüz kaldırmayı yalnızca 8'in üzerindeki
-     * sıralar için gösterdiği için bu çağrı alt sınıra dokunmaz.
+     * Satır yoksa sessizce biter. Sıra her zaman 1 ya da daha büyük olmalıdır:
+     * 0 numaralı satır [ProgramSatiri.SIRA_ISARET]tir ve bir ders saati
+     * değildir — koruması [com.odevtakip.app.ui.OdevViewModel.saatKaldir]
+     * tarafındadır. Günün tamamı 0'a inince işaret satırı kalır, sayaç da
+     * böylece "bu gün boş" ile "bu güne hiç dokunulmadı" ayrımını korur.
      */
     suspend fun saatKaldir(gun: Int, sira: Int) {
+        gunuHazirla(gun)
         programDao.sil(gun, sira)
+    }
+
+    /**
+     * Bir güne ilk kez yazmadan önce onu **kullanıma** alır.
+     *
+     * Sayaç satırlardan türüdüğü için satırların **1'den başması** gerekir.
+     * Eski veride (Faz 14–15) yalnızca atanan saatler yazılıyordu: 3. saate
+     * ders atanmış bir günde 1, 2, 4… satırları yoktu ve bu günler 8'den
+     * aşağı düşerdi. Burada gün önce [GUNLUK_DERS_SAYISI]e tamamlanır —
+     * [ProgramDao.ekle] ezmediği için var olan dersler olduğu gibi kalır —
+     * sonra günün kullanımda olduğunu söyleyen [ProgramSatiri.SIRA_ISARET]
+     * satırı yazılır.
+     *
+     * İşaret zaten varsa gün dönüştürülmüştür ve işlev hiçbir şey yapmaz;
+     * 0'a boşaltılmış bir gün yeniden 8'e dolmaz. Aksi hâlde her yazma işlemi
+     * boşaltılmış bir günü geri doldururdu.
+     */
+    private suspend fun gunuHazirla(gun: Int) {
+        if (programDao.satirVarMi(gun, ProgramSatiri.SIRA_ISARET)) return
+
+        for (sira in 1..GUNLUK_DERS_SAYISI) {
+            programDao.ekle(ProgramSatiri(gun = gun, sira = sira, ders = ""))
+        }
+        programDao.kaydet(ProgramSatiri(gun = gun, sira = ProgramSatiri.SIRA_ISARET, ders = ""))
     }
 
     // ---- Dersler ----
