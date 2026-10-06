@@ -33,6 +33,33 @@ class OdevRepository(
         programDao.kaydet(ProgramSatiri(gun = gun, sira = sira, ders = ders.trim()))
     }
 
+    /**
+     * Seçili güne bir ders saati daha açar.
+     *
+     * Sıra numarası **tablodan** okunur ([ProgramDao.gununSonSirasi]); ekranın
+     * o an kaç satır çizdiği bir yere yazıldığı için iki hızlı dokunuşta
+     * aynı satır iki kez açılmaz. Sonuç her zaman [gununDersSayisi] ile
+     * ekranda görülen sayının bir fazlasıdır.
+     *
+     * Satır boş (`ders = ""`) yazılır: tabloda olmak, o saatin **var olduğu**
+     * anlamına gelir (bkz. [ProgramSatiri]). Dolu bir saat asla ezilmez,
+     * çünkü sıra numarası zaten dolu saatlerin ilerisindedir.
+     */
+    suspend fun saatAc(gun: Int) {
+        val sira = maxOf(GUNLUK_DERS_SAYISI, programDao.gununSonSirasi(gun)) + 1
+        programDao.kaydet(ProgramSatiri(gun = gun, sira = sira, ders = ""))
+    }
+
+    /**
+     * Bir ders saatini — ve o saate atanmış dersi — programdan kaldırır.
+     *
+     * Satır yoksa sessizce biter; arayüz kaldırmayı yalnızca 8'in üzerindeki
+     * sıralar için gösterdiği için bu çağrı alt sınıra dokunmaz.
+     */
+    suspend fun saatKaldir(gun: Int, sira: Int) {
+        programDao.sil(gun, sira)
+    }
+
     // ---- Dersler ----
 
     /** Dersleri ekleme sırasıyla yayınlar. */

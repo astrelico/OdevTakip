@@ -6,12 +6,30 @@ import com.odevtakip.app.util.gunUzunAdi
 import java.time.LocalDate
 
 /**
- * Bir okul gününde okunan ders saati sayısı.
+ * Bir okul gününde **varsayılan** ders saati sayısı — aynı zamanda alt sınırdır.
  *
  * Program **haftalık**dır: kullanıcı haftanın gününü seçip o günün
  * [GUNLUK_DERS_SAYISI] satırını doldurur; her hafta aynı düzen tekrarlanır.
+ * Okul günü daha uzunsa satır ekranın altındaki "Ders ekle" ile 9'a, 10'a
+ * çıkarılabilir; aşağı düşürülmez. Günün kaç satır çizeceği
+ * [gununDersSayisi] ile okunur.
  */
 const val GUNLUK_DERS_SAYISI: Int = 8
+
+/**
+ * Bir günün ekranda çizilecek ders saati sayısı.
+ *
+ * Tabloda yalnızca **dolu** satırlar değil, "Ders ekle" ile açılmış — belki
+ * hâlâ boş — satırlar da durur; bu yüzden sayı o günün en büyük sıra
+ * numarasından türer. Hiç satır yoksa ya da en büyük sıra 8'den küçükse
+ * sonuç [GUNLUK_DERS_SAYISI] olur: 8 hem varsayılan hem alt sınırdır.
+ *
+ * @param gun ISO günü (0 = pazartesi).
+ * @param program Program tablosunun tamamı; işlev yalnızca [gun] satırlarına bakar.
+ */
+fun gununDersSayisi(gun: Int, program: List<ProgramSatiri>): Int =
+    (program.filter { it.gun == gun }.maxOfOrNull { it.sira } ?: 0)
+        .coerceAtLeast(GUNLUK_DERS_SAYISI)
 
 /**
  * Haftanın günü.
@@ -69,7 +87,10 @@ enum class HaftaGunu(val sira: Int) {
  * [Odev.ders] ile aynı gerekçe: bir ders listeden silinirse programdaki
  * yazısı yerinde kalır, ekran boşlukla değil o yazıyla karşılaşır.
  * Saate hiç ders atanmadıysa satır silinmez, yalnızca `ders` boş bırakılır;
- * böylece ekran her açılışta 8 satırı aynı düzende çizebilir.
+ * böylece ekran günün [gununDersSayisi] satırını aynı düzende çizebilir.
+ * 8'i aşan satırlar da aynı yolla — boş `ders` ile — açılır: boş satır
+ * burada bir **işarettir**, o saatin var olduğunu ama henüz ders
+ * atanmadığını söyler.
  *
  * @property gun ISO günü: 0 = pazartesi … 6 = pazar.
  * @property sira Ders saatinin sırası, 1'den başlar.

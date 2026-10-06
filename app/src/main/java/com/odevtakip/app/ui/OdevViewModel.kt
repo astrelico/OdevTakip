@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Ders
 import com.odevtakip.app.data.Durum
+import com.odevtakip.app.data.GUNLUK_DERS_SAYISI
 import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
@@ -229,10 +230,11 @@ class OdevViewModel(
     /**
      * Haftalık ders programı, gün ve sıra sırasıyla.
      *
-     * Tabloda yalnızca **doldurulmuş** saatler durur; program ekranı
-     * [com.odevtakip.app.data.GUNLUK_DERS_SAYISI] satırı kendisi çizer ve
-     * kayıt bulamadığı saati "boş" sayar. Böylece ekrandaki satır sayısı her
-     * zaman sabit kalır, veritabanda gereksiz satır birikmez.
+     * Tabloda yalnızca **doldurulmuş** saatler ile "Ders ekle" ile açılmış
+     * satırlar durur; program ekranı
+     * [com.odevtakip.app.data.gununDersSayisi] sonucu kadar satır çizer ve
+     * kayıt bulamadığı saati "boş" sayar. Böylece ekrandaki satır sayısı
+     * veritabanıyla aynı kaynaktan gelir, iki yerde ayrı ayrı tutulmaz.
      */
     val program: StateFlow<List<ProgramSatiri>> = repository.programi()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -253,6 +255,32 @@ class OdevViewModel(
     /** Bir ders saatine ders atar; `ders` boşsa o saati boşa alır. */
     fun programaYaz(gun: Int, sira: Int, ders: String) {
         viewModelScope.launch { repository.programaYaz(gun, sira, ders) }
+    }
+
+    /**
+     * Seçili güne bir ders saati daha açar (9., 10., …).
+     *
+     * Yalnızca **seçili** güne yazılır: okul günlerinin uzunluğu günden güne
+     * değişebildiği için satır sayısını hafta geneline yaymak yerine kullanıcı
+     * o gün kadarını açar. Alt sınır [com.odevtakip.app.data.GUNLUK_DERS_SAYISI]
+     * olduğundan eksiltme yolu yoktur.
+     */
+    fun saatAc(gun: Int) {
+        viewModelScope.launch { repository.saatAc(gun) }
+    }
+
+    /**
+     * Bir ders saatini — ve o saate atanmış dersi — programdan kaldırır.
+     *
+     * Arayüz yalnızca 8'i aşan sıralar için bu düğmeyi gösterir; yine de
+     * sınırın altı repository'de de korumaya bırakılmıştır.
+     */
+    fun saatKaldir(gun: Int, sira: Int) {
+        viewModelScope.launch {
+            if (sira > GUNLUK_DERS_SAYISI) {
+                repository.saatKaldir(gun, sira)
+            }
+        }
     }
 
     // ---- Seçili ödev ----

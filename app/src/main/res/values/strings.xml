@@ -143,6 +143,13 @@
     <string name="program_slot_baslik">%1$d. ders saati</string>
     <string name="programi_bosalt">Bu dersi boşalt</string>
 
+    <!-- Ders programı: satır ekleme / kaldırma (Faz 15) -->
+    <string name="programa_ekle">Ders ekle</string>
+    <string name="program_saat_kaldir">Son dersi kaldır</string>
+    <string name="program_kaldir_onay_baslik">Ders saati kaldırılsın mı?</string>
+    <string name="program_kaldir_onay_metin">%1$d. ders saati ve bu saate atanan %2$s programdan kalkacak.</string>
+    <string name="kaldir">Kaldır</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>

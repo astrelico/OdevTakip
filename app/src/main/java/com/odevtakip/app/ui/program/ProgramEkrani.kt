@@ -19,8 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,15 +35,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -49,20 +57,28 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.data.GUNLUK_DERS_SAYISI
 import com.odevtakip.app.data.HaftaGunu
+import com.odevtakip.app.data.gununDersSayisi
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.dersler.DersSecimPaneli
 
 /**
- * Ders programı: haftanın gününü seç, o günün 8 ders saatine elle ders ata.
+ * Ders programı: haftanın gününü seç, o günün ders saatlerine elle ders ata.
  *
  * Ekran bir **haftalık** ızgaranın günlük görünümüdür: çiplerden gün seçilir,
  * altta o günün satırları dizilir. Tek günlük görünüm seçiminin nedeni telefon
  * genişliği — 7 sütunluk bir tabloda ders adları okunmaz kalırdı; burada ise
  * her satır tam genişlikte olduğu için uzun adlar da sığar.
  *
- * Veri [OdevViewModel.program] akışından gelir. Tabloda yalnızca **dolu**
- * satırlar tutulduğu için her gün her zaman 8 çizilir: kaydı olmayan saatin
- * metni "Ders seç" olarak boş görünür.
+ * **Satır sayısı güne özeldir.** Her gün [GUNLUK_DERS_SAYISI] satırla başlar;
+ * kartın altındaki "Ders ekle" o güne 9., 10., … satırı açar, "Son dersi
+ * kaldır" geri indirir (alt sınıfa inilmez). Okul günleri günden güne
+ * değişebildiği için sayı hafta geneline yayılmaz — kullanıcı istediği günü
+ * uzatır. Sayaç ayrı bir yerde tutulmaz: [gununDersSayisi] satırları
+ * doğrudan tablodan sayar, bu yüzden "Ders ekle" ile açılan — belki henüz
+ * boş — satır da varlığını sürdürür.
+ *
+ * Veri [OdevViewModel.program] akışından gelir. Kaydı olmayan saatin metni
+ * "Ders seç" olarak boş görünür.
  *
  * Dersler [com.odevtakip.app.ui.dersler.DersSecimPaneli] ile seçildiği için
  * listede yalnızca var olan adlar görünür; ders eklenmediyse panel
@@ -83,16 +99,72 @@ fun ProgramEkrani(
     val bugun = HaftaGunu.bugun()
     val bugunMetni = stringResource(R.string.bugun)
 
+    // Günün satır sayısı; tablonun kendisinden türür, ayrı bir sayaç değil.
+    val dersSayisi = remember(program, gunSira) { gununDersSayisi(gunSira, program) }
+
     // Seçili günün satırları: kayıt yoksa o saat boş sayılır.
-    val saatler = remember(program, gunSira) {
-        (1..GUNLUK_DERS_SAYISI).map { sira ->
+    val saatler = remember(program, gunSira, dersSayisi) {
+        (1..dersSayisi).map { sira ->
             sira to program.firstOrNull { it.gun == gunSira && it.sira == sira }?.ders.orEmpty()
         }
     }
 
     var duzenlenecekSaat by remember { mutableStateOf<Int?>(null) }
+    var kaldirilacakSaat by remember { mutableStateOf<Int?>(null) }
+    var yeniSatirEklendi by remember { mutableStateOf(false) }
+
     val acilanSaat = duzenlenecekSaat
     val acilanDers = acilanSaat?.let { saat -> saatler.firstOrNull { it.first == saat }?.second }
+
+    // Satır eklenince liste uzar ve yeni satır görüşün altında kalır;
+    // kullanıcı "Ders ekle"ye bastığı yere geri döndüğü için listeyi elle
+    // kaydırması gerekirdi. Yalnızca **kullanıcı eklediğinde** sona
+    // kaydırılır; bayrak yalnızca okunur, etkinin anahtarı değildir —
+    // anahtar olsaydı etki, veritabanı yazısı bitmeden çalışıp bayrağı
+    // sıfırlar ve gerçek artış geldiğinde kaydırma yapılmazdı. Açılışta
+    // akış önce boş liste yayınlar, onu izleyen gerçek veri sayıyı
+    // büyütebilir; ekranın açılması tepetaklak kaydırılmamalı.
+    val kaydirma = rememberScrollState()
+    LaunchedEffect(dersSayisi) {
+        if (!yeniSatirEklendi) return@LaunchedEffect
+        yeniSatirEklendi = false
+        // `maxValue` ölçümde güncellenir; bir çerçeve bekleyip öyle kaydır.
+        withFrameNanos { }
+        kaydirma.animateScrollTo(kaydirma.maxValue)
+    }
+
+    val silinecekSaat = kaldirilacakSaat
+    if (silinecekSaat != null) {
+        val silinecekDers = saatler.firstOrNull { it.first == silinecekSaat }?.second.orEmpty()
+        AlertDialog(
+            onDismissRequest = { kaldirilacakSaat = null },
+            title = { Text(stringResource(R.string.program_kaldir_onay_baslik)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.program_kaldir_onay_metin,
+                        silinecekSaat,
+                        silinecekDers,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.saatKaldir(gunSira, silinecekSaat)
+                        kaldirilacakSaat = null
+                    }
+                ) {
+                    Text(stringResource(R.string.kaldir))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { kaldirilacakSaat = null }) {
+                    Text(stringResource(R.string.iptal))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -156,14 +228,32 @@ fun ProgramEkrani(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(kaydirma)
                     .padding(horizontal = 16.dp)
                     // Alt menünün tabanı içerik alanının bittiği yerdir;
                     // dolgu, son satırın 64 dp yukarıda duran + düğmesinin
                     // altında kalmamasını sağlar.
                     .padding(bottom = 80.dp),
             ) {
-                SaatlerKarti(saatler = saatler, onSec = { duzenlenecekSaat = it })
+                SaatlerKarti(
+                    saatler = saatler,
+                    dersSayisi = dersSayisi,
+                    onSec = { duzenlenecekSaat = it },
+                    onSaatEkle = {
+                        yeniSatirEklendi = true
+                        viewModel.saatAc(gunSira)
+                    },
+                    onSonSaatKaldir = {
+                        // Boş satır doğrudan iner; dolu satır dersi de
+                        // götüreceği için önce kullanıcıya sorulur.
+                        val sonDers = saatler.lastOrNull()?.second.orEmpty()
+                        if (sonDers.isBlank()) {
+                            viewModel.saatKaldir(gunSira, dersSayisi)
+                        } else {
+                            kaldirilacakSaat = dersSayisi
+                        }
+                    },
+                )
             }
         }
     }
@@ -248,33 +338,60 @@ private fun GunCipleri(
 // ---- Ders saatleri ----
 
 /**
- * Seçili günün 8 ders saati.
+ * Seçili günün ders saatleri ve listenin altındaki iki eylem satırı.
  *
- * Satırın tamamı basılabilir; soldaki numara rozeti `primary` zeminli,
+ * Saat satırının tamamı basılabilir; soldaki numara rozeti `primary` zeminli,
  * ders adı ya da boşsa "Ders seç" yazısı solda, sağda kalem işareti vardır.
- * Aynı kart ve ayraç dili dersler ekranıyla paylaşılır — iki liste farklı
- * görünseydi kullanıcı aynı türden kaydı farklı yer sanabilirdi.
+ * Eylem satırları aynı gövde geometrisini — 30 dp madde işareti + 14 dp
+ * aralık — kullanır, böylece yazı sütunu saatlerle hizalanır; farkı renk ve
+ * ikon verir: "Ders ekle" `primary`, kaldırma `error`.
+ *
+ * Kaldırma satırı yalnızca [GUNLUK_DERS_SAYISI] üzerindeki günlerde çizilir:
+ * sekiz satır alt sınırdır, arayüz onu eksiltmeye açık bırakmaz.
  */
 @Composable
 private fun SaatlerKarti(
     saatler: List<Pair<Int, String>>,
+    dersSayisi: Int,
     onSec: (Int) -> Unit,
+    onSaatEkle: () -> Unit,
+    onSonSaatKaldir: () -> Unit,
 ) {
+    val renkler = MaterialTheme.colorScheme
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = renkler.surface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         saatler.forEachIndexed { indeks, (sira, ders) ->
             if (indeks > 0) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = renkler.outlineVariant)
             }
             SaatSatiri(
                 sira = sira,
                 ders = ders,
                 onClick = { onSec(sira) },
+            )
+        }
+
+        HorizontalDivider(color = renkler.outlineVariant)
+        EylemSatiri(
+            ikon = Icons.Rounded.Add,
+            etiket = stringResource(R.string.programa_ekle),
+            renk = renkler.primary,
+            onClick = onSaatEkle,
+        )
+
+        if (dersSayisi > GUNLUK_DERS_SAYISI) {
+            HorizontalDivider(color = renkler.outlineVariant)
+            EylemSatiri(
+                ikon = Icons.Rounded.Remove,
+                etiket = stringResource(R.string.program_saat_kaldir),
+                renk = renkler.error,
+                onClick = onSonSaatKaldir,
             )
         }
     }
@@ -329,6 +446,51 @@ private fun SaatSatiri(
             contentDescription = null,
             tint = if (bos) renkler.outline else renkler.onSurfaceVariant,
             modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/**
+ * Kartın altındaki eylem satırı: madde işareti yerine ikon, yazı [renk]de.
+ *
+ * `Role.Button` ile ekran okuyucuya listede bir kayıt değil bir **eylem**
+ * söylendiği bildirilir.
+ */
+@Composable
+private fun EylemSatiri(
+    ikon: ImageVector,
+    etiket: String,
+    renk: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .background(color = renk.copy(alpha = 0.14f), shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = ikon,
+                contentDescription = null,
+                tint = renk,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
+
+        Text(
+            text = etiket,
+            style = MaterialTheme.typography.bodyLarge,
+            color = renk,
+            maxLines = 1,
         )
     }
 }
