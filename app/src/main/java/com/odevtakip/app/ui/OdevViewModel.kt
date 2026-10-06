@@ -9,8 +9,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Ders
 import com.odevtakip.app.data.Durum
+import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
+import com.odevtakip.app.data.ProgramSatiri
 import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.util.yerelTarih
 import java.time.LocalDate
@@ -220,6 +222,37 @@ class OdevViewModel(
     /** Dersi listeden siler; onu kullanan ödevlere dokunmaz. */
     fun dersSil(id: Long) {
         viewModelScope.launch { repository.dersSil(id) }
+    }
+
+    // ---- Ders programı ----
+
+    /**
+     * Haftalık ders programı, gün ve sıra sırasıyla.
+     *
+     * Tabloda yalnızca **doldurulmuş** saatler durur; program ekranı
+     * [com.odevtakip.app.data.GUNLUK_DERS_SAYISI] satırı kendisi çizer ve
+     * kayıt bulamadığı saati "boş" sayar. Böylece ekrandaki satır sayısı her
+     * zaman sabit kalır, veritabanda gereksiz satır birikmez.
+     */
+    val program: StateFlow<List<ProgramSatiri>> = repository.programi()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Program ekranının seçili hafta günü (0 = pazartesi).
+     *
+     * Seçim ViewModel'de tutulur: kullanıcı ödev listesine gidip geri
+     * döndüğünde baktığı gün kaybolmaz — [seciliGun] ile aynı gerekçe.
+     */
+    private val _seciliHaftaGunu = MutableStateFlow(HaftaGunu.bugun().sira)
+    val seciliHaftaGunu: StateFlow<Int> = _seciliHaftaGunu.asStateFlow()
+
+    fun haftaGunuAyarla(sira: Int) {
+        _seciliHaftaGunu.value = HaftaGunu.den(sira).sira
+    }
+
+    /** Bir ders saatine ders atar; `ders` boşsa o saati boşa alır. */
+    fun programaYaz(gun: Int, sira: Int, ders: String) {
+        viewModelScope.launch { repository.programaYaz(gun, sira, ders) }
     }
 
     // ---- Seçili ödev ----

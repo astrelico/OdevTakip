@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ import com.odevtakip.app.ui.dersler.DersEkrani
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
+import com.odevtakip.app.ui.program.ProgramEkrani
 import com.odevtakip.app.ui.takvim.TakvimEkrani
 import com.odevtakip.app.ui.theme.OdevTakipTheme
 import com.odevtakip.app.util.turkceyeSabitle
@@ -60,6 +62,7 @@ private object Rotalar {
     const val DETAY = "detay/{odevId}"
     const val AYARLAR = "ayarlar"
     const val DERSLER = "dersler"
+    const val PROGRAM = "program"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -155,7 +158,8 @@ class MainActivity : ComponentActivity() {
  *
  * Çizim sırası şöyle kurulur:
  *
- *  - **Liste** ve **Takvim** ana ekranlardır; alt menü yalnızca onlarda görünür.
+ *  - **Liste**, **Takvim** ve **Ders Programı** ana ekranlardır; alt menü
+ *    yalnızca onlarda görünür.
  *  - **Form**, **detay** ve **ayarlar** üst üste itilen tam ekran rotalardır;
  *    menü gizlenir böylece klavye/açılır listeyle boğuşmazlar.
  *  - Her ekran kendi üst barını diker. Bu yüzden dış `Scaffold`'un
@@ -178,7 +182,9 @@ private fun OdevUygulamasi(
     val navController = rememberNavController()
     val geriAlabilir by navController.currentBackStackEntryAsState()
     val mevcutRota = geriAlabilir?.destination?.route
-    val anaEkran = mevcutRota == Rotalar.LISTE || mevcutRota == Rotalar.TAKVIM
+    val anaEkran = mevcutRota == Rotalar.LISTE ||
+        mevcutRota == Rotalar.TAKVIM ||
+        mevcutRota == Rotalar.PROGRAM
 
     fun git(rota: String) {
         // Yerel fonksiyon bileşimler arasında yeniden kurulmadığı için
@@ -243,6 +249,14 @@ private fun OdevUygulamasi(
                 )
             }
 
+            // Ders programı üçüncü ana sekmedir; alt menüde görünür.
+            composable(Rotalar.PROGRAM) {
+                ProgramEkrani(
+                    viewModel = viewModel,
+                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                )
+            }
+
             composable(
                 route = Rotalar.FORM,
                 arguments = listOf(
@@ -296,12 +310,14 @@ private fun OdevUygulamasi(
 }
 
 /**
- * Alt menü: iki sekme + ortada duran "yeni ödev" düğmesi.
+ * Alt menü: üç sekme + barın **üzerinde** duran "yeni ödev" düğmesi.
  *
- * Düğme `Scaffold`'un FAB yuvasında değil menünün **içinde** duruyor; böylece
- * referanstaki gibi barın üstüne biner (yuvasında olsaydı barın tam üstünde
- * boşlukla asılı kalırdı). Çubuk genişliği neredeyse ekran kadar olduğu için
- * merkezdeki bu alan ikonlarla çakışmaz.
+ * Düğme, çubuğun üstüne 8 dp boşlukla asılı durur. Eski düzenle (düğmenin
+ * barın içine, üst kenarına binmesi) aynı yerde kalması mümkün değildi:
+ * iki sekmede orta nokta iki sekme arasındaydı, üçüncü sekme eklenince ise
+ * tam da ortaya düşer ve ortadaki sekmenin ikonunu kapatırdı. Düğmenin
+ * yukarı taşınmasıyla bu çakışma kalktı; ekranların alt dolgusu (80 dp)
+ * listenin son satırını düğmenin üstünde tutar.
  */
 @Composable
 private fun AltMenu(
@@ -328,13 +344,19 @@ private fun AltMenu(
                 icon = { Icon(Icons.Rounded.DateRange, contentDescription = null) },
                 label = { Text(stringResource(R.string.nav_takvim)) },
             )
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.PROGRAM,
+                onClick = { onSecim(Rotalar.PROGRAM) },
+                icon = { Icon(Icons.Rounded.School, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_program)) },
+            )
         }
 
         FloatingActionButton(
             onClick = onYeniOdev,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-22).dp),
+                .offset(y = (-64).dp),
             shape = CircleShape,
             containerColor = renkler.primary,
             contentColor = renkler.onPrimary,

@@ -31,12 +31,16 @@ import com.odevtakip.app.R
 /**
  * Alttan kayan ders listesi — **tek seçimli**.
  *
- * İki yerde kullanılır, aradaki tek fark [tumDerslerSecenegi]dir:
+ * Üç yerde kullanılır, aradaki tek fark [ilkSecenekMetni]dir:
  *
  *  - **Ödev formu**: yalnızca dersler. Ders zorunlu olduğu için "boş bırak"
- *    seçeneği yoktur; kullanıcı birine dokunmadan paneli kapatabilir.
+ *    seçeneği yoktur (`ilkSecenekMetni = null`); kullanıcı birine dokunmadan
+ *    paneli kapatabilir.
  *  - **Ödevler listesindeki "Filtreler" paneli**: en üstte "Tüm dersler"
  *    satırı vardır; onunla filtre geri alınır.
+ *  - **Ders programı**: en üstte "Bu dersi boşalt" satırı durur; boş bir
+ *    saatte bu satır gösterilmez, böylece radyo "seçili" bir seçenekle
+ *    kullanıcıyı yanıltmaz.
  *
  * Seçim anında [onSecim] çağrılıp panel kendisi kapanır; ayrı bir "Tamam"
  * düğmesi yoktur — listede tek dokunuşla iş bitirilsin diye.
@@ -44,7 +48,9 @@ import com.odevtakip.app.R
  * @param dersler Görüntülenecek ders adları (boşsa [dersYokMetni] görünür).
  * @param secili Seçili dersin adı; `null` hiçbir şeyin seçili olmadığı ya da
  *   filtrede "tümü"nün seçili olduğu anlamına gelir.
- * @param dersYokMetni Liste boşken söylenecek cümle. İkinci satır her iki
+ * @param ilkSecenekMetni Listenin başına eklenecek, `onSecim(null)` çağıran
+ *   ek seçenek. `null` ise böyle bir satır çizilmez.
+ * @param dersYokMetni Liste boşken söylenecek cümle. İkinci satır her üç
  *   kullanımda da Ayarlar'a yönlendiren ipucudur.
  */
 @Composable
@@ -52,7 +58,7 @@ fun DersSecimPaneli(
     baslik: String,
     dersler: List<String>,
     secili: String?,
-    tumDerslerSecenegi: Boolean,
+    ilkSecenekMetni: String? = null,
     onSecim: (String?) -> Unit,
     onKapat: () -> Unit,
     dersYokMetni: String = stringResource(R.string.ders_yok),
@@ -76,9 +82,9 @@ fun DersSecimPaneli(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
             )
 
-            if (tumDerslerSecenegi) {
+            if (ilkSecenekMetni != null) {
                 DersSatiri(
-                    etiket = stringResource(R.string.tum_dersler),
+                    etiket = ilkSecenekMetni,
                     secili = secili == null,
                     onClick = { onSecim(null); onKapat() },
                 )

@@ -28,7 +28,7 @@ class OdevTakipApplication : Application() {
 
     val odevRepository: OdevRepository by lazy {
         val veritabani = OdevDatabase.getInstance(this)
-        OdevRepository(veritabani.odevDao(), veritabani.dersDao())
+        OdevRepository(veritabani.odevDao(), veritabani.dersDao(), veritabani.programDao())
     }
 
     /**

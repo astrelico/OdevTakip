@@ -136,6 +136,13 @@
     <string name="acil">Acil</string>
     <string name="yarin_teslim">Yarın teslim</string>
 
+    <!-- Ders programı (Faz 14) -->
+    <string name="nav_program">Ders Programı</string>
+    <string name="program_baslik">Ders Programı</string>
+    <string name="program_ipucu">Bir satıra dokunup o saatteki dersi seç.</string>
+    <string name="program_slot_baslik">%1$d. ders saati</string>
+    <string name="programi_bosalt">Bu dersi boşalt</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>

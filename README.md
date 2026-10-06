@@ -22,6 +22,11 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   Takvim etkilenmez), açıkken tuşun yazısı seçili ders adına döner
 - **Takvim** sekmesi: yatay gün şeridi, seçili günün ödevleri, "Bugün" düğmesi
   şeridi bugüne döndürür
+- **Ders Programı** sekmesi (alt bardaki üçüncü sekme): haftanın gününü çiplerden
+  seç, o günün **8 ders saatinin** her birine elle ders ata. Satıra dokununca
+  mevcut dersler alttan açılır; dolu bir saatte **"Bu dersi boşalt"** seçeneği
+  de görünür. Program haftalık tekrarlanır, veritabanında kalıcıdır ve yalnızca
+  kendini etkiler — ödev listesine ya da takvime dokunmaz
 - Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
   al; detay ekranındaki büyük düğme de aynen çalışır
 - **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu), "Tamamlananları
@@ -74,6 +79,7 @@ app/src/main/java/com/odevtakip/app/
     ├── OdevKarti.kt         # liste/takvim ekranlarının ortak kartı
     ├── liste/  takvim/  form/  detay/  ayarlar/
     ├── dersler/           # ders seçim paneli + ders ekle-değiştir ekranı
+    ├── program/           # haftalık ders programı: gün çipleri + 8 ders saati
     └── theme/               # Odak Mavisi paleti (açık/koyu)
 ```
 

@@ -139,8 +139,10 @@ fun TakvimEkrani(
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         end = 16.dp,
-                        // Alt menü + ortak + düğmesi altında kalmasın.
-                        bottom = 104.dp,
+                        // Alt menünün tabanı içerik alanının bittiği yerdir;
+                        // dolgu, listenin sonunda içeriğin 64 dp yukarıda
+                        // duran + düğmesinin altında kalmamasını sağlar.
+                        bottom = 80.dp,
                     ),
                 ) {
                     items(odevler, key = { it.id }) { odev ->

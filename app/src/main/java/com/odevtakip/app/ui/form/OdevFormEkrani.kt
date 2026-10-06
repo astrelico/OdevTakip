@@ -266,7 +266,6 @@ fun OdevFormEkrani(
             baslik = stringResource(R.string.ders_sec),
             dersler = dersler.map { it.ad },
             secili = ders.takeIf { it.isNotBlank() },
-            tumDerslerSecenegi = false,
             onSecim = { secilen ->
                 ders = secilen.orEmpty()
                 dersHatasi = false

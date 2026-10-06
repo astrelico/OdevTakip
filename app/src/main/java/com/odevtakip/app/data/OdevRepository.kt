@@ -15,7 +15,23 @@ import kotlinx.coroutines.flow.Flow
 class OdevRepository(
     private val dao: OdevDao,
     private val dersDao: DersDao,
+    private val programDao: ProgramDao,
 ) {
+
+    // ---- Ders programı ----
+
+    /** Haftalık programı gün ve sıra sırasıyla yayınlar. */
+    fun programi(): Flow<List<ProgramSatiri>> = programDao.programiIzle()
+
+    /**
+     * Bir ders saatine ders atar.
+     *
+     * @param ders Seçilen dersin adı; boşsa o saat boşa alınır. Satır
+     *   silinmez — bkz. [ProgramSatiri].
+     */
+    suspend fun programaYaz(gun: Int, sira: Int, ders: String) {
+        programDao.kaydet(ProgramSatiri(gun = gun, sira = sira, ders = ders.trim()))
+    }
 
     // ---- Dersler ----
 

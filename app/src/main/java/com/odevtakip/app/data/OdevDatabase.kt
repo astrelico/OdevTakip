@@ -22,10 +22,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    [MIGRATION_1_2] çalışır. Kullanıcı sonradan bütün dersleri silerse
  *    geri gelmezler — iki yol da "tablo ilk kez oluşuyor" anında çalıştığı
  *    için tekrar-tohumlama sorunu yoktur.
+ *
+ * ### Sürüm 3 (Faz 14)
+ *
+ *  - `program` tablosu açıldı: haftanın günleri × ders saatleri ızgarası.
+ *    Yeni tablo boş gelir; doldurması kullanıcının işidir. Mevcut ödev ve
+ *    ders kayıtları bu geçişte hiç okunmaz/yazılmaz.
  */
 @Database(
-    entities = [Odev::class, Ders::class],
-    version = 2,
+    entities = [Odev::class, Ders::class, ProgramSatiri::class],
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -34,6 +40,8 @@ abstract class OdevDatabase : RoomDatabase() {
     abstract fun odevDao(): OdevDao
 
     abstract fun dersDao(): DersDao
+
+    abstract fun programDao(): ProgramDao
 
     companion object {
 
@@ -92,6 +100,21 @@ abstract class OdevDatabase : RoomDatabase() {
             }
         }
 
+        /** Sürüm 2 → 3: ders programı ızgarası (Faz 14). */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Birleşik anahtar: aynı gün/saat ikinci kez yazılamaz, sadece
+                // mevcut satırın ders adı değişir (ProgramDao).
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `program` (" +
+                        "`gun` INTEGER NOT NULL, " +
+                        "`sira` INTEGER NOT NULL, " +
+                        "`ders` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`gun`, `sira`))"
+                )
+            }
+        }
+
         /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
@@ -115,7 +138,7 @@ abstract class OdevDatabase : RoomDatabase() {
                     OdevDatabase::class.java,
                     "odev-takip.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(ILK_OLUSTURMA)
                     .build()
                     .also { INSTANCE = it }
