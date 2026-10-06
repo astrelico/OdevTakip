@@ -3,6 +3,7 @@ package com.odevtakip.app
 import android.app.Application
 import android.util.Log
 import com.odevtakip.app.bildirim.BildirimYonetici
+import com.odevtakip.app.data.EkDeposu
 import com.odevtakip.app.data.OdevDatabase
 import com.odevtakip.app.data.OdevRepository
 import com.odevtakip.app.data.Tercihler
@@ -28,7 +29,12 @@ class OdevTakipApplication : Application() {
 
     val odevRepository: OdevRepository by lazy {
         val veritabani = OdevDatabase.getInstance(this)
-        OdevRepository(veritabani.odevDao(), veritabani.dersDao(), veritabani.programDao())
+        OdevRepository(
+            dao = veritabani.odevDao(),
+            dersDao = veritabani.dersDao(),
+            programDao = veritabani.programDao(),
+            ekDeposu = EkDeposu(this),
+        )
     }
 
     /**

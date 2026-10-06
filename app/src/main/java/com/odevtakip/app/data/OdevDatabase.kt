@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 2. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 4. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
  *
  * ### Sürüm 2 (Faz 12)
  *
@@ -28,10 +28,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  - `program` tablosu açıldı: haftanın günleri × ders saatleri ızgarası.
  *    Yeni tablo boş gelir; doldurması kullanıcının işidir. Mevcut ödev ve
  *    ders kayıtları bu geçişte hiç okunmaz/yazılmaz.
+ *
+ * ### Sürüm 4 (Dosya / fotoğraf eki)
+ *
+ *  - `odevler.ek` kolonu eklendi: `TEXT` ve **boş (`NULL`)**. Dosyanın
+ *    kendisi veritabanında değil, uygulamanın özel dosya deposunda durur
+ *    ([EkDeposu]); tabloda yalnızca adı tutulur. Eski kayıtlar bu kolonu
+ *    `NULL` olarak alır, yani "ek yok" — taşma ya da dönüşüm yok.
  */
 @Database(
     entities = [Odev::class, Ders::class, ProgramSatiri::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -116,6 +123,20 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 3 → 4: ödevin ek dosyasının adı (Faz: dosya / fotoğraf eki).
+         *
+         * `ALTER TABLE` kolonu `NULL` değerle açar; dolayısıyla mevcut bütün
+         * kayıtlar "ek yok" olarak okunur ve hiçbir satır güncellenmez.
+         * `DEFAULT` bilinçli olarak **verilmiyor**: Room'un beklediği şema ile
+         * birebir uyuşsun diye kolon yalın `TEXT` kalır (bkz. [Odev.ek]).
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE odevler ADD COLUMN ek TEXT")
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -138,7 +159,7 @@ abstract class OdevDatabase : RoomDatabase() {
                     OdevDatabase::class.java,
                     "odev-takip.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(ILK_OLUSTURMA)
                     .build()
                     .also { INSTANCE = it }

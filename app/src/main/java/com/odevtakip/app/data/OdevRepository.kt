@@ -1,5 +1,7 @@
 package com.odevtakip.app.data
 
+import android.net.Uri
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -11,12 +13,35 @@ import kotlinx.coroutines.flow.Flow
  *
  * Ders listesi de buradan geçer: bir dersin eklenip silinmesi iş kuralı
  * (yinelenen ad) barındırdığı için arayüzün doğrudan [DersDao] görmemesi gerekir.
+ *
+ * Aynı doğruluk dosya eki için de geçerli: ek ne zaman kopyalanır, ne zaman
+ * kimse ona referans vermediği için silinir — hepsi bu sınıfın içindedir.
  */
 class OdevRepository(
     private val dao: OdevDao,
     private val dersDao: DersDao,
     private val programDao: ProgramDao,
+    private val ekDeposu: EkDeposu,
 ) {
+
+    // ---- Dosya / fotoğraf eki ----
+
+    /** Seçicinin verdiği Uri'nin kullanıcının gördüğü dosya adını okur. */
+    suspend fun ekAdi(uri: Uri): String? = ekDeposu.adiniOku(uri)
+
+    /**
+     * Dosyayı uygulamanın deposuna kopyalar; başarısızsa `null`.
+     *
+     * Kopyalama yalnızca **kayıt anında** yapılır: formdan vazgeçildiğinde
+     * geriye hiçbir artık dosya kalmaz.
+     */
+    suspend fun ekKopyala(uri: Uri): String? = ekDeposu.kopyala(uri)
+
+    /** Ek dosyasının tam yolu — detay ekranındaki önizleme için. */
+    fun ekDosyasi(ad: String): File = ekDeposu.dosya(ad)
+
+    /** [ad]lı ek dosyasını siler. Dosya yoksa sessizce biter. */
+    suspend fun ekSil(ad: String) = ekDeposu.sil(ad)
 
     // ---- Ders programı ----
 
@@ -137,6 +162,11 @@ class OdevRepository(
      *
      * Kaydedilen ödev, tarihi geçmişse [Durum.GECEKTI] olarak yazılır;
      * kullanıcı tarihi ileri alıp kaydettiyse yeniden [Durum.BEKLIYOR] olur.
+     *
+     * **Ek dosyası da burada sahiplenilir:** kayıt `ek` alanını değiştirdiyse
+     * eskisi artık hiçbir ödevin referans vermediği bir dosyadır ve silinir.
+     * Satır yazıldıktan **sonra** silinir; tersi sırayla, yazı işlemi
+     * başarısız olursa kullanıcının eski eki hayattayken kaybolurdu.
      */
     suspend fun kaydet(odev: Odev): Long {
         val simdi = System.currentTimeMillis()
@@ -146,12 +176,31 @@ class OdevRepository(
             odev.sonTarih <= simdi -> odev.copy(durum = Durum.GECEKTI)
             else -> odev.copy(durum = Durum.BEKLIYOR)
         }
-        return dao.kaydet(kayit)
+
+        val eskiEk = if (odev.id > 0) dao.odeviAl(odev.id)?.ek else null
+        val id = dao.kaydet(kayit)
+
+        if (eskiEk != null && eskiEk != kayit.ek) ekSil(eskiEk)
+        return id
     }
 
-    suspend fun sil(odev: Odev) = dao.sil(odev)
+    /** Ödevi — ve varsa ek dosyasını — siler. */
+    suspend fun sil(odev: Odev) {
+        dao.sil(odev)
+        odev.ek?.let { ekSil(it) }
+    }
 
-    suspend fun kimlikleSil(id: Long) = dao.kimlikleSil(id)
+    /**
+     * Ödevi kimliğiyle siler; ek dosyası da gider.
+     *
+     * @return Silinen satır sayısı (0 = kayıt yoktu).
+     */
+    suspend fun kimlikleSil(id: Long): Int {
+        val odev = dao.odeviAl(id)
+        val silinen = dao.kimlikleSil(id)
+        if (silinen > 0) odev?.ek?.let { ekSil(it) }
+        return silinen
+    }
 
     /**
      * Ödevi tamamlandı olarak işaretler.

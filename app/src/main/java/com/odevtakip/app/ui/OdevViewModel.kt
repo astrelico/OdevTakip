@@ -1,5 +1,6 @@
 package com.odevtakip.app.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -15,6 +16,7 @@ import com.odevtakip.app.data.OdevRepository
 import com.odevtakip.app.data.ProgramSatiri
 import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.util.yerelTarih
+import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -295,6 +297,22 @@ class OdevViewModel(
     /** Düzenleme formu için ödevi bir kez okur. */
     suspend fun odeviGet(id: Long): Odev? = repository.odeviAl(id)
 
+    // ---- Dosya / fotoğraf eki ----
+
+    /**
+     * Seçicinin verdiği Uri'nin kullanıcının gördüğü dosya adını okur.
+     *
+     * Dosya henüz diske yazılmadı — yalnızca formdaki önizleme için ad.
+     * Kaydetme sırasında dosyanın kendisi [ekKopyala] ile kopyalanır.
+     */
+    suspend fun ekAdi(uri: Uri): String? = repository.ekAdi(uri)
+
+    /** Dosyayı diske kopyalar; başarısızsa `null`. */
+    suspend fun ekKopyala(uri: Uri): String? = repository.ekKopyala(uri)
+
+    /** Ek dosyasının tam yolu — detay ekranındaki önizleme için. */
+    fun ekDosyasi(ad: String): File = repository.ekDosyasi(ad)
+
     // ---- Eylemler ----
 
     /**
@@ -318,6 +336,14 @@ class OdevViewModel(
      * @param odevId Yeni ekleme için `0` ya da negatif.
      * @param ders Seçilen dersin adı; zorunlu alan olduğu için arayüz bunu
      *   boş göndermemeli.
+     * @param ekUri Bu oturumda seçilen yeni dosya. Verilirse içeriği burada
+     *   diske kopyalanır ve `ek` yerine geçer. **Kopyalama yalnızca bu
+     *   noktada yapılır** — formdan vazgeçildiğinde artık dosya kalmaz.
+     * @param ek Yeni seçim yoksa kaydedilecek mevcut ek adı; kullanıcı ek
+     *   sildiyse `null`. (`ekUri` verildiğinde yok sayılır.)
+     * @param onEkHatasi Dosya kopyalanamadığında çağrılır: ödev kaydedilmez,
+     *   form açık kalır ve kullanıcı dosyayı yeniden seçebilir. Eksik kayıt,
+     *   hatadan kötüdür.
      * @param onBasarili Kayıt başarılıysa çağrılır.
      */
     fun formuKaydet(
@@ -326,10 +352,23 @@ class OdevViewModel(
         aciklama: String,
         ders: String,
         sonTarih: Long,
+        ekUri: Uri? = null,
+        ek: String? = null,
+        onEkHatasi: () -> Unit = {},
         onBasarili: () -> Unit,
     ) {
         viewModelScope.launch {
             val mevcut = if (odevId > 0) repository.odeviAl(odevId) else null
+
+            val yeniEk = if (ekUri != null) {
+                repository.ekKopyala(ekUri) ?: run {
+                    onEkHatasi()
+                    return@launch
+                }
+            } else {
+                ek
+            }
+
             repository.kaydet(
                 Odev(
                     id = mevcut?.id ?: 0,
@@ -340,6 +379,7 @@ class OdevViewModel(
                     durum = mevcut?.durum ?: Durum.BEKLIYOR,
                     olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),
                     tamamlanmaTarihi = mevcut?.tamamlanmaTarihi,
+                    ek = yeniEk,
                 )
             )
             onBasarili()

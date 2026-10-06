@@ -3,7 +3,12 @@
 package com.odevtakip.app.ui.form
 
 import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,18 +23,26 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -46,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,6 +82,7 @@ import com.odevtakip.app.util.yerelSaat
 import com.odevtakip.app.util.yerelTarih
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.launch
 
 private const val GUN_MS = 86_400_000L
 
@@ -103,8 +119,48 @@ fun OdevFormEkrani(
     var saatDialogGoster by remember { mutableStateOf(false) }
     var dersPanelGoster by remember { mutableStateOf(false) }
 
+    // ---- Dosya / fotoğraf eki ----
+    //
+    // Seçim anında **yalnızca bir Uri** tutulur; dosyanın diske kopyalanması
+    // Kaydet'e basılır (OdevViewModel.formuKaydet). Böylece formdan
+    // vazgeçildiğinde geriye hiçbir artık dosya kalmaz — kopyası yapılmamış
+    // bir şeyin temizlenmesi de gerekmez.
+    //
+    // `ek`: veritabanındaki mevcut değer (düzenleme modunda başlangıçta o).
+    // `secilenEkUri != null` ise kullanıcı yeni bir dosya seçmiştir ve o,
+    // `ek`'in yerine geçer.
+    var ek by remember { mutableStateOf<String?>(null) }
+    var secilenEkUri by remember { mutableStateOf<Uri?>(null) }
+    var secilenEkAdi by remember { mutableStateOf<String?>(null) }
+    var ekHatasi by remember { mutableStateOf(false) }
+
     val dersler by viewModel.dersler.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val hiz = rememberCoroutineScope()
+
+    /** Seçici bizi geri çağırdığında: Uri'yi tut, adını oku, uyarıyı temizle. */
+    fun ekSecildi(uri: Uri?) {
+        // `null` = kullanıcı seçmekten vazgeçti; mevcut durum değişmez.
+        if (uri == null) return
+        secilenEkUri = uri
+        secilenEkAdi = null
+        ekHatasi = false
+        hiz.launch {
+            val okunan = viewModel.ekAdi(uri)
+            // Arada ikinci bir seçim yapıldıysa eski ad yazılmaz.
+            if (secilenEkUri == uri) secilenEkAdi = okunan
+        }
+    }
+
+    // Fotoğraf sistem Photo Picker'ından gelir (izin gerekmez), dosya da
+    // SAF belge seçicisinden. İkisi de aynı geri çağraya düşer.
+    val fotografSecici = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> ekSecildi(uri) }
+
+    val dosyaSecici = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> ekSecildi(uri) }
 
     // Düzenleme modunda mevcut kaydı forma yükle.
     LaunchedEffect(odevId) {
@@ -114,8 +170,17 @@ fun OdevFormEkrani(
                 aciklama = odev.aciklama
                 ders = odev.ders
                 sonTarihMillis = odev.sonTarih
+                ek = odev.ek
             }
         }
+    }
+
+    // Kartta görünecek ek adı: yeni seçim varsa o, yoksa kayıtlı olan.
+    // Ad henüz okunmadıysa (milisaniyelik bir aralık) jenerik metin durur.
+    val ekGosterilen = if (secilenEkUri != null) {
+        secilenEkAdi ?: stringResource(R.string.ek_secildi)
+    } else {
+        ek
     }
 
     fun kaydet() {
@@ -133,6 +198,16 @@ fun OdevFormEkrani(
             aciklama = aciklama,
             ders = ders,
             sonTarih = sonTarihMillis,
+            ekUri = secilenEkUri,
+            ek = ek,
+            onEkHatasi = {
+                // Dosya diske yazılamadı. Ödev yine de kaydedilmez: eksik
+                // kayıt, hatadan kötüdür. Seçim başa döner, kullanıcı
+                // tekrar deneyebilir.
+                secilenEkUri = null
+                secilenEkAdi = null
+                ekHatasi = true
+            },
             onBasarili = {
                 // Bağlamda iste: kullanıcı ilk ödevini kaydetti, yani
                 // hatırlatmanın artık bir anlamı var. İzin en fazla bir kez sorulur.
@@ -224,6 +299,26 @@ fun OdevFormEkrani(
                     modifier = Modifier.weight(1f),
                 )
             }
+
+            EkAlani(
+                ad = ekGosterilen,
+                hata = if (ekHatasi) stringResource(R.string.ek_kaydedilemedi) else null,
+                onFotografSec = {
+                    fotografSecici.launch(
+                        PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly,
+                        )
+                    )
+                },
+                onDosyaSec = { dosyaSecici.launch(arrayOf("*/*")) },
+                onKaldir = {
+                    secilenEkUri = null
+                    secilenEkAdi = null
+                    ek = null
+                    ekHatasi = false
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Button(
                 onClick = ::kaydet,
@@ -384,6 +479,153 @@ private fun TarihSaatSecici(
                         },
                     )
                 }
+            }
+        }
+
+        if (hata != null) {
+            Text(
+                text = hata,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+            )
+        }
+    }
+}
+
+// ---- Dosya / fotoğraf eki ----
+
+/**
+ * Formun "Ek" bölümü.
+ *
+ * Dosya seçilmeden önce tek bir **"Ek ekle"** düğmesi durur; açılan menü
+ * ikisini de ayrı ayrı sunar (galeri fotoğrafı sistem Photo Picker'ı ile,
+ * belge dosya seçicisiyle). Ek varken kart **kendi kendine tıklanabilir
+ * değildir**: ne yapılacağı iki ayrı düğmeyle (Ek değiştir / Kaldır)
+ * açıkça yazılıdır — tek bir dokunuşun "yanlışlıkla siler miyim?" korkusu
+ * yaratması istenmez.
+ *
+ * Burada yalnızca bir Uri tutulur; dosya diske **Kaydet**'te yazılır.
+ * Önizleme bu yüzden dosyanın kendisini değil, seçiciden okunan **adını**
+ * gösterir.
+ */
+@Composable
+private fun EkAlani(
+    ad: String?,
+    hata: String?,
+    onFotografSec: () -> Unit,
+    onDosyaSec: () -> Unit,
+    onKaldir: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuAcik by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Box {
+            if (ad == null) {
+                OutlinedButton(
+                    onClick = { menuAcik = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AttachFile,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.ek_ekle),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AttachFile,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.ek_baslik),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = ad,
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        IconButton(onClick = { menuAcik = true }) {
+                            Icon(
+                                imageVector = Icons.Rounded.SwapHoriz,
+                                contentDescription = stringResource(R.string.ek_degistir),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = onKaldir) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.kaldir),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Menü kutunun **alt soluna** bağlanır: hem butonun hem kartın
+            // altında açılır, seçicinin getirdiği liste ekranın üstüne
+            // taşarsa sistem kendisi ekrana kırpır.
+            DropdownMenu(
+                expanded = menuAcik,
+                onDismissRequest = { menuAcik = false },
+                modifier = Modifier.align(Alignment.BottomStart),
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.ek_fotograf_sec)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Photo,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        menuAcik = false
+                        onFotografSec()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.ek_dosya_sec)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Folder,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        menuAcik = false
+                        onDosyaSec()
+                    },
+                )
             }
         }
 

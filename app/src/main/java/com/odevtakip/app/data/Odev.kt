@@ -16,6 +16,11 @@ import androidx.room.PrimaryKey
  *   bu kolonu `DEFAULT ''` ile ekler).
  * @property durum Veritabanında saklanan son bilinen durum.
  * @property tamamlanmaTarihi Kullanıcının tamamlandı olarak işaretlediği an.
+ * @property ek Eklenen dosyanın uygulama deposundaki **adı**; `null` = ek yok.
+ *   Dosyanın kendisi `filesDir/ekler/` altında durur (bkz. [EkDeposu]) —
+ *   tabloda yalnızca adı tutulur, hem satır hafif kalır hem yedek taşıması
+ *   tek bir metin alanına iner. `ders`'ten farklı olarak migration **DEFAULT**
+ *   vermez: eski kayıtlar `NULL` kalır ve "ek yok" anlamına gelir.
  */
 @Entity(tableName = "odevler")
 data class Odev(
@@ -29,4 +34,5 @@ data class Odev(
     val durum: Durum = Durum.BEKLIYOR,
     val olusturmaTarihi: Long = System.currentTimeMillis(),
     val tamamlanmaTarihi: Long? = null,
+    val ek: String? = null,
 )

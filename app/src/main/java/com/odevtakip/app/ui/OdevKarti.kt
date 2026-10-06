@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Card
@@ -73,6 +74,10 @@ import kotlinx.coroutines.launch
  * Kaydırma bir "dismiss" değildir: kart listeden silinmez, eylemden hemen
  * sonra yerine döner ([SwipeToDismissBoxState.snapTo]). "Neden kaybolmadı?"
  * sorusunun önüne geçmek için zeminde eylemin adı da yazılıdır.
+ *
+ * Ödevin dosya eki varsa alt satıra ataş ikonu + **"Ekli"** düşer. Kart,
+ * dosyanın **ne** olduğunu değil, **olduğunu** söyler: ayrıntısı detay
+ * ekranında, kendisi orada durur.
  */
 @Composable
 fun OdevKarti(
@@ -212,7 +217,13 @@ fun OdevKarti(
 
                     Spacer(Modifier.height(4.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Alt satır iki bilgiyi taşır: ne zaman teslim ve ek var mı.
+                    // Teslim metni esneyen tek öğedir; ek etiketi sabit kalarak
+                    // uzun tarihlerin üstüne binmesini engeller.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Icon(
                             imageVector = Icons.Rounded.Schedule,
                             contentDescription = null,
@@ -224,7 +235,26 @@ fun OdevKarti(
                             text = teslimMetni(odev.sonTarih),
                             style = MaterialTheme.typography.labelMedium,
                             color = renk,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
                         )
+                        if (odev.ek != null) {
+                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.AttachFile,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.ek_var),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
                     }
                 }
 

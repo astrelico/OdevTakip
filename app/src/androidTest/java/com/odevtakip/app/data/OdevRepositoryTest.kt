@@ -34,11 +34,11 @@ class OdevRepositoryTest {
 
     @Before
     fun kur() {
-        db = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            OdevDatabase::class.java
-        ).build()
-        repo = OdevRepository(db.odevDao(), db.dersDao())
+        val baglam = ApplicationProvider.getApplicationContext<android.content.Context>()
+        db = Room.inMemoryDatabaseBuilder(baglam, OdevDatabase::class.java).build()
+        // `programDao` Faz 14'te, `ekDeposu` dosya eki eklendiğinde geldi;
+        // test de uygulamanın kurduğu düzenin aynısını kullanır.
+        repo = OdevRepository(db.odevDao(), db.dersDao(), db.programDao(), EkDeposu(baglam))
     }
 
     @After

@@ -7,6 +7,14 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 ## Özellikler
 
 - Ödev ekleme / düzenleme / silme (ders, başlık, açıklama, teslim tarihi ve saati)
+- **Dosya / fotoğraf eki** — formdaki **Ek ekle** düğmesi tek bir menüyle iki
+  yolu da açar: **Fotoğraf seç** sistem Photo Picker'ını (izin gerekmez),
+  **Dosya seç** de SAF belge seçicisini. Dosya, uygulamanın **özel** deposuna
+  kopyalanır — hiçbir izin gerekmez, ekran kapatılsa da okunur — ve ödev
+  silinince ek de silinir, değiştirilince eskisi temizlenir. Detay
+  ekranının altında **görsel önizleme** görünür (görsel olmayanda ad + tür +
+  boyut kartı); fotoğrafın üzerine basılınca **tam ekran** açılır. Ana
+  ekrandaki kartta ise ataş ikonuyla **Ekli** etiketi durur
 - Otomatik durum: **Bekliyor → Gecikti → Tamamlandı**. Durum ayrıca bir iş
   karıştırmadan, listenin çizildiği an `sonTarih`'e göre hesaplanır.
 - **Dersler**: formda zorunlu ders seçimi (alttan açılan panel), kartın

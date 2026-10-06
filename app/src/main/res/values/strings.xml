@@ -58,6 +58,19 @@
     <string name="sil">Sil</string>
     <string name="odev_bulunamadi">Bu ödev bulunamadı.</string>
 
+    <!-- Dosya / fotoğraf eki -->
+    <string name="ek_baslik">Ek</string>
+    <string name="ek_ekle">Ek ekle</string>
+    <string name="ek_fotograf_sec">Fotoğraf seç</string>
+    <string name="ek_dosya_sec">Dosya seç</string>
+    <string name="ek_degistir">Ek değiştir</string>
+    <string name="ek_secildi">Dosya seçildi</string>
+    <string name="ek_var">Ekli</string>
+    <string name="ek_dosya">Dosya</string>
+    <string name="ek_gorsel">Ekli görsel</string>
+    <string name="ek_kaydedilemedi">Ek dosyası kaydedilemedi. Tekrar seçmeyi dene.</string>
+    <string name="ek_bulunamadi">Ek dosyası bulunamadı.</string>
+
     <!-- Silme onayı -->
     <string name="sil_onay_baslik">Ödev silinsin mi?</string>
     <string name="sil_onay_metin">\"%1$s\" silinecek. Bu işlem geri alınamaz.</string>
