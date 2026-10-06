@@ -5,6 +5,38 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
+## [1.2] - 2026-10-06
+
+### Eklendi
+
+- **Ders Programı** — Alt gezinmede üçüncü sekme: haftanın yedi günü için
+  ders saatleri ızgarası. Gün çipleriyle gezinilir, satıra basınca alttan
+  açılan panelden ders seçilir. Saat yok; satırlar "1. ders", "2. ders"
+  … diye numaralanır ve seçilen ders haftanın her günü aynı yerde
+  tekrar eder.
+- **Programa ders ekleme / kaldırma** — Program ekranının altındaki
+  **+ Ders ekle** satırı 9., 10., … dersi ekler. Yanındaki **Son dersi
+  kaldır** satırı da 8. satıra kadar inebilir ve gün **0'a kadar
+  boşaltılabilir**; boş gün artık metinle uyarılır. Dolu bir satır
+  kaldırılacaksa önce onay istenir. Ders kaldırma **ilk 8 ders için de**
+  geçerlidir.
+- **Dosya / fotoğraf eki** — Ödev formundaki **Ek ekle** düğmesi tek bir
+  menüyle iki yolu da açar: **Fotoğraf seç** sistem Photo Picker'ını
+  (izin gerektirmez), **Dosya seç** de belge seçicisini. Dosya
+  uygulamanın **özel** deposuna kopyalanır — ekran kapatılsa da okunur —
+  ve ödev silinince ek de silinir, değiştirilince eskisi temizlenir.
+  Detay ekranının altında **görsel önizleme** görünür (görsel olmayanda
+  ad + tür + boyut kartı), fotoğrafın üzerine basılınca **tam ekran**
+  açılır. Ana ekrandaki kartta ise ataş ikonuyla **Ekli** etiketi durur.
+
+### Değişti
+
+- **+ (Yeni ödev) düğmesi** yalnızca Ödevler ve Takvim'de görünür; Ders
+  Programı ekranında gizlenir ki program satırlarıyla çakışmasın.
+- Veritabanı sürümü **2 → 4**: `program` tablosu açıldı ve `odevler`
+  tablosuna `ek` kolonu eklendi. Yükseltme mevcut ödev ve ders verisini
+  olduğu gibi korur.
+
 ## [1.1] - 2026-10-05
 
 ### Eklendi
