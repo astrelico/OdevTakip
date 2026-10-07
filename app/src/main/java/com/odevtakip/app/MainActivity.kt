@@ -7,19 +7,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.School
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -30,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -163,6 +161,9 @@ class MainActivity : ComponentActivity() {
  *
  *  - **Liste**, **Takvim**, **Ders Programı** ve **İstatistik** ana
  *    ekranlardır; alt menü yalnızca onlarda görünür.
+ *  - **"Yeni ödev" düğmesi** Scaffold'un kendi FAB yuvasında, sağ alt
+ *    köşede ve alt menünün üstünde durur; yalnızca Liste ile Takvim'de
+ *    çizilir. Ayrıntı: [YeniOdevDugmesi].
  *  - **Form**, **detay** ve **ayarlar** üst üste itilen tam ekran rotalardır;
  *    menü gizlenir böylece klavye/açılır listeyle boğuşmazlar.
  *  - Her ekran kendi üst barını diker. Bu yüzden dış `Scaffold`'un
@@ -221,12 +222,21 @@ private fun OdevUygulamasi(
                 AltMenu(
                     seciliRota = mevcutRota,
                     onSecim = ::git,
-                    onYeniOdev = {
+                )
+            }
+        },
+        // "Yeni ödev" düğmesi alt menünün **üzerinde**, sağ uçta durur;
+        // `FabPosition.End` bunu kurar, `EndOverlay` barın üstüne bindirirdi.
+        floatingActionButton = {
+            if (mevcutRota == Rotalar.LISTE || mevcutRota == Rotalar.TAKVIM) {
+                YeniOdevDugmesi(
+                    onClick = {
                         navController.navigate(Rotalar.form()) { launchSingleTop = true }
                     },
                 )
             }
         },
+        floatingActionButtonPosition = FabPosition.End,
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -322,83 +332,95 @@ private fun OdevUygulamasi(
 }
 
 /**
- * Alt menü: dört sekme + barın **üzerinde** duran "yeni ödev" düğmesi.
+ * Alt menü: dört sekme.
  *
- * Düğme, çubuğun üstüne 8 dp boşlukla asılı durur. Eski düzenle (düğmenin
- * barın içine, üst kenarına binmesi) aynı yerde kalması mümkün değildi:
- * iki sekmede orta nokta iki sekme arasındaydı, üçüncü sekme eklenince ise
- * tam da ortaya düşer ve ortadaki sekmenin ikonunu kapatırdı. Düğmenin
- * yukarı taşınmasıyla bu çakışma kalktı; ekranların alt dolgusu (80 dp)
- * listenin son satırını düğmenin üstünde tutar.
+ * Barın içinde yalnızca gezinme var; "yeni ödev" eylemi artık
+ * [YeniOdevDugmesi] olarak **Scaffold'un kendi FAB yuvasında**, sağ alt
+ * köşede durur. İkisinin ayrı yerlerde olması, ortak `Box` içinde birbirine
+ * binmelerini gerektiren eski düzeni gereksiz kıldı: menü bir `Box`'a bile
+ * ihtiyaç duymuyor.
  *
- * Düğme yalnızca **ödevle ilgili** iki sekmede çizilir: işi yeni ödev
- * formunu açmaktır ve Ders Programı o eylemi yapmaz — orada kartın altında
- * zaten "Ders ekle" duruyor, iki ayrı "+" eylemi yan yana gezmez. Takvim'de
- * kalmasının nedeni, ileride seçili güne ödev ekleme yolunun oradan
- * geçmesi. FAB'ın olmadığı sekmede ekran 80 dp değil 16 dp dolgu öder.
- * İstatistik salt okunurdur, orada da çizilmez.
- *
- * @param seciliRota FAB'ın çizilip çizilmeyeceğini belirler; yalnızca
- *   [Rotalar.LISTE] ve [Rotalar.TAKVIM] için doğru (dört ana sekme
- *   dışındaki ekranlarda alt menü zaten hiç çizilmez).
+ * @param seciliRota Hangi sekmenin seçili olduğunu belirler.
  */
 @Composable
 private fun AltMenu(
     seciliRota: String?,
     onSecim: (String) -> Unit,
-    onYeniOdev: () -> Unit,
 ) {
     val renkler = MaterialTheme.colorScheme
 
-    Box {
-        NavigationBar(
-            containerColor = renkler.surface,
-            contentColor = renkler.onSurface,
-        ) {
-            NavigationBarItem(
-                selected = seciliRota == Rotalar.LISTE,
-                onClick = { onSecim(Rotalar.LISTE) },
-                icon = { Icon(Icons.AutoMirrored.Rounded.Assignment, contentDescription = null) },
-                label = { Text(stringResource(R.string.nav_odevler)) },
-            )
-            NavigationBarItem(
-                selected = seciliRota == Rotalar.TAKVIM,
-                onClick = { onSecim(Rotalar.TAKVIM) },
-                icon = { Icon(Icons.Rounded.DateRange, contentDescription = null) },
-                label = { Text(stringResource(R.string.nav_takvim)) },
-            )
-            NavigationBarItem(
-                selected = seciliRota == Rotalar.PROGRAM,
-                onClick = { onSecim(Rotalar.PROGRAM) },
-                icon = { Icon(Icons.Rounded.School, contentDescription = null) },
-                label = { Text(stringResource(R.string.nav_program)) },
-            )
-            NavigationBarItem(
-                selected = seciliRota == Rotalar.ISTATISTIK,
-                onClick = { onSecim(Rotalar.ISTATISTIK) },
-                icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
-                label = { Text(stringResource(R.string.nav_istatistik)) },
-            )
-        }
-
-        // FAB yalnızca ödevle ilgili iki sekmede: Ders Programı'nda hem
-        // gereksiz hem de kartın altındaki "Ders ekle" satırının ortasına
-        // biniyordu.
-        if (seciliRota == Rotalar.LISTE || seciliRota == Rotalar.TAKVIM) {
-            FloatingActionButton(
-                onClick = onYeniOdev,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-64).dp),
-                shape = CircleShape,
-                containerColor = renkler.primary,
-                contentColor = renkler.onPrimary,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = stringResource(R.string.yeni_odev_ekle),
-                )
-            }
-        }
+    NavigationBar(
+        containerColor = renkler.surface,
+        contentColor = renkler.onSurface,
+    ) {
+        NavigationBarItem(
+            selected = seciliRota == Rotalar.LISTE,
+            onClick = { onSecim(Rotalar.LISTE) },
+            icon = { Icon(Icons.AutoMirrored.Rounded.Assignment, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_odevler)) },
+        )
+        NavigationBarItem(
+            selected = seciliRota == Rotalar.TAKVIM,
+            onClick = { onSecim(Rotalar.TAKVIM) },
+            icon = { Icon(Icons.Rounded.DateRange, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_takvim)) },
+        )
+        NavigationBarItem(
+            selected = seciliRota == Rotalar.PROGRAM,
+            onClick = { onSecim(Rotalar.PROGRAM) },
+            icon = { Icon(Icons.Rounded.School, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_program)) },
+        )
+        NavigationBarItem(
+            selected = seciliRota == Rotalar.ISTATISTIK,
+            onClick = { onSecim(Rotalar.ISTATISTIK) },
+            icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_istatistik)) },
+        )
     }
+}
+
+/**
+ * "Yeni ödev" düğmesi: **hap** biçiminde uzatılmış FAB, sağ alt köşede.
+ *
+ * Eski düzen yuvarlak, ortalanmış ve yalnızca `+` simgeli bir düğmeydi;
+ * dört sekmeye geçince orta nokta artık iki sekme arasındaydı ve barla
+ * çakışıyordu. Taşınma iki sorunu da bitirdi:
+ *
+ *  - **Konum:** `Scaffold`'un `floatingActionButton` yuvası, düğmeyi alt
+ *    menünün üstüne 16 dp boşlukla ve **uçta** yerleştirir. İçerik
+ *    (liste/takvim) aynı anda 80 dp alt dolgu ödediği için son kart
+ *    düğmenin altında kalmaz.
+ *  - **Görünüm:** Uzatılmış form, hem eylemi yazdığı için daha açıklayıcı
+ *    (`+` tek başına "ekle" mi "yeni sekme" mi belirsizdi) hem de hap
+ *    kesim [CircleShape] ile düz daireden daha çağdaş duruyor. Kalem
+ *    simgesi, kart üzerindeki "Düzenle" eylemiyle aynı dili konuşur.
+ *
+ * Düğme yalnızca **ödevle ilgili** iki sekmede çizilir: Ders Programı'nda
+ * hem gereksiz hem de kartın altındaki "Ders ekle" satırının ortasına
+ * biniyordu; İstatistik ise salt okunur. Takvim'de kalmasının nedeni,
+ * ileride seçili güne ödev ekleme yolunun oradan geçmesi.
+ *
+ * Simgenin `contentDescription`'ı bilinçli olarak boş: etiket zaten
+ * [Text] çocuğundan geliyor. Simgeye de bir açıklama eklemek "Ödev Ekle"
+ * sözünün aynı düğümde iki kez durmasına yol açardı — tıpkı eski
+ * yuvarlak düğmede olduğu gibi etiket tek bir yerden okunur.
+ */
+@Composable
+private fun YeniOdevDugmesi(onClick: () -> Unit) {
+    val renkler = MaterialTheme.colorScheme
+
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        shape = CircleShape,
+        containerColor = renkler.primary,
+        contentColor = renkler.onPrimary,
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.Edit,
+                contentDescription = null,
+            )
+        },
+        text = { Text(stringResource(R.string.odev_ekle)) },
+    )
 }

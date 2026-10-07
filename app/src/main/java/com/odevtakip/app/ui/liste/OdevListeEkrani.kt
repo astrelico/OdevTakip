@@ -143,8 +143,10 @@ fun OdevListeEkrani(
                         end = 16.dp,
                         top = 4.dp,
                         // Alt menünün tabanı içerik alanının bittiği yerdir;
-                        // dolgu, listenin sonunda içeriğin 64 dp yukarıda
-                        // duran + düğmesinin altında kalmamasını sağlar.
+                        // dolgu, listenin son satırının sağ alt köşedeki
+                        // "Ödev Ekle" düğmesinin altında kalmamasını sağlar.
+                        // Düğme barın 72 dp üstünde biter (56 dp yükseklik +
+                        // 16 dp boşluk), 80 dp bunu 8 dp geçer.
                         bottom = 80.dp,
                     ),
                 ) {

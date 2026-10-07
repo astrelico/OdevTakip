@@ -7,10 +7,9 @@
     <string name="filtre_geciken">Geciken</string>
     <string name="filtre_bugun">Bugün</string>
     <string name="filtre_yaklasan">Yaklaşan</string>
-    <string name="yeni_odev_ekle">Yeni ödev ekle</string>
     <string name="odev_sayisi">%1$d ödev</string>
 
-    <string name="liste_bos">Henüz ödev yok.\nAlttaki + düğmesiyle ilk ödevini ekle.</string>
+    <string name="liste_bos">Henüz ödev yok.\nSağ alttaki Ödev Ekle düğmesiyle ilk ödevini ekle.</string>
     <string name="filtre_bos">Bu filtrede ödev yok.</string>
     <string name="liste_bos_gizli">Gösterilecek ödev yok. Ayarlar ekranından gizlemeyi kapatabilirsin.</string>
 
