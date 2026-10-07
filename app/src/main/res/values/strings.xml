@@ -185,4 +185,7 @@
     <string name="bildirim_yaklasan_kanal_adi">Yaklaşan teslimler</string>
     <string name="bildirim_yaklasan_kanal_tanimi">Teslimine kısa süre kalan ödevleri önceden hatırlatır</string>
     <string name="bildirim_yaklasan_metin">Son teslim: %1$s</string>
+
+    <!-- Bildirim eylem düğmesi: uygulamayı açmadan işi bitirmek için. -->
+    <string name="bildirim_tamamla">Tamamla</string>
 </resources>

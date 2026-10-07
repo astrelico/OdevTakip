@@ -44,6 +44,20 @@
             </intent-filter>
         </receiver>
 
+        <!--
+            Bildirimdeki "Tamamla" düğmesini karşılar ve ödevi arka planda
+            tamamlayıp o bildirimi kaldırır.
+
+            exported="false" güvenlik sınırıdır: niyet yalnızca bu
+            uygulamanın kendi bildiriminden (PendingIntent.getBroadcast)
+            gelebilir, üçüncü bir uygulama ödevi kendi isteğiyle
+            tamamlayamaz. Buna rağmen manifest'te listelenmek zorundadır —
+            listelenmemiş bir alıcı hiçbir zaman oluşturulmaz.
+        -->
+        <receiver
+            android:name=".bildirim.HizliTamamlaAlcisi"
+            android:exported="false" />
+
     </application>
 
 </manifest>

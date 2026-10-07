@@ -41,6 +41,10 @@ import com.odevtakip.app.util.formatliTarih
  * bildirimi bir **grup** bildirimidir (tek bir hedefe inemez) ve ana ekrana
  * açılır; yaklaşan teslim bildirimi tek bir ödevi anlatır ve doğrudan o
  * ödevin **detayına** iner.
+ *
+ * Tek hedefi olan her iki bildirime de **"Tamamla"** eylemi iliştirilir;
+ * bkz. [hizliTamamlaEylemi]. Dokunmak detaya götürür, eylem ise işi
+ * bitirir — ikisi farklı iştir ve karıştırılmaz.
  */
 object BildirimYonetici {
 
@@ -195,6 +199,12 @@ object BildirimYonetici {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
+        // Eylem yalnızca **tek** ödev söz konusuyken anlamlı: grup
+        // bildiriminde "Tamamla" hangi ödevi kastettiğin söylemez.
+        if (odevler.size == 1 && odevler[0].id > 0) {
+            kurucu.addAction(hizliTamamlaEylemi(context, odevler[0].id, BILDIRIM_ID))
+        }
+
         // BigTextStyle'ın `bigText` değeri dar görünümde `contentText`'in yerini
         // alır. Tek ödevde bu, "son teslim tarihi geçti" uyarısını silip başlığı
         // aynen tekrarlardı — bu yüzden uzatma yalnızca başlıkların gerçekten
@@ -243,6 +253,7 @@ object BildirimYonetici {
             .setContentTitle(odev.baslik)
             .setContentText(context.getString(R.string.bildirim_yaklasan_metin, teslim))
             .setContentIntent(acilisNiyeti(context, odev.id, yaklasanId(odev.id)))
+            .addAction(hizliTamamlaEylemi(context, odev.id, yaklasanId(odev.id)))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
@@ -263,6 +274,64 @@ object BildirimYonetici {
      */
     fun yaklasaniIptal(context: Context, odevId: Long) {
         NotificationManagerCompat.from(context).cancel(yaklasanId(odevId))
+    }
+
+    /**
+     * Verilen kimlikteki bildirimi sistemden kaldırır.
+     *
+     * [HizliTamamlaAlcisi] iş tamamlanınca çağırır. `setAutoCancel` yalnızca
+     * bildirimin **kendisine** dokunulduğunda çalışır; eylem düğmesine
+     * basıldığında çalışmaz. Burada yapılmazsa ödev bittikten sonra bayat
+     * uyarı ekranda kalmaya devam ederdi.
+     *
+     * Kimlik yoksa sessizce biter — bildirim zaten kaldırılmış olabilir,
+     * bu bir hata değildir.
+     */
+    fun bildirimiIptal(context: Context, bildirimId: Int) {
+        NotificationManagerCompat.from(context).cancel(bildirimId)
+    }
+
+    /**
+     * Bildirime iliştirilen **"Tamamla"** eylemi.
+     *
+     * Düğme [HizliTamamlaAlcisi]'ni çağırır; alıcı ödevi tamamlayıp taşıdığı
+     * bildirimi kaldırır. Uygulama süreç kapalıyken bile uyanır, çünkü niyet
+     * manifest'e kayıtlı açık bir bileşene gider.
+     *
+     * **İstek kodu olarak bildirim kimliği** kullanılır, ödev kimliği değil:
+     * `PendingIntent`, aynı kod + aynı bileşen verildiğinde tek kayıtta
+     * birleşir ve en son yazılan extra'lar hepsine uygulanır. Aynı ödev hem
+     * yaklaşan teslim bildiriminde (2000 + id) hem de gecikme bildiriminde
+     * (1001) eylem taşıyabilir; iki kod da farklı olduğu için birbirinin
+     * extra'larını ezmezler. `FLAG_UPDATE_CURRENT` ise aynı bildirim
+     * yenilendiğinde eski extra'ların kalmasını engeller.
+     *
+     * @param odevId Tamamlanacak ödev.
+     * @param bildirimId Eylemin üzerinde durduğu bildirim; alıcı bu kimliği
+     *   kaldırır ve istek kodu buradan türetilir.
+     */
+    private fun hizliTamamlaEylemi(
+        context: Context,
+        odevId: Long,
+        bildirimId: Int,
+    ): NotificationCompat.Action {
+        val niyet = Intent(context, HizliTamamlaAlcisi::class.java).apply {
+            putExtra(HizliTamamlaAlcisi.VERI_ODEV_ID, odevId)
+            putExtra(HizliTamamlaAlcisi.VERI_BILDIRIM_ID, bildirimId)
+        }
+
+        val gonderi = PendingIntent.getBroadcast(
+            context,
+            bildirimId,
+            niyet,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        return NotificationCompat.Action(
+            R.drawable.ic_isaret,
+            context.getString(R.string.bildirim_tamamla),
+            gonderi,
+        )
     }
 
     /**

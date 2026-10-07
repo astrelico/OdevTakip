@@ -62,7 +62,12 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   ve hepsi aynı bildirim kimliğine yazar; böylece sırayla gelen hatırlatmalar
   üst üste yığılmaz, yenisi eskisinin yerini alır. Ödev tamamlanınca ya da
   silinince hem bekleyen işler hem gölgedeki bildirim kaldırılır
-- Hatırlatma bildirimine dokununca doğrudan o ödevin **detay** ekranı açılır
+- Hatırlatma bildirimine dokununca doğrudan o ödevin **detay** ekranı açılır;
+  bildirimdeki **"Tamamla"** düğmesi ise ödevi uygulamayı açmadan tamamlayıp o
+  bildirimi kendiliğinden kaldırır. Eylem yalnızca **tek** ödevi anlatan
+  bildirimlerde belirir (yaklaşan teslim ve tek ödevlik gecikme); birden çok
+  ödevin sayıldığı gecikme bildiriminde hangisinin kastedildiği belirsiz
+  olurdu
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
   ve teslim öncesi hatırlatmalar
