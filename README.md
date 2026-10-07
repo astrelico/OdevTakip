@@ -42,6 +42,13 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   kaldırılırken ders adıyla birlikte onay sorulur. Program haftalık tekrarlanır,
   veritabanında kalıcıdır ve yalnızca kendini etkiler — ödev listesine ya da
   takvime dokunmaz
+- **İstatistik** sekmesi (alt bardaki dördüncü sekme): duruma göre **halka
+  (pasta) grafiği** — merkezde tamamlama yüzdesi, sağında renk + adet + yüzde
+  göstergeleri —, Toplam / Tamamlanan / Geciken / Bekleyen sayı taşları, **son
+  7 günün** tamamlama sütunları ve derslere göre **yığılı çubuklar**. Grafikler
+  uygulamanın kendisi tarafından Canvas ile çizilir, dışarıdan grafik
+  kütüphanesi alınmaz. Özet filtrelerden **bağımsızdır**: listede hangi çip
+  seçili olursa olsun tüm kayıtları sayar
 - Kartı **sağa kaydırarak** tamamla, tamamlanmışken **sola kaydırarak** geri
   al; detay ekranındaki büyük düğme de aynen çalışır
 - **Ayarlar** ekranı: tema seçimi (Sistem / Açık / Koyu), "Tamamlananları

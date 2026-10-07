@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -48,6 +49,7 @@ import com.odevtakip.app.ui.ayarlar.AyarlarViewModel
 import com.odevtakip.app.ui.dersler.DersEkrani
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
+import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.program.ProgramEkrani
 import com.odevtakip.app.ui.takvim.TakvimEkrani
@@ -63,6 +65,7 @@ private object Rotalar {
     const val AYARLAR = "ayarlar"
     const val DERSLER = "dersler"
     const val PROGRAM = "program"
+    const val ISTATISTIK = "istatistik"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -158,8 +161,8 @@ class MainActivity : ComponentActivity() {
  *
  * Çizim sırası şöyle kurulur:
  *
- *  - **Liste**, **Takvim** ve **Ders Programı** ana ekranlardır; alt menü
- *    yalnızca onlarda görünür.
+ *  - **Liste**, **Takvim**, **Ders Programı** ve **İstatistik** ana
+ *    ekranlardır; alt menü yalnızca onlarda görünür.
  *  - **Form**, **detay** ve **ayarlar** üst üste itilen tam ekran rotalardır;
  *    menü gizlenir böylece klavye/açılır listeyle boğuşmazlar.
  *  - Her ekran kendi üst barını diker. Bu yüzden dış `Scaffold`'un
@@ -184,7 +187,8 @@ private fun OdevUygulamasi(
     val mevcutRota = geriAlabilir?.destination?.route
     val anaEkran = mevcutRota == Rotalar.LISTE ||
         mevcutRota == Rotalar.TAKVIM ||
-        mevcutRota == Rotalar.PROGRAM
+        mevcutRota == Rotalar.PROGRAM ||
+        mevcutRota == Rotalar.ISTATISTIK
 
     fun git(rota: String) {
         // Yerel fonksiyon bileşimler arasında yeniden kurulmadığı için
@@ -257,6 +261,14 @@ private fun OdevUygulamasi(
                 )
             }
 
+            // İstatistik dördüncü ana sekmedir; salt okunur, yazma eylemi yok.
+            composable(Rotalar.ISTATISTIK) {
+                IstatistikEkrani(
+                    viewModel = viewModel,
+                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                )
+            }
+
             composable(
                 route = Rotalar.FORM,
                 arguments = listOf(
@@ -310,7 +322,7 @@ private fun OdevUygulamasi(
 }
 
 /**
- * Alt menü: üç sekme + barın **üzerinde** duran "yeni ödev" düğmesi.
+ * Alt menü: dört sekme + barın **üzerinde** duran "yeni ödev" düğmesi.
  *
  * Düğme, çubuğun üstüne 8 dp boşlukla asılı durur. Eski düzenle (düğmenin
  * barın içine, üst kenarına binmesi) aynı yerde kalması mümkün değildi:
@@ -324,10 +336,11 @@ private fun OdevUygulamasi(
  * zaten "Ders ekle" duruyor, iki ayrı "+" eylemi yan yana gezmez. Takvim'de
  * kalmasının nedeni, ileride seçili güne ödev ekleme yolunun oradan
  * geçmesi. FAB'ın olmadığı sekmede ekran 80 dp değil 16 dp dolgu öder.
+ * İstatistik salt okunurdur, orada da çizilmez.
  *
  * @param seciliRota FAB'ın çizilip çizilmeyeceğini belirler; yalnızca
- *   [Rotalar.LISTE] ve [Rotalar.TAKVIM] için doğru (üç ana sekme dışındaki
- *   ekranlarda alt menü zaten hiç çizilmez).
+ *   [Rotalar.LISTE] ve [Rotalar.TAKVIM] için doğru (dört ana sekme
+ *   dışındaki ekranlarda alt menü zaten hiç çizilmez).
  */
 @Composable
 private fun AltMenu(
@@ -359,6 +372,12 @@ private fun AltMenu(
                 onClick = { onSecim(Rotalar.PROGRAM) },
                 icon = { Icon(Icons.Rounded.School, contentDescription = null) },
                 label = { Text(stringResource(R.string.nav_program)) },
+            )
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.ISTATISTIK,
+                onClick = { onSecim(Rotalar.ISTATISTIK) },
+                icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_istatistik)) },
             )
         }
 

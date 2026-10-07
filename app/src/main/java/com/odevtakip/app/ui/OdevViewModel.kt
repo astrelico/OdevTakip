@@ -130,6 +130,17 @@ class OdevViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /**
+     * Filtre, gizleme ve ders seçiminden **bağımsız** bütün ödevler.
+     *
+     * İstatistik ekranı buradan beslenir: kullanıcı listede "Geciken"
+     * çipine basıp çıkmış olsa bile özeti tüm kayıtlar üzerinden görmelidir.
+     * [odevler] akışını kullanmak, arayüzde 3 yazıp pasta diliminin 5
+     * göstermesi gibi bir tutarsızlık doğururdu.
+     */
+    val tumOdevler: StateFlow<List<Odev>> = repository.tumOdevleri()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
      * "Tamamlananları gizle" anahtarının anlık değeri.
      *
      * Liste boşsa boş durum metnini seçmek için gereken tek bilgi budur:

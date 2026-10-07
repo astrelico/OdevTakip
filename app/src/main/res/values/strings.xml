@@ -164,6 +164,20 @@
     <string name="program_gun_bos">Bu günde ders yok.</string>
     <string name="kaldir">Kaldır</string>
 
+    <!-- İstatistik (alt bardaki dördüncü sekme) -->
+    <string name="nav_istatistik">İstatistik</string>
+    <string name="istatistik_baslik">İstatistik</string>
+    <string name="istatistik_bos">Henüz istatistik yok.\nİlk ödevini eklediğinde tüm kayıtların özeti burada görünecek.</string>
+    <string name="istatistik_dagilim">Duruma göre dağılım</string>
+    <string name="istatistik_merkez_etiket">tamamlandı</string>
+    <string name="istatistik_dilim">%1$d · %2$d%%</string>
+    <string name="istatistik_yuzde">%1$d%%</string>
+    <string name="istatistik_toplam">Toplam</string>
+    <string name="istatistik_hafta">Son 7 günde tamamlanan</string>
+    <string name="istatistik_hafta_bos">Son 7 günde tamamlanan ödev yok.</string>
+    <string name="istatistik_dersler">Derslere göre</string>
+    <string name="istatistik_ders_sayi">%1$d/%2$d</string>
+
     <!-- Bildirimler -->
     <string name="bildirim_kanal_adi">Geciken ödevler</string>
     <string name="bildirim_kanal_tanimi">Son teslim tarihi geçen ödevleri hatırlatır</string>
