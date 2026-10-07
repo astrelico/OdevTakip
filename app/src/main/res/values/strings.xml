@@ -127,6 +127,23 @@
     <string name="tum_dersler">Tüm dersler</string>
     <string name="ders_filtre_baslik">Ders filtresi</string>
 
+    <!-- Arama ve sıralama (üst bardaki büyüteç) -->
+    <string name="ara">Ara</string>
+    <string name="arama_kapat">Aramayı kapat</string>
+    <string name="arama_temizle">Aramayı temizle</string>
+    <string name="arama_yeri">Ödevlerde ara</string>
+    <string name="arama_bos">\"%1$s\" için ödev bulunamadı.</string>
+
+    <string name="siralama">Sıralama</string>
+    <string name="siralama_onerilen">Önerilen</string>
+    <string name="siralama_onerilen_aciklama">Bekleyenler teslim tarihine göre, bitenler en sonda</string>
+    <string name="siralama_ders_adi">Ders adına göre</string>
+    <string name="siralama_ders_adi_aciklama">Aynı dersler alt alta toplanır</string>
+    <string name="siralama_baslik">Ödev adına göre</string>
+    <string name="siralama_baslik_aciklama">A\'dan Z\'ye alfabetik</string>
+    <string name="siralama_yeni">En yeni eklenen</string>
+    <string name="siralama_yeni_aciklama">Son eklenen ödev en üstte</string>
+
     <!-- Ayarlar: ders listesi -->
     <string name="ayarlar_ders_baslik">Dersler</string>
     <string name="ayarlar_ders_ipucu">Ödevlerde kullanacağın ders listesi.</string>

@@ -61,6 +61,19 @@ class OdevViewModel(
     private val _dersFiltresi = MutableStateFlow<String?>(null)
     val dersFiltresi: StateFlow<String?> = _dersFiltresi.asStateFlow()
 
+    /**
+     * Üst bardaki büyüteçte yazılan metin; boş string = arama yok.
+     *
+     * ViewModel'de tutulur: kullanıcı sekmeye gidip döndüğünde ne aradığını
+     * unutmamalı — [seciliGun] ile aynı gerekçe.
+     */
+    private val _arama = MutableStateFlow("")
+    val arama: StateFlow<String> = _arama.asStateFlow()
+
+    /** Sıralama seçeneği; varsayılan [OdevSiralamasi.ONERILEN]. */
+    private val _siralama = MutableStateFlow(OdevSiralamasi.ONERILEN)
+    val siralama: StateFlow<OdevSiralamasi> = _siralama.asStateFlow()
+
     /** Ders listesi (formdaki seçici, filtre paneli ve ayarlar ekranı). */
     val dersler: StateFlow<List<Ders>> = repository.tumDersleri()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -79,16 +92,28 @@ class OdevViewModel(
     }
 
     /**
-     * Seçili filtreye uyan ödevler, gösterim sırasıyla.
+     * Seçili filtre, arama ve sıralamayla uyan ödevler, gösterim sırasıyla.
      * Ayrıntı için [suzulVeSirala] fonksiyonuna bak.
      */
     val odevler: StateFlow<List<Odev>> = combine(
         _filtre,
         tercihler.tamamlananlariGizle,
         _dersFiltresi,
-    ) { seciliFiltre, gizle, ders -> Triple(seciliFiltre, gizle, ders) }
-        .flatMapLatest { (seciliFiltre, gizle, ders) ->
-            repository.tumOdevleri().map { it.suzulVeSirala(seciliFiltre, gizle, ders) }
+        _arama,
+        _siralama,
+    ) { seciliFiltre, gizle, ders, arama, siralama ->
+        ListeAyari(seciliFiltre, gizle, ders, arama, siralama)
+    }
+        .flatMapLatest { ayar ->
+            repository.tumOdevleri().map {
+                it.suzulVeSirala(
+                    filtre = ayar.filtre,
+                    tamamlananlariGizle = ayar.gizle,
+                    dersFiltresi = ayar.ders,
+                    arama = ayar.arama,
+                    siralama = ayar.siralama,
+                )
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -96,18 +121,20 @@ class OdevViewModel(
      * Her filtre için ödev sayısı (çip rozetleri).
      *
      * Gizleme açıksa tamamlanmayanlar sayıma girmez; ders filtresi varsa yalnızca
-     * o derse ait kayıtlar sayılır. Çipte yazan sayı, listede gerçekten görünen
-     * satır sayısıyla aynı olmalı — "Tümü (5)" yazıp iki satır göstermek
-     * kullanıcıyı yanıltırdı.
+     * o derse ait kayıtlar sayılır; arama açıkken yalnızca aramaya uyanlar.
+     * Çipte yazan sayı, listede gerçekten görünen satır sayısıyla aynı olmalı —
+     * "Tümü (5)" yazıp iki satır göstermek kullanıcıyı yanıltırdı.
      */
     val sayilar: StateFlow<Map<OdevFiltresi, Int>> = combine(
         repository.tumOdevleri(),
         tercihler.tamamlananlariGizle,
         _dersFiltresi,
-    ) { liste, gizle, ders ->
+        _arama,
+    ) { liste, gizle, ders, arama ->
         liste
             .filter { !gizle || it.durum != Durum.TAMAMLANDI }
             .filter { ders == null || it.ders == ders }
+            .filter { it.aramayaGore(arama) }
     }
         .map { liste ->
             val simdi = System.currentTimeMillis()
@@ -216,6 +243,21 @@ class OdevViewModel(
      */
     fun dersFiltresiAyarla(ad: String?) {
         _dersFiltresi.value = ad
+    }
+
+    /**
+     * Büyüteçte yazılan metni günceller; boş metin aramayı kapatır.
+     *
+     * Girdi doğrulanmaz — arama yalnızca süzer, yazım hatası "sonuç yok"
+     * demekten öteye geçmez.
+     */
+    fun aramaAyarla(metin: String) {
+        _arama.value = metin
+    }
+
+    /** Sıralama seçeneğini değiştirir; sekme değiştirilince de korunur. */
+    fun siralamaAyarla(siralama: OdevSiralamasi) {
+        _siralama.value = siralama
     }
 
     // ---- Dersler ----
@@ -430,28 +472,38 @@ class OdevViewModel(
 }
 
 /**
- * Filtreler ve sıralama.
+ * Süzme ve sıralama.
  *
- * `tamamlananlariGizle` açıksa tamamlananlar daha ilk adımda elenir;
- * `dersFiltresi` verilmişse yalnızca o derse ait kayıtlar kalır.
- * Geriye kalan sıralama aynen uygulanır.
+ * Dört süzgeç ardışık uygulanır:
+ *  1. `tamamlananlariGizle` — gizleme açıksa bitenler daha ilk adımda elenir.
+ *  2. `dersFiltresi` — yalnızca o derse ait kayıtlar kalır.
+ *  3. `arama` — başlık, açıklama ve ders adında, Türkçe'ye duyarlı arama
+ *     ([Odev.aramayaGore]).
+ *  4. `filtre` — çip koşulu (geciken / bugün / yaklaşan).
  *
- * Kural:
- *  1. Gizleme ve ders filtresi uygulanır.
- *  2. Filtreye uymayanlar atılır.
- *  3. Tamamlanmayanlar önce, teslim tarihine göre artan sırada
- *     (en yakın teslim en üstte).
- *  4. Tamamlanmışlar sonra, teslim tarihine göre azalan sırada.
+ * Ardından sıralama uygulanır. Varsayılan [OdevSiralamasi.ONERILEN]:
+ *
+ *  - tamamlanmayanlar önce, teslim tarihine göre artan (en yakın teslim en üstte),
+ *  - tamamlananlar sonra, teslim tarihine göre azalan.
  *
  * Tamamlanan ödevler en sonda kaldığı için liste iş bitince kendiliğinden
  * "temizlenir"; kullanıcı aynı anda hem bekleyen hem bitenleri görür.
  *
+ * Diğer sıralamalar bu **taban dizilim**nin üzerine kararlı bir sıralama
+ * uygular. Kotlin'in `sortedBy`'si kararlıdır: eşit değerdeki kayıtlar
+ * taban sıraya geri döner. Yani "Ders adına göre" seçildiğinde aynı dersin
+ * **içinde** teslim tarihi düzeni bozulmaz.
+ *
  * @param dersFiltresi Süzülecek dersin adı; `null` bütün dersler.
+ * @param arama Aranacak metin; boş ya da yalnızca boşluk aramayı kapatır.
+ * @param siralama Gösterim sırası; varsayılan [OdevSiralamasi.ONERILEN].
  */
 internal fun List<Odev>.suzulVeSirala(
     filtre: OdevFiltresi,
     tamamlananlariGizle: Boolean,
     dersFiltresi: String? = null,
+    arama: String = "",
+    siralama: OdevSiralamasi = OdevSiralamasi.ONERILEN,
 ): List<Odev> {
     val simdi = System.currentTimeMillis()
     var havuz: List<Odev> = if (tamamlananlariGizle) {
@@ -462,17 +514,58 @@ internal fun List<Odev>.suzulVeSirala(
     if (dersFiltresi != null) {
         havuz = havuz.filter { it.ders == dersFiltresi }
     }
-    val uygun = havuz.filter { filtre.eslesir(it, simdi) }
+    val aranmis = havuz.filter { it.aramayaGore(arama) }
+    val uygun = aranmis.filter { filtre.eslesir(it, simdi) }
 
-    val bekleyenler = uygun
+    val taban = uygun
         .filter { it.durum != Durum.TAMAMLANDI }
-        .sortedBy { it.sonTarih }
+        .sortedBy { it.sonTarih } +
+        uygun
+            .filter { it.durum == Durum.TAMAMLANDI }
+            .sortedByDescending { it.sonTarih }
 
-    val tamamlananlar = uygun
-        .filter { it.durum == Durum.TAMAMLANDI }
-        .sortedByDescending { it.sonTarih }
+    return when (siralama) {
+        OdevSiralamasi.ONERILEN -> taban
+        OdevSiralamasi.DERS_ADI -> taban.sortedBy { it.ders.anahtar() }
+        OdevSiralamasi.ADA_GORE -> taban.sortedBy { it.baslik.anahtar() }
+        OdevSiralamasi.YENI_EKLENEN -> taban.sortedByDescending { it.olusturmaTarihi }
+    }
+}
 
-    return bekleyenler + tamamlananlar
+/**
+ * Arama ve sıralama için kullanılan eşleştirme anahtarı.
+ *
+ * İki ayrı Türkçe sorununu da kapatır:
+ *
+ *  - `lowercase()` kök yerelde çalıştığı için `I` → `i` olur; kullanıcı
+ *    İngilizce klavyede "FIZIK" yazsa bile "Fizik" bulunur.
+ *  - `ı` ayrıca `i`'ye çekilir: "SINIF" araması "Sınıf"ı, "IRMAK" araması
+ *    "Irmak"ı bulur. (Tersi de doğrudur.)
+ *  - `İ` küçük harfe inerken **birleşen nokta** (U+0307) bırakabilir; o
+ *    nokta silinmezse "ing" araması "İngilizce"yi geçer — karakter
+ *    klavyede yazılamadığı için kullanıcı asla göremez.
+ *
+ * @receiver Hem aranacak metin hem aranan ödevin alanı — aynı işlemden
+ *   geçmeleri şart, aksi hâlde iki taraf farklı alfabelerle konuşur.
+ */
+private fun String.anahtar(): String = lowercase()
+    .replace('ı', 'i')
+    .replace("\u0307", "")
+
+/**
+ * [arama] metni bu ödevle eşleşiyor mu?
+ *
+ * Başlık, açıklama **ve** ders adı üzerinden aranır: kullanıcının bir ders
+ * adını yazdığında o dersteki bütün ödevlerin çıkması beklenendir.
+ *
+ * Boş arama her zaman eşleşir — süzgeç kapalı demektir.
+ */
+internal fun Odev.aramayaGore(arama: String): Boolean {
+    val anahtar = arama.trim().anahtar()
+    if (anahtar.isEmpty()) return true
+    return baslik.anahtar().contains(anahtar) ||
+        aciklama.anahtar().contains(anahtar) ||
+        ders.anahtar().contains(anahtar)
 }
 
 /**
@@ -488,3 +581,18 @@ private fun List<Odev>.guneGore(gun: LocalDate): List<Odev> {
         compareBy({ it.durum == Durum.TAMAMLANDI }, { it.sonTarih })
     )
 }
+
+/**
+ * [OdevViewModel.odevler] akışının beş girdisi, tek pakette.
+ *
+ * `combine` beş akışı yan yana dizince lambda imzası okunmaz hâle gelir;
+ * isimlendirilmiş bir sınıf hem onu düzeltir hem de `flatMapLatest`
+ * içindeki çağrıda parametre sırasının karışmasını engeller.
+ */
+private data class ListeAyari(
+    val filtre: OdevFiltresi,
+    val gizle: Boolean,
+    val ders: String?,
+    val arama: String,
+    val siralama: OdevSiralamasi,
+)

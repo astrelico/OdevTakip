@@ -28,6 +28,15 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 - Filtre çipleri: Tümü / Geciken / Bugün / Yaklaşan. Çiplerin sağındaki
   **Filtreler** tuşu ödevleri derse göre süzer (yalnızca Ödevler sekmesinde;
   Takvim etkilenmez), açıkken tuşun yazısı seçili ders adına döner
+- **Arama**: üst bardaki **büyüteç** başlığın yerine bir metin alana
+  dönüştürür ve klavye kendiliğinden açılır; yazarken liste anında süzülür.
+  Başlık, açıklama **ve** ders adı taranır — bir ders adı yazıldığında o
+  dersteki her ödev çıkar. Karşılaştırma Türkçe'ye duyarlıdır: `ING`
+  araması *İngilizce*'yi, `SINIF` araması *Sınıf*'ı bulur. Büyüteç yanındaki
+  düğme **sıralamayı** açar: Önerilen / Ders adına göre / Ödev adına göre /
+  En yeni eklenen; varsayılan dışına çıkıldığında düğmenin rengi değişir.
+  Aramadan çıkarken metin de temizlenir, bir sonraki açılışta sürpriz bir
+  filtre kalmaz
 - **Takvim** sekmesi: yatay gün şeridi, seçili günün ödevleri, "Bugün" düğmesi
   şeridi bugüne döndürür
 - **Ders Programı** sekmesi (alt bardaki üçüncü sekme): haftanın gününü çiplerden
