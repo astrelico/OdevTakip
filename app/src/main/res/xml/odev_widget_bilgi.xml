@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget tanımı.
+
+  `updatePeriodMillis` 0'dır: sistem en az 30 dakika ister ve o aralık
+  geciken/bugün sayaçlarını yeterince taze tutmaz. Yenileme üç yerden
+  kendiliğinden tetiklenir — ödev değişikliği, gün değişimi ve widget'ın
+  kendisi eklendiğinde gelen sistem yayını. Ara sıra emniyet ağı olarak
+  uygulamanın açılması da yeterlidir.
+
+  `previewLayout` aynı düzeni kullanır; widget seçicide gerçek görünüm
+  gösterilir, ayrı bir görsel çizmek gerekmez.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_aciklama"
+    android:initialLayout="@layout/odev_widget"
+    android:minWidth="250dp"
+    android:minHeight="140dp"
+    android:previewLayout="@layout/odev_widget"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

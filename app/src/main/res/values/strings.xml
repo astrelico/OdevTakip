@@ -210,5 +210,13 @@
     <string name="bildirim_yaklasan_metin">Son teslim: %1$s</string>
 
     <!-- Bildirim eylem düğmesi: uygulamayı açmadan işi bitirmek için. -->
-    <string name="bildirim_tamamla">Tamamla</string>
+    <string name="bildirim_tamamla">Tamamla</string>    <!-- Ana ekran widget'i -->
+    <string name="widget_baslik">Ödev Takip</string>
+    <string name="widget_aciklama">Geciken ve bugün teslim edilecek ödevleri ana ekranda gösterir.</string>
+    <string name="widget_bos">Bugün için ödev yok</string>
+    <string name="widget_geciken">%d geciken</string>
+    <string name="widget_bugun">%d bugün</string>
+    <string name="widget_bekliyor">%d bekliyor</string>
+    <string name="widget_daha">+%d daha</string>
+
 </resources>

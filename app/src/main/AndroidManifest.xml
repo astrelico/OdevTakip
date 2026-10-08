@@ -58,6 +58,28 @@
             android:name=".bildirim.HizliTamamlaAlcisi"
             android:exported="false" />
 
+        <!--
+            Ana ekran widget'ının sağlayıcısı.
+
+            exported="false" üçüncü bir uygulamanın bu alıcıyı kendi
+            niyetiyle çağırmasını engeller, sistem yayını ise yine de
+            ulaşır — APPWIDGET_UPDATE Android'in korumalı yayınlarındandır
+            ve yalnızca sistem gönderir. intent-filter olmadan widget
+            tanınmaz; meta-data ise xml/odev_widget_bilgi üzerinden
+            boyut, yenileme ve önizleme ayarlarını taşır.
+        -->
+        <receiver
+            android:name=".widget.OdevWidgetAlcisi"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/odev_widget_bilgi" />
+        </receiver>
+
     </application>
 
 </manifest>

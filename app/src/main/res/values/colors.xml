@@ -7,4 +7,18 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!--
+      Ana ekran widget'ı.
+
+      Dört renk de doğrudan "Odak Mavisi" paletinden (ui/theme/Theme.kt)
+      gelir: widget, Compose'ta çizilemediği için aynı tonları XML'e kopyalar.
+      Koyu eşdeğerleri values-night/ altındadır — widget'ı ana ekranı açan
+      (launcher) süreç şişirir, dolayısıyla **sistem** koyu temasını izler.
+    -->
+    <color name="widget_zemin">#FFFFFFFF</color>
+    <color name="widget_metin">#FF1A1C22</color>
+    <color name="widget_ikincil">#FF44474F</color>
+    <color name="widget_vurgu">#FF2E5AAC</color>
+    <color name="widget_hata">#FFBA1A1A</color>
 </resources>

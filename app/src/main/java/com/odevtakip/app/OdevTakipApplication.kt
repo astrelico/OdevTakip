@@ -7,12 +7,14 @@ import com.odevtakip.app.data.EkDeposu
 import com.odevtakip.app.data.OdevDatabase
 import com.odevtakip.app.data.OdevRepository
 import com.odevtakip.app.data.Tercihler
+import com.odevtakip.app.widget.OdevWidgetCizici
 import com.odevtakip.app.work.DurumZamanlayici
 import com.odevtakip.app.work.HatirlatmaZamanlayici
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -47,13 +49,13 @@ class OdevTakipApplication : Application() {
     val tercihler: Tercihler by lazy { Tercihler(this) }
 
     /**
-     * Hatırlatmaların planlandığı arka plan kapsamı.
+     * Arka plan izlemelerinin (hatırlatma, widget) çalıştığı kapsam.
      *
      * Uygulama açık kaldığı sürece yaşar; işlem öldürülünce zaten yok olur.
      * Bunun hatırlatmaları etkilememesinin nedeni, işin kendisinin
      * WorkManager'da kalıcı olması — kapsam yalnızca **planlamayı** yapar.
      */
-    private val hatirlatmaKapsami =
+    private val arkaPlanKapsami =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -63,6 +65,7 @@ class OdevTakipApplication : Application() {
         BildirimYonetici.kanaliOlustur(this)
         planla()
         hatirlatlariIzle()
+        widgetiIzle()
     }
 
     /**
@@ -122,7 +125,33 @@ class OdevTakipApplication : Application() {
                     Log.e(TAG, "Hatırlatmalar planlanamadı", e)
                 }
             }
-            .launchIn(hatirlatmaKapsami)
+            .launchIn(arkaPlanKapsami)
+    }
+
+    /**
+     * Ödev listesi her değiştiğinde ana ekran widget'ını yeniden çizer.
+     *
+     * **Neden ayrı bir izleyici?** Widget, kendisini besleyen tek şey
+     * ödevlerin kendisidir; hatırlatma akışına eklemek, ayarlardaki
+     * hatırlatma aralığını değiştirmeyi gereksiz bir çizime bağlardı. Burada
+     * `distinctUntilChanged` da ayrı önemlidir: akış her emissionda çizim
+     * yapar, oysa içerik aynıysa çizimin tekrarı yalnızca boşuna disk ve
+     * binder erişimidir.
+     *
+     * Tarih kaynaklı değişiklikler (gece yarısı) buradan **gelmez** —
+     * veritabanı hiç değişmediği için akış da tetiklenmez. Onu
+     * `TarihDegisimAlcisi` yakalar.
+     *
+     * Hata yutulur ama akış ölmez: çizim bir kez düşerse widget yalnızca
+     * eski içeriğini göstermeye devam eder, bir sonraki değişimde kendini
+     * toparlar.
+     */
+    private fun widgetiIzle() {
+        odevRepository.tumOdevleri()
+            .distinctUntilChanged()
+            .onEach { OdevWidgetCizici.tumunuCiz(this@OdevTakipApplication) }
+            .catch { e -> Log.e(TAG, "Widget yenilenemedi", e) }
+            .launchIn(arkaPlanKapsami)
     }
 
     private companion object {

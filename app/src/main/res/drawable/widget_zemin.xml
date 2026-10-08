@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget'ın yuvarlak köşeli zemini.
+
+  Compose'taki `extraLarge` (28dp) ile aynı ölçekte tutulur: widget da
+  uygulamanın kart diliyle konuşur. Renk `@color/widget_zemin` üzerinden
+  geldiği için açık/koyu tema geçişi bu dosyayı değiştirmeden olur.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_zemin" />
+    <corners android:radius="24dp" />
+</shape>

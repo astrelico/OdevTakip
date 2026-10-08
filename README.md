@@ -90,6 +90,16 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   bildirimlerde belirir (yaklaşan teslim ve tek ödevlik gecikme); birden çok
   ödevin sayıldığı gecikme bildiriminde hangisinin kastedildiği belirsiz
   olurdu
+- **Ana ekran widget'ı**: üstte uygulama adı ve bugünün tarihi, altında
+  "N geciken · N bugün" özeti, sonra en fazla üç ödev satırı ve kalanı söyleyen
+  "+N daha". Sıra öncelik sırasıdır — geciken önce, sonra bugün, sonra ileri
+  tarihli; her grupta en eski teslim üstte. Geciken satır, uygulamadaki rozet
+  gibi kırmızıya döner. Kutuya tıklamak ana listeyi açar. Widget üç yerde
+  kendini tazeler: ödev yazılınca, gün değişince ve kendisi eklenince;
+  `updatePeriodMillis` bilerek sıfırdır, çünkü sistem en az 30 dakikada bir
+  haber verir ve bu aralık geciken sayacını taze tutmaya yetmez. Widget'ı
+  launcher şişirdiği için renkler XML'e kopyalanmış tema tonlarıdır ve sistem
+  koyu temasını izler
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
   ve teslim öncesi hatırlatmalar
@@ -103,6 +113,7 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 | Saklama | Room |
 | Gezinme | navigation-compose |
 | Arka plan | WorkManager |
+| Widget | RemoteViews (`res/layout`) — launcher şişirdiği için Compose değil |
 | Test | JUnit (birim) + Room instrumented testleri |
 
 ## Derleme
@@ -118,10 +129,11 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 ```
 app/src/main/java/com/odevtakip/app/
 ├── MainActivity.kt          # gezinme grafiği + alt menü + tema seçimi
-├── OdevTakipApplication.kt  # yaşam döngüsü kökü: senkron + hatırlatma planı
+├── OdevTakipApplication.kt  # yaşam döngüsü kökü: senkron + hatırlatma + widget
 ├── data/                    # Room varlıkları, DAO, repository, tercihler
 ├── work/                    # WorkManager: durum senkronu + hatırlatma
 ├── bildirim/                # kanallar, bildirim içeriği, derin bağlantı
+├── widget/                  # ana ekran widget'ı: sistem sağlayıcısı + çizim
 ├── util/                    # Türkçe tarih biçimleri, dil sabitleme
 └── ui/
     ├── OdevViewModel.kt     # liste ve takvimin VM'si
