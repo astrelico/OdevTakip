@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sayaçlar widget'ının tanımı (2 × 2).
+
+  Boyutlar kılavuz değerlerdir: launcher kendi ızgarasına göre yuvarlar,
+  bu yüzden seçicide "2 × 2" yazıyorsa doğru yerdedir. `updatePeriodMillis`
+  diğer üç widget'ta olduğu gibi 0'dır — ortak çizim yolu zaten üç yerden
+  tetikleniyor.
+
+  `previewLayout` gerçek düzeni kullanır; rakamlar açılışta "0" olduğundan
+  seçicide, boş kurulumda görülecek hâl gösterilir. Sahte bir sayı
+  çizilmez.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_sayac_aciklama"
+    android:initialLayout="@layout/sayac_widget"
+    android:minWidth="110dp"
+    android:minHeight="140dp"
+    android:previewLayout="@layout/sayac_widget"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

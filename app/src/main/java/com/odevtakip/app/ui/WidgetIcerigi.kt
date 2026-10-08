@@ -5,6 +5,7 @@ import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.gercekDurum
 import com.odevtakip.app.util.yerelTarih
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * Widget'ın ekranda çizebileceği azami ödev satırı.
@@ -14,6 +15,16 @@ import java.time.LocalDate
  * kullanıcıyı kartlara geri gönderir.
  */
 const val WIDGET_SATIR_SAYISI = 3
+
+/**
+ * Büyük ("Günün listesi") widget'ının satır sınırı.
+ *
+ * Aynı mantık, daha geniş bir alan: dört hücrelik kartta altı satır
+ * rahatça okunur ve günün tamamı — gecikenler dahil — ekrana sığar.
+ * [WIDGET_SATIR_SAYISI] ise özet widget'ı için kalır; ikisini tek
+ * değerde birleştirmek, birini değiştirirken diğerini unutmayı kolaylaştırır.
+ */
+const val LISTE_SATIR_SAYISI = 6
 
 /**
  * Ana ekran widget'ının göstereceği içerik.
@@ -95,3 +106,60 @@ fun widgetIcerigi(
  */
 fun widgetSatirMetni(odev: Odev): String =
     if (odev.ders.isBlank()) odev.baslik else "${odev.ders} — ${odev.baslik}"
+
+/**
+ * Sayaç widget'ının üç rakamı.
+ *
+ * [toplam] bilerek **tüm** ödevleri sayar, bekleyenleri değil. Küçük
+ * widget'ın işi özet değil, listeyi açmadan ölçek görmektir: "8 ödevin
+ * 4'ü gecikmiş, 2'si bugün" cümlesi ancak üç sayı bir arada okununca
+ * kurulur. Tamamlananlar geciken ve bugün sayaçlarına girmez, yalnızca
+ * toplamı büyütür.
+ */
+data class WidgetSayaclari(
+    val geciken: Int,
+    val bugun: Int,
+    val toplam: Int,
+)
+
+/**
+ * Sayaçları hesaplar.
+ *
+ * Kovalar [widgetIcerigi] ile **birebir aynı** kurallara tabidir, böylece
+ * küçük widget "4 geciken" derken büyük widget da aynı dörder satırı
+ * gösterir; iki widget birbirini yalanlamaz.
+ */
+fun widgetSayaclari(odevler: List<Odev>, simdi: Long): WidgetSayaclari {
+    val geciken = odevler.count { it.gercekDurum(simdi) == Durum.GECEKTI }
+    val bugun = odevler.count {
+        it.gercekDurum(simdi) != Durum.GECEKTI &&
+            it.gercekDurum(simdi) != Durum.TAMAMLANDI &&
+            it.sonTarih.yerelTarih() == simdi.yerelTarih()
+    }
+    return WidgetSayaclari(geciken = geciken, bugun = bugun, toplam = odevler.size)
+}
+
+/**
+ * Sıradaki teslim — bekleyenlerin **en eski** teslim tarihine sahip olanı.
+ *
+ * Geçmiş tarihli iş en başta gelir; widget'ın görevi "sıradaki"yi
+ * göstermek değil, "çözülmesi gereken ilk"i göstermektir. Hiç bekleyen
+ * yoksa `null` — çağıran taraf gerçek cevabı ("Bekleyen ödev yok")
+ * verir, uydurma bir başlık koymaz.
+ */
+fun sonrakiTeslim(odevler: List<Odev>, simdi: Long): Odev? =
+    odevler
+        .filter { it.gercekDurum(simdi) != Durum.TAMAMLANDI }
+        .minByOrNull { it.sonTarih }
+
+/**
+ * Teslime kalan takvim günü.
+ *
+ * Saat farkı değil **gün farkı** verir: bugün 23:59'a kalan süre ile
+ * yarın 09:00'a kalan süre kullanıcı için aynı "yarın"dır. Negatif değer
+ * teslimin geçtiğini söyler; yine de tek başına yorumlanmamalıdır —
+ * bugünün saati geçmiş bir iş için gün farkı 0'dır. Bu yüzden arayüz
+ * önce [Odev.gercekDurum] kontrol eder, geçtiyse "Gecikti" yazar.
+ */
+fun widgetKalanGun(odev: Odev, simdi: Long): Long =
+    ChronoUnit.DAYS.between(simdi.yerelTarih(), odev.sonTarih.yerelTarih())

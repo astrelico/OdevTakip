@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sayaçlar widget'ı (2 × 2) — üç satır, üç rakam.
+
+  Burada ödev satırı yoktur; widget'ın işi ayrıntıya inmek değil, küçük
+  bir alanda ölçek görmektir. Sayı sabit genişlikte tutulur ki etiketler
+  alt alta dizilsin — sayının uzunluğu etiketi oynatırsa üç satırın
+  hizası bozulur ve tablo hissi kaybolur.
+
+  Renkler koddan yazılır (geciken kırmızı, bugün vurgu mavisi, toplam
+  nötr); XML yalnızca konumu ve boyutu kurar.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sayac_kok"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_zemin"
+    android:orientation="vertical"
+    android:paddingStart="14dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/sayac_sayi1"
+            android:layout_width="46dp"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="@color/widget_hata"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/sayac_etiket1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_lbl_geciken"
+            android:textColor="@color/widget_ikincil"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/sayac_sayi2"
+            android:layout_width="46dp"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="@color/widget_vurgu"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/sayac_etiket2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_lbl_bugun"
+            android:textColor="@color/widget_ikincil"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/sayac_sayi3"
+            android:layout_width="46dp"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="@color/widget_metin"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/sayac_etiket3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/widget_lbl_toplam"
+            android:textColor="@color/widget_ikincil"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+</LinearLayout>

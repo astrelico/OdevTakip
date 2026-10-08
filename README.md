@@ -90,16 +90,27 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   bildirimlerde belirir (yaklaşan teslim ve tek ödevlik gecikme); birden çok
   ödevin sayıldığı gecikme bildiriminde hangisinin kastedildiği belirsiz
   olurdu
-- **Ana ekran widget'ı**: üstte uygulama adı ve bugünün tarihi, altında
-  "N geciken · N bugün" özeti, sonra en fazla üç ödev satırı ve kalanı söyleyen
-  "+N daha". Sıra öncelik sırasıdır — geciken önce, sonra bugün, sonra ileri
-  tarihli; her grupta en eski teslim üstte. Geciken satır, uygulamadaki rozet
-  gibi kırmızıya döner. Kutuya tıklamak ana listeyi açar. Widget üç yerde
-  kendini tazeler: ödev yazılınca, gün değişince ve kendisi eklenince;
-  `updatePeriodMillis` bilerek sıfırdır, çünkü sistem en az 30 dakikada bir
-  haber verir ve bu aralık geciken sayacını taze tutmaya yetmez. Widget'ı
-  launcher şişirdiği için renkler XML'e kopyalanmış tema tonlarıdır ve sistem
-  koyu temasını izler
+- **Ana ekran widget'ları — dört ayrı kutu, dört farklı amaç.** Aynı
+  veriden beslenirler ama farklı sorulara cevap verirler:
+  - **Bugünün özeti** (4 × 2) — tarih, "N geciken · N bugün" özeti, en fazla
+    üç ödev satırı ve kalanı söyleyen **+N daha**. Genel amaçlı "baksam yeter"
+  - **Sayaçlar** (2 × 2) — hiçbir ödev satırı yok, yalnızca üç rakam: geciken
+    (kırmızı), bugün (mavi), toplam (nötr). Sayının rengine bakmak etiketi
+    okumaktan hızlıdır
+  - **Günün listesi** (4 × 4) — altı satır ve her satırın sağında **kalan
+    süre**: Gecikti / Bugün / Yarın / 3 gün
+  - **Sonraki teslim** (2 × 1) — tek ödev: adı, dersi, kalan gün. Tek
+    tıklamalı tek widget'tır, **o ödevin detay** ekranını açar
+
+  Dördü de aynı kovalardan beslenir: önce geciken, sonra bugün, sonra ileri
+  tarihli; her grupta en eski teslim üstte. Geciken satır uygulamadaki rozet
+  gibi kırmızıya döner, tamamlananlar baştan elenir. İki widget birbirini
+  yalamaz — "4 geciken" diyen kutu ile altı satırlık kutu aynı dört işi
+  gösterir. Üç yerde kendini tazelerler: ödev yazılınca, gün değişince ve
+  kendisi eklenince; `updatePeriodMillis` bilerek sıfırdır, çünkü sistem en
+  az 30 dakikada bir haber verir ve bu aralık geciken sayacını taze tutmaya
+  yetmez. Widget'ı launcher şişirdiği için renkler XML'e kopyalanmış tema
+  tonlarıdır ve sistem koyu temasını izler
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
   ve teslim öncesi hatırlatmalar
@@ -113,7 +124,7 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 | Saklama | Room |
 | Gezinme | navigation-compose |
 | Arka plan | WorkManager |
-| Widget | RemoteViews (`res/layout`) — launcher şişirdiği için Compose değil |
+| Widget | RemoteViews (`res/layout`) — dört boyut, tek çizim yolu; launcher şişirdiği için Compose değil |
 | Test | JUnit (birim) + Room instrumented testleri |
 
 ## Derleme
@@ -133,7 +144,7 @@ app/src/main/java/com/odevtakip/app/
 ├── data/                    # Room varlıkları, DAO, repository, tercihler
 ├── work/                    # WorkManager: durum senkronu + hatırlatma
 ├── bildirim/                # kanallar, bildirim içeriği, derin bağlantı
-├── widget/                  # ana ekran widget'ı: sistem sağlayıcısı + çizim
+├── widget/                  # 4 ana ekran widget'ı: ortak sağlayıcı + çizim
 ├── util/                    # Türkçe tarih biçimleri, dil sabitleme
 └── ui/
     ├── OdevViewModel.kt     # liste ve takvimin VM'si

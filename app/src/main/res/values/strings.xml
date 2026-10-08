@@ -210,7 +210,14 @@
     <string name="bildirim_yaklasan_metin">Son teslim: %1$s</string>
 
     <!-- Bildirim eylem düğmesi: uygulamayı açmadan işi bitirmek için. -->
-    <string name="bildirim_tamamla">Tamamla</string>    <!-- Ana ekran widget'i -->
+    <string name="bildirim_tamamla">Tamamla</string>
+
+    <!-- Ana ekran widget'ları: dört farklı boyut, dört farklı amaç.
+
+         Her sağlayıcının `label` metni ayrıdır; seçicide dört satır olarak
+         görünür ve hangisinin ne işe yaradığı etiketten anlaşılır. Aynı
+         metin widget'ın kendi başlığında da kullanılır (liste ve sonraki),
+         böylece seçicide okunan ad, ana ekranda yazan adla aynıdır. -->
     <string name="widget_baslik">Ödev Takip</string>
     <string name="widget_aciklama">Geciken ve bugün teslim edilecek ödevleri ana ekranda gösterir.</string>
     <string name="widget_bos">Bugün için ödev yok</string>
@@ -218,5 +225,29 @@
     <string name="widget_bugun">%d bugün</string>
     <string name="widget_bekliyor">%d bekliyor</string>
     <string name="widget_daha">+%d daha</string>
+
+    <!-- Sayaçlar widget'ı (2 × 2): üç rakam, üç etiket. -->
+    <string name="widget_ozet_etiket">Bugünün özeti</string>
+    <string name="widget_sayac_etiket">Sayaçlar</string>
+    <string name="widget_sayac_aciklama">Geciken, bugün ve toplam ödev sayısını üç rakamla gösterir.</string>
+    <string name="widget_lbl_geciken">geciken</string>
+    <string name="widget_lbl_bugun">bugün</string>
+    <string name="widget_lbl_toplam">toplam</string>
+
+    <!-- Günün listesi widget'ı (4 × 4): altı satır + kalan süre. -->
+    <string name="widget_liste_etiket">Günün listesi</string>
+    <string name="widget_liste_aciklama">Geciken ve bugün teslim edilecek ödevleri teslim süresiyle birlikte listeler.</string>
+
+    <!-- Sonraki teslim widget'ı (2 × 1): tek ödev, tıklayınca o ödevin
+         detayı açılır. "Bekleyen ödev yok" kendi cevabıdır — hiçbir iş
+         kalmadığında uydurma bir başlık konmaz. -->
+    <string name="widget_sonraki_etiket">Sonraki teslim</string>
+    <string name="widget_sonraki_aciklama">En yakın teslim tarihine sahip ödevi ve kalan süreyi gösterir.</string>
+    <string name="widget_sonraki_bos">Bekleyen ödev yok</string>
+
+    <!-- Satır sağındaki kalan süre: "Bugün" ve "Yarın" ayrı kaynaklarda
+         zaten var (uygulamanın çipleriyle aynı sözcükler). -->
+    <string name="widget_kalan_gecikti">Gecikti</string>
+    <string name="widget_kalan_gun">%d gün</string>
 
 </resources>

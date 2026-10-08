@@ -2,6 +2,7 @@ package com.odevtakip.app.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -11,10 +12,16 @@ import com.odevtakip.app.MainActivity
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.R
 import com.odevtakip.app.data.Durum
+import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.gercekDurum
+import com.odevtakip.app.ui.LISTE_SATIR_SAYISI
+import com.odevtakip.app.ui.WIDGET_SATIR_SAYISI
 import com.odevtakip.app.ui.WidgetIcerigi
 import com.odevtakip.app.ui.widgetIcerigi
+import com.odevtakip.app.ui.widgetKalanGun
+import com.odevtakip.app.ui.widgetSayaclari
 import com.odevtakip.app.ui.widgetSatirMetni
+import com.odevtakip.app.ui.sonrakiTeslim
 import com.odevtakip.app.util.formatliTarih
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,30 +29,47 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 
 /**
- * Widget'ın içeriğini okuyup [RemoteViews] ile çizen tek nokta.
+ * Dört widget'ın içeriğini okuyup [RemoteViews] ile çizen tek nokta.
  *
  * ### Neden Compose değil?
  *
  * Widget'ı ana ekranı açan (launcher) süreç şişirir; Compose ise kendi
  * uygulamasının penceresinde çalışır. Sistemin kabul ettiği tek biçim
- * **RemoteViews** — dar bir view kümesi ve düz metin. Bu yüzden düzen
- * `res/layout/odev_widget.xml` içinde, görünüm bilgisi ise burada durur.
+ * **RemoteViews** — dar bir view kümesi ve düz metin. Bu yüzden düzenler
+ * `res/layout` altında, görünüm bilgisi buradadır.
+ *
+ * ### Dört widget, tek tur
+ *
+ * [tumSiniflar] sırayla dolaşılır ve **veritabanı yalnızca bir kez**
+ * okunur. Widget'lardan hiçbiri ekli değilse hiç okunmaz: boşuna disk
+ * erişimi yapmak, arka planda her ödev yazımında tekrarlanırdı.
+ *
+ * Dört düzenin içerikleri de aynı kovalardan beslenir (bkz.
+ * [com.odevtakip.app.ui.widgetIcerigi]); "4 geciken" diyen küçük widget
+ * ile altı satırlık büyük widget asla birbirini yalamaz.
  *
  * ### Ne zaman yenilenir?
  *
- * Üç tetikleyici, hepsi bu fonksiyonu çağırır:
+ * Üç tetikleyici, hepsi [tumunuCiz] çağırır:
  *
- *  1. **Ödev değişince** — [com.odevtakip.app.OdevTakipApplication]
- *     içindeki izleyici Room akışını dinler; ekleme, düzenleme, tamamlama
- *     ve silme tek elden yakalanır.
+ *  1. **Ödev değişince** — [OdevTakipApplication] içindeki izleyici Room
+ *     akışını dinler; ekleme, düzenleme, tamamlama ve silme tek elden
+ *     yakalanır.
  *  2. **Gün değişince** — `TarihDegisimAlcisi`. "Bugün X" sayacı tarihe
  *     bağlıdır ve tarih değiştiğinde veritabanı hiç değişmeyebilir; bu
  *     yüzden akış tek başına yeterli değildir.
  *  3. **Widget eklenince** — sistemin gönderdiği `APPWIDGET_UPDATE`
- *     yayını, [OdevWidgetAlcisi] üzerinden buraya ulaşır.
+ *     yayını, ilgili [WidgetAlcisi] alt sınıfı üzerinden buraya ulaşır.
  *
  * `updatePeriodMillis` bilerek sıfırdır: sistem en az 30 dakika ister ve
  * bu aralık "geciken" sayacını taze tutmaya yetmez.
+ *
+ * ### Renkler
+ *
+ * Metin renkleri kodda okunur, zemin ise düzenden gelir. İkisi de
+ * **sistem** koyu moduna bağlıdır: uygulama `setDefaultNightMode`
+ * kullanmaz, dolayısıyla uygulama bağlamı ile launcher şişirmesi her
+ * zaman aynı `uiMode`'dan çözer. Renklerin ayrılması imkânsızdır.
  */
 object OdevWidgetCizici {
 
@@ -53,54 +77,83 @@ object OdevWidgetCizici {
      * Alıcıların `goAsync()` ile birlikte kullanacağı arka plan kapsamı.
      *
      * Sınıf düzeyinde tutulur: `onReceive` döndükten sonra tek başına bir
-     * Job'ın toplanma riski doğardı. [kotlinx.coroutines.SupervisorJob]
-     * sayesinde tek bir çizim düşerse sonrakiler etkilenmez.
+     * Job'ın toplanma riski doğardı. [SupervisorJob] sayesinde tek bir
+     * çizim düşerse sonrakiler etkilenmez.
      */
     val kapsam = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Sağlayıcı sınıfları, tek çizim turunda dolaşılacak sıra.
+     *
+     * Sıra bilinçlidir: en çok kullanılan (özet) başta gelir ki tek bir
+     * tur yarım kalırsa en azından o tazelenmiş olsun.
+     */
+    private val tumSiniflar: List<Class<out WidgetAlcisi>> = listOf(
+        OdevWidgetAlcisi::class.java,
+        OdevSayacWidgetAlcisi::class.java,
+        OdevListeWidgetAlcisi::class.java,
+        OdevSonrakiWidgetAlcisi::class.java,
+    )
+
     /** Ekli tüm widget'ları yeniden çizer. Widget yoksa hiçbir şey yapmaz. */
-    suspend fun tumunuCiz(context: Context) {
+    suspend fun tumunuCiz(context: Context) = ciz(context, tumSiniflar)
+
+    /** Tek bir widget'ı çizer — ilgili alıcının `onUpdate` çağrısıdır. */
+    suspend fun ciz(context: Context, sinif: Class<out WidgetAlcisi>) = ciz(context, listOf(sinif))
+
+    private suspend fun ciz(context: Context, siniflar: List<Class<out WidgetAlcisi>>) {
         // Manifest'teki `android:name` bu sınıfı garanti eder; repository'ye
         // doğrudan Context üzerinden erişilemez.
         val uygulama = context.applicationContext as OdevTakipApplication
-
         val yonetici = uygulama.getSystemService(AppWidgetManager::class.java) ?: return
-        val kimlikler = yonetici.getAppWidgetIds(
-            ComponentName(uygulama, OdevWidgetAlcisi::class.java),
-        )
-        // Widget yokken veritabanını okumak boşuna disk erişimidir.
-        if (kimlikler == null || kimlikler.isEmpty()) return
 
-        val icerik = icerikHesapla(uygulama)
-        val gorunum = uzakGorunum(uygulama, icerik)
-        kimlikler.forEach { yonetici.updateAppWidget(it, gorunum) }
-    }
+        // Önce hangilerinin ekli olduğu: widget hiç yokken disk okuması
+        // yapmak boşuna, üstelik her ödev yazımında tekrarlanırdı.
+        val kimlikler = LinkedHashMap<Class<out WidgetAlcisi>, IntArray>()
+        for (sinif in siniflar) {
+            val ids = yonetici.getAppWidgetIds(ComponentName(uygulama, sinif)) ?: IntArray(0)
+            if (ids.isNotEmpty()) kimlikler[sinif] = ids
+        }
+        if (kimlikler.isEmpty()) return
 
-    /**
-     * Veritabanından bugünün tablosunu okur.
-     *
-     * `first()` Room akışının ilk (güncel) değerini alır; sorgu Room'un kendi
-     * iş parçacığında koştuğu için çağıran tarafın kilitlenmesi söz konusu
-     * değildir. [kapsam] zaten IO üzerindedir.
-     */
-    private suspend fun icerikHesapla(uygulama: OdevTakipApplication): WidgetIcerigi {
         val odevler = uygulama.odevRepository.tumOdevleri().first()
-        return widgetIcerigi(odevler, System.currentTimeMillis())
+        val veri = CizimVerisi(odevler, System.currentTimeMillis())
+
+        for ((sinif, ids) in kimlikler) {
+            val gorunum = gorunumYap(uygulama, sinif, veri) ?: continue
+            ids.forEach { yonetici.updateAppWidget(it, gorunum) }
+        }
     }
 
-    /** Verilmiş içeriğe karşılık gelen widget görünümünü kurar. */
-    private fun uzakGorunum(context: Context, icerik: WidgetIcerigi): RemoteViews {
-        val simdi = System.currentTimeMillis()
+    /** Bir kez okunan veritabanı görüntüsü; dört düzen bunu paylaşıp kendi kovasını çıkarır. */
+    private data class CizimVerisi(val odevler: List<Odev>, val simdi: Long)
+
+    private fun gorunumYap(
+        context: Context,
+        sinif: Class<*>,
+        veri: CizimVerisi,
+    ): RemoteViews? = when (sinif) {
+        OdevWidgetAlcisi::class.java -> ozetGorunumu(context, veri)
+        OdevSayacWidgetAlcisi::class.java -> sayacGorunumu(context, veri)
+        OdevListeWidgetAlcisi::class.java -> listeGorunumu(context, veri)
+        OdevSonrakiWidgetAlcisi::class.java -> sonrakiGorunumu(context, veri)
+        else -> null
+    }
+
+    // ---- 1) Bugünün özeti (4 × 2) ----
+
+    private fun ozetGorunumu(context: Context, veri: CizimVerisi): RemoteViews {
+        val icerik = widgetIcerigi(veri.odevler, veri.simdi)
         val gorunum = RemoteViews(context.packageName, R.layout.odev_widget)
 
         gorunum.setTextViewText(R.id.widget_baslik, context.getString(R.string.widget_baslik))
-        gorunum.setTextViewText(R.id.widget_tarih, simdi.formatliTarih())
+        gorunum.setTextViewText(R.id.widget_tarih, veri.simdi.formatliTarih())
         gorunum.setTextViewText(R.id.widget_ozet, ozetMetni(context, icerik))
 
         val normalRenk = context.getColor(R.color.widget_metin)
         val hataRengi = context.getColor(R.color.widget_hata)
 
-        satirKimlikleri.forEachIndexed { i, kimlik ->
+        ozetSatirKimlikleri.forEachIndexed { i, kimlik ->
             val odev = icerik.satirlar.getOrNull(i)
             if (odev == null) {
                 gorunum.setViewVisibility(kimlik, View.GONE)
@@ -109,24 +162,129 @@ object OdevWidgetCizici {
                 gorunum.setTextViewText(kimlik, widgetSatirMetni(odev))
                 // Geciken satır, uygulamadaki rozet gibi `hata` rengine döner:
                 // widget bir bakışta "burada bir sorun var" demelidir.
-                gorunum.setTextColor(
-                    kimlik,
-                    if (odev.gercekDurum(simdi) == Durum.GECEKTI) hataRengi else normalRenk,
-                )
+                gorunum.setTextColor(kimlik, renkVeGecikti(context, odev, veri.simdi, normalRenk, hataRengi))
             }
         }
 
-        val kalan = icerik.bekleyenToplam - icerik.satirlar.size
-        if (kalan > 0) {
-            gorunum.setViewVisibility(R.id.widget_daha, View.VISIBLE)
-            gorunum.setTextViewText(R.id.widget_daha, context.getString(R.string.widget_daha, kalan))
-        } else {
-            gorunum.setViewVisibility(R.id.widget_daha, View.GONE)
-        }
-
-        gorunum.setOnClickPendingIntent(R.id.widget_kok, anaEkranNiyeti(context))
+        dahaSatiriniYaz(context, gorunum, R.id.widget_daha, icerik)
+        gorunum.setOnClickPendingIntent(R.id.widget_kok, anaEkranNiyeti(context, TIKLAMA_OZET))
         return gorunum
     }
+
+    // ---- 2) Sayaçlar (2 × 2) ----
+
+    /**
+     * Üç rakam, hiçbir ödev satırı yok.
+     *
+     * Renkler **anlam** taşır, süs değil: geciken kırmızı, bugün vurgu
+     * mavisi, toplam nötr. Sayının rengine bakmak, etiketi okumaktan
+     * hızlıdır ve küçük widget'ın asıl avantajıdır.
+     */
+    private fun sayacGorunumu(context: Context, veri: CizimVerisi): RemoteViews {
+        val s = widgetSayaclari(veri.odevler, veri.simdi)
+        val gorunum = RemoteViews(context.packageName, R.layout.sayac_widget)
+
+        gorunum.setTextViewText(R.id.sayac_sayi1, s.geciken.toString())
+        gorunum.setTextViewText(R.id.sayac_sayi2, s.bugun.toString())
+        gorunum.setTextViewText(R.id.sayac_sayi3, s.toplam.toString())
+
+        gorunum.setTextColor(R.id.sayac_sayi1, context.getColor(R.color.widget_hata))
+        gorunum.setTextColor(R.id.sayac_sayi2, context.getColor(R.color.widget_vurgu))
+        gorunum.setTextColor(R.id.sayac_sayi3, context.getColor(R.color.widget_metin))
+
+        gorunum.setOnClickPendingIntent(R.id.sayac_kok, anaEkranNiyeti(context, TIKLAMA_SAYAC))
+        return gorunum
+    }
+
+    // ---- 3) Günün listesi (4 × 4) ----
+
+    /**
+     * Altı satır ve her satırın sağında kalan süre.
+     *
+     * Özet widget'ından farkı yalnızca satır sayısı değildir: burada
+     * **ne kadar zaman kaldığı** da yazar. Aynı "3 gün" hem sıralamayı
+     * doğrular hem de günün baskısını gösterir.
+     */
+    private fun listeGorunumu(context: Context, veri: CizimVerisi): RemoteViews {
+        val icerik = widgetIcerigi(veri.odevler, veri.simdi, satirSayisi = LISTE_SATIR_SAYISI)
+        val gorunum = RemoteViews(context.packageName, R.layout.liste_widget)
+
+        gorunum.setTextViewText(R.id.liste_baslik, context.getString(R.string.widget_liste_etiket))
+        gorunum.setTextViewText(R.id.liste_tarih, veri.simdi.formatliTarih())
+        gorunum.setTextViewText(R.id.liste_ozet, ozetMetni(context, icerik))
+
+        val normalRenk = context.getColor(R.color.widget_metin)
+        val hataRengi = context.getColor(R.color.widget_hata)
+        val ikincilRenk = context.getColor(R.color.widget_ikincil)
+
+        for (i in 0 until LISTE_SATIR_SAYISI) {
+            val satir = listeSatirKimlikleri[i]
+            val baslik = listeBaslikKimlikleri[i]
+            val kalan = listeKalanKimlikleri[i]
+            val odev = icerik.satirlar.getOrNull(i)
+
+            if (odev == null) {
+                gorunum.setViewVisibility(satir, View.GONE)
+                continue
+            }
+
+            val gecikti = odev.gercekDurum(veri.simdi) == Durum.GECEKTI
+            gorunum.setViewVisibility(satir, View.VISIBLE)
+            gorunum.setTextViewText(baslik, widgetSatirMetni(odev))
+            gorunum.setTextColor(baslik, if (gecikti) hataRengi else normalRenk)
+            gorunum.setTextViewText(kalan, kalanMetni(context, odev, veri.simdi))
+            gorunum.setTextColor(kalan, if (gecikti) hataRengi else ikincilRenk)
+        }
+
+        dahaSatiriniYaz(context, gorunum, R.id.liste_daha, icerik)
+        gorunum.setOnClickPendingIntent(R.id.liste_kok, anaEkranNiyeti(context, TIKLAMA_LISTE))
+        return gorunum
+    }
+
+    // ---- 4) Sonraki teslim (2 × 1) ----
+
+    /**
+     * Tek ödev — ve tek tıklamada **o ödevin detayı**.
+     *
+     * Dört widget içinde niyeti farklı olan tek budur: en sık bakılan
+     * bilgi tek bir iş olduğu için, ayrıntısı da o işin ayrıntısıdır.
+     * Açılmayacak bir şey yoksa (bekleyen ödev kalmadıysa) tıklama
+     * normalde olduğu gibi listeye düşer — ölü bir tıklama bırakılmaz.
+     */
+    private fun sonrakiGorunumu(context: Context, veri: CizimVerisi): RemoteViews {
+        val odev = sonrakiTeslim(veri.odevler, veri.simdi)
+        val gorunum = RemoteViews(context.packageName, R.layout.sonraki_widget)
+
+        gorunum.setTextViewText(R.id.sonraki_etiket, context.getString(R.string.widget_sonraki_etiket))
+
+        if (odev == null) {
+            gorunum.setTextViewText(R.id.sonraki_baslik, context.getString(R.string.widget_sonraki_bos))
+            gorunum.setTextViewText(R.id.sonraki_alt, "")
+            gorunum.setOnClickPendingIntent(
+                R.id.sonraki_kok,
+                anaEkranNiyeti(context, TIKLAMA_SONRAKI),
+            )
+        } else {
+            gorunum.setTextViewText(R.id.sonraki_baslik, odev.baslik)
+            gorunum.setTextViewText(R.id.sonraki_alt, sonrakiAltMetni(context, odev, veri.simdi))
+            gorunum.setTextColor(
+                R.id.sonraki_alt,
+                if (odev.gercekDurum(veri.simdi) == Durum.GECEKTI) {
+                    context.getColor(R.color.widget_hata)
+                } else {
+                    context.getColor(R.color.widget_ikincil)
+                },
+            )
+            gorunum.setOnClickPendingIntent(
+                R.id.sonraki_kok,
+                detayNiyeti(context, odev.id),
+            )
+        }
+
+        return gorunum
+    }
+
+    // ---- Ortak parçalar ----
 
     /**
      * Özet satırı.
@@ -150,34 +308,130 @@ object OdevWidgetCizici {
     }
 
     /**
-     * Widget'a tıklandığında açılacak niyet.
+     * Satırın sağındaki kalan süre: "Gecikti" / "Bugün" / "Yarın" / "3 gün".
+     *
+     * Gecikenlik önce kontrol edilir: bugünün saati geçmiş bir iş için gün
+     * farkı 0'dır ve "Bugün" yazmak onu hâlâ zaman varmış gibi gösterirdi.
+     */
+    private fun kalanMetni(context: Context, odev: Odev, simdi: Long): String {
+        val gun = widgetKalanGun(odev, simdi)
+        if (odev.gercekDurum(simdi) == Durum.GECEKTI || gun < 0) {
+            return context.getString(R.string.widget_kalan_gecikti)
+        }
+        return when (gun) {
+            0L -> context.getString(R.string.bugun)
+            1L -> context.getString(R.string.yarin)
+            else -> context.getString(R.string.widget_kalan_gun, gun)
+        }
+    }
+
+    /** Sonraki teslim widget'ının ikinci satırı: `Ders · kalan süre`. */
+    private fun sonrakiAltMetni(context: Context, odev: Odev, simdi: Long): String {
+        val kalan = kalanMetni(context, odev, simdi)
+        return if (odev.ders.isBlank()) kalan else "${odev.ders} · $kalan"
+    }
+
+    /** Geciktiyse [hata], değilse [normal]. */
+    private fun renkVeGecikti(
+        context: Context,
+        odev: Odev,
+        simdi: Long,
+        normal: Int,
+        hata: Int,
+    ): Int = if (odev.gercekDurum(simdi) == Durum.GECEKTI) hata else normal
+
+    /** Satır sınırını aşan kalanı "+N daha" diye söyler; aşmıyorsa satırı gizler. */
+    private fun dahaSatiriniYaz(
+        context: Context,
+        gorunum: RemoteViews,
+        kimlik: Int,
+        icerik: WidgetIcerigi,
+    ) {
+        val kalan = icerik.bekleyenToplam - icerik.satirlar.size
+        if (kalan > 0) {
+            gorunum.setViewVisibility(kimlik, View.VISIBLE)
+            gorunum.setTextViewText(kimlik, context.getString(R.string.widget_daha, kalan))
+        } else {
+            gorunum.setViewVisibility(kimlik, View.GONE)
+        }
+    }
+
+    // ---- Niyetler ----
+
+    /**
+     * Ana listeye giden tıklama.
      *
      * `FLAG_ACTIVITY_CLEAR_TOP`, uygulama zaten arka plandaysa yeni bir
-     * yığın değil mevcut ödev listesini getirir — kullanıcı ana ekrana
-     * döndüğünde listede kalır.
+     * yığın değil mevcut listeyi getirir. `SINGLE_TOP` da buna eklenir:
+     * yoksa CLEAR_TOP aktiviteyi bitirip yeniden kurardı ve kullanıcı
+     * bulunduğu ekrandan kopardı.
      */
-    private fun anaEkranNiyeti(context: Context): PendingIntent {
+    private fun anaEkranNiyeti(context: Context, kod: Int): PendingIntent {
         val niyet = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = bayraklar
         }
         return PendingIntent.getActivity(
-            context,
-            TIKLAMA_KODU,
-            niyet,
+            context, kod, niyet,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
-    /** Düzendeki üç satır kimliği, soldan sağa. */
-    private val satirKimlikleri =
+    /**
+     * Belirli bir ödevin detayına giden tıklama.
+     *
+     * Extra, Intent eşitliğine **dahil değildir**; aynı istek koduyla
+     * yazılınca sistem eskisini tutar. `FLAG_UPDATE_CURRENT` bu yüzden
+     * zorunludur — sıradaki ödev değiştiğinde eski kimlik sessizce ezilmez.
+     */
+    private fun detayNiyeti(context: Context, odevId: Long): PendingIntent {
+        val niyet = Intent(context, MainActivity::class.java).apply {
+            flags = bayraklar
+            putExtra(MainActivity.EXTRA_ODEV_ID, odevId)
+        }
+        return PendingIntent.getActivity(
+            context, TIKLAMA_SONRAKI, niyet,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private val bayraklar: Int
+        get() = Intent.FLAG_ACTIVITY_NEW_TASK or
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+            Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+    // ---- Kimlik listeleri ----
+
+    /** Özet widget'ının üç satır kimliği, soldan sağa. */
+    private val ozetSatirKimlikleri =
         intArrayOf(R.id.widget_satir1, R.id.widget_satir2, R.id.widget_satir3)
 
+    /** Liste widget'ının altı satır kasası, her kasada başlık ve süre vardır. */
+    private val listeSatirKimlikleri = intArrayOf(
+        R.id.liste_satir1, R.id.liste_satir2, R.id.liste_satir3,
+        R.id.liste_satir4, R.id.liste_satir5, R.id.liste_satir6,
+    )
+
+    private val listeBaslikKimlikleri = intArrayOf(
+        R.id.liste_baslik1, R.id.liste_baslik2, R.id.liste_baslik3,
+        R.id.liste_baslik4, R.id.liste_baslik5, R.id.liste_baslik6,
+    )
+
+    private val listeKalanKimlikleri = intArrayOf(
+        R.id.liste_kalan1, R.id.liste_kalan2, R.id.liste_kalan3,
+        R.id.liste_kalan4, R.id.liste_kalan5, R.id.liste_kalan6,
+    )
+
     /**
-     * Tıklama niyetinin istek kodu.
+     * Tıklama istek kodları.
      *
-     * `getActivity` ile açılan niyetler ayrı bir kimlik uzayında yaşar; yine
-     * de sabit bir kod, sonradan eklenecek ikinci bir widget eyleminin bu
-     * niyeti sessizce ezmesini engeller.
+     * `getActivity` ile açılan niyetler kendi kimlik uzayında yaşar, ama
+     * **kod + Intent** birlikte eşittir. Her widget'ın ayrı kodu,
+     * sonradan eklenecek bir eylemin başka bir widget'ın niyetini sessizce
+     * ezmesini engeller. Sıralı ve seyrek tutulmuştur ki araya bir tane
+     * daha konabilsin.
      */
-    private const val TIKLAMA_KODU = 0
+    private const val TIKLAMA_OZET = 0
+    private const val TIKLAMA_SAYAC = 10
+    private const val TIKLAMA_LISTE = 20
+    private const val TIKLAMA_SONRAKI = 30
 }
