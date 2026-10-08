@@ -135,11 +135,50 @@ enum class HatirlatmaAraligi(
 }
 
 /**
+ * Takvim sekmesinin görsel biçimi.
+ *
+ * İkisi de **ekranda duruyor** ve bir düğmeyle geçiş yapılır; biri diğerinin
+ * yerine geçmiyor. Varsayılan [GUN] — uygulamanın ana işi o günün ödevine
+ * bakmak olduğu için tek güne bakan şerit açılışta gelir, ayın tamamını
+ * gösteren ızgara ise ara sıra açılan genel görünümdür.
+ *
+ * Düğme etiketi **hedefe** ad verir: şerit açıkken "Aylık" der, ızgara
+ * açıkken "Günlük". Aksi hâlde kullanıcı açık olan görünümün adını okuyup
+ * kapatmaya çalışır.
+ */
+enum class TakvimGorunumu(
+    /** Bu görünüm açıkken düğmede duran etiket — yani **hedefin** adı. */
+    @StringRes val dugmeEtiketRes: Int,
+) {
+    /** Bugün çevresindeki gün şeridi — varsayılan; düğme "Aylık" der. */
+    GUN(R.string.takvim_aylik),
+
+    /** Aylık takvim ızgarası; düğme "Günlük" der. */
+    AY(R.string.takvim_gunluk);
+
+    /** Bir sonraki tıklamada geçilecek görünüm. */
+    fun hedefi(): TakvimGorunumu = when (this) {
+        GUN -> AY
+        AY -> GUN
+    }
+
+    companion object {
+        /**
+         * Depodaki metni çözer; bilinmeyen ya da eksik değer sessizce
+         * [GUN]'e döner — kullanıcı ızgaraya alışıp sürüm değişince tek
+         * tuşla şeride dönmüş sayılır, uygulama açılamaz hâle gelmez.
+         */
+        fun guvenliDeger(metin: String?): TakvimGorunumu =
+            entries.firstOrNull { it.name == metin } ?: GUN
+    }
+}
+
+/**
  * Kalıcı kullanıcı tercihleri (SharedPreferences).
  *
- * Neden DataStore değil? Üç küçük tercih var (tema, bayrak, aralık kümesi);
- * `apply()` disk yazısını arka plana atar, okuma ise açılışta bir kez yapılır.
- * Bu ölçekte akış kütüphanesi taşımaya değmez.
+ * Neden DataStore değil? Birkaç küçük tercih var (tema, bayrak, aralık
+ * kümesi, takvim biçimi); `apply()` disk yazısını arka plana atar, okuma
+ * ise açılışta bir kez yapılır. Bu ölçekte akış kütüphanesi taşımaya değmez.
  *
  * Değerler **StateFlow** olarak tutulur: ekranlar yazmayı beklemeden anında
  * yeni değeri görür, tema değişimi composition'ı kendiliğinden yeniler.
@@ -170,6 +209,18 @@ class Tercihler(context: Context) {
     )
     val hatirlatma: StateFlow<Set<HatirlatmaAraligi>> = _hatirlatma.asStateFlow()
 
+    /**
+     * Takvim sekmesinin biçimi (gün şeridi / aylık ızgara).
+     *
+     * Tercih olarak saklanır, ViewModel'de değil: kullanıcı ızgarayı
+     * seçip uygulamayı kapatınca açılışta yine ızgara görmelidir —
+     * aksi hâlde seçim her yeniden açılışta sıfırlanır.
+     */
+    private val _takvimGorunumu = MutableStateFlow(
+        TakvimGorunumu.guvenliDeger(depo.getString(ANAHTAR_TAKVIM, null))
+    )
+    val takvimGorunumu: StateFlow<TakvimGorunumu> = _takvimGorunumu.asStateFlow()
+
     fun temaAyarla(secenek: TemaSecenegi) {
         _tema.value = secenek
         depo.edit().putString(ANAHTAR_TEMA, secenek.name).apply()
@@ -185,10 +236,16 @@ class Tercihler(context: Context) {
         depo.edit().putString(ANAHTAR_HATIRLATMA, HatirlatmaAraligi.secimleriYaz(secimler)).apply()
     }
 
+    fun takvimGorunumuAyarla(gorunum: TakvimGorunumu) {
+        _takvimGorunumu.value = gorunum
+        depo.edit().putString(ANAHTAR_TAKVIM, gorunum.name).apply()
+    }
+
     private companion object {
         const val DOSYA_ADI = "tercihler"
         const val ANAHTAR_TEMA = "tema"
         const val ANAHTAR_GIZLE = "tamamlananlari_gizle"
         const val ANAHTAR_HATIRLATMA = "hatirlatma"
+        const val ANAHTAR_TAKVIM = "takvim_gorunumu"
     }
 }

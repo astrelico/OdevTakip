@@ -19,6 +19,8 @@
 
     <!-- Takvim -->
     <string name="takvim_baslik">Takvim</string>
+    <string name="takvim_aylik">Aylık</string>
+    <string name="takvim_gunluk">Günlük</string>
     <string name="takvim_onceki_ay">Önceki ay</string>
     <string name="takvim_sonraki_ay">Sonraki ay</string>
     <string name="takvim_gun_etiketi">%1$s, %2$s</string>

@@ -43,13 +43,15 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   En yeni eklenen; varsayılan dışına çıkıldığında düğmenin rengi değişir.
   Aramadan çıkarken metin de temizlenir, bir sonraki açılışta sürpriz bir
   filtre kalmaz
-- **Takvim** sekmesi: **aylık takvim ızgarası** — ayın tamamı tek bakışta,
-  günün altındaki nokta o günde ödev olduğunu söyler; seçili gün dolu daire,
-  bugün `primary` yazıyla işaretlenir. Ay başlığındaki oklar aya geçiş yapar
-  ve seçim de yeni aya taşınır (gün numarası korunur, uzunluğuna göre
-  kırpılır), böylece ızgaradaki ay ile alttaki liste hep aynı ayda kalır.
-  "Bugün" hem seçimi hem görülen ayı bugüne döndürür; seçili günün ödevleri
-  aşağıda aynı kartlarla listelenir
+- **Takvim** sekmesi: **iki biçim**, üst bardaki tek düğmeyle geçiş. Varsayılan
+  **gün şeridi** — bugünün çevresinde ±30 kutu yan yana, altındaki nokta o
+  günde ödev olduğunu söyler, "Bugün" şeridi bugüne kaydırır. **Aylık**
+  düğmesi aylık takvim ızgarasına geçer: ayın tamamı tek bakışta, başlıktaki
+  oklarla ay gezinilir ve seçim de yeni aya taşınır (gün numarası korunur,
+  uzunluğuna göre kırpılır) — böylece ızgaradaki ay ile alttaki liste hep
+  aynı ayda kalır. Düğme **hedefe** ad verir: ızgara açıkken "Günlük" der.
+  Biçim tercih olarak saklanır, seçili gün ise iki biçimde ortaktır; aşağıda
+  her ikisinde de o günün ödevleri aynı kartlarla listelenir
 - **Ders Programı** sekmesi (alt bardaki üçüncü sekme): haftanın gününü çiplerden
   seç, o günün **8 ders saatinin** her birine elle ders ata. Satıra dokununca
   mevcut dersler alttan açılır; dolu bir saatte **"Bu dersi boşalt"** seçeneği
@@ -137,8 +139,8 @@ Arayüzün düzeni ve hiyerarşisi şu referans tasarımdan esinlenilmiştir:
 - **Task management & to-do list app** — [Neser U. (@neseru)](https://www.figma.com/community/file/1143575071825582037/task-management-to-do-list-app)
 - Lisans: [CC BY 4.0 — Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)
 
-Referans yalnızca **düzen** (üst bar, filtre çipleri, kart yapısı, alt gezinme)
-için kullanılmıştır. Renk paleti mavi tonda tutulmuş; tüm ikon,
+Referans yalnızca **düzen** (üst bar, filtre çipleri, kart yapısı, alt gezinme,
+gün şeridi) için kullanılmıştır. Renk paleti mavi tonda tutulmuş; tüm ikon,
 çizim ve bileşenler uygulama içinde Jetpack Compose ile **native** olarak
 yazılmıştır. Tasarımdan hiçbir SVG, PNG veya diğer bir varlık içe
 aktarılmamıştır.

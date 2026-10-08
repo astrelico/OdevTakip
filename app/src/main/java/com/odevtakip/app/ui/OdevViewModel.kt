@@ -14,6 +14,7 @@ import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
 import com.odevtakip.app.data.ProgramSatiri
+import com.odevtakip.app.data.TakvimGorunumu
 import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.util.yerelTarih
 import java.io.File
@@ -178,6 +179,25 @@ class OdevViewModel(
     val tamamlananlariGizle: StateFlow<Boolean> = tercihler.tamamlananlariGizle
 
     // ---- Takvim ----
+
+    /**
+     * Takvimin biçimi: gün şeridi mi, aylık ızgara mı?
+     *
+     * Tercih akışından geldiği için ekran anında güncellenir; geçişi
+     * yalnızca [takvimGorunumuAyarla] yapar.
+     */
+    val takvimGorunumu: StateFlow<TakvimGorunumu> = tercihler.takvimGorunumu
+
+    /**
+     * Takvim biçimini değiştirir — üst bardaki düğmenin işi.
+     *
+     * Depoya da yazar: kullanıcı ızgarayı seçip uygulamayı kapatınca
+     * açılışta yine ızgara görmelidir; aksi hâlde seçim her seferinde
+     * sıfırlanırdı.
+     */
+    fun takvimGorunumuAyarla(gorunum: TakvimGorunumu) {
+        tercihler.takvimGorunumuAyarla(gorunum)
+    }
 
     /**
      * Takvim ekranının seçili günü.

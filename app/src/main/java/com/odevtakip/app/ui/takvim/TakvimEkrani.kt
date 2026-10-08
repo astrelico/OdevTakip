@@ -2,6 +2,7 @@
 
 package com.odevtakip.app.ui.takvim
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +41,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
+import com.odevtakip.app.data.TakvimGorunumu
 import com.odevtakip.app.ui.OdevKarti
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.util.ayAdiVeYili
@@ -53,24 +60,25 @@ import com.odevtakip.app.util.gunUzunAdi
 import com.odevtakip.app.util.tarihMetni
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.launch
 
 /**
- * Takvim: **aylık ızgara** + seçili günün ödevleri.
+ * Takvim: **iki biçim** — gün şeridi / aylık ızgara — + seçili günün ödevleri.
  *
- * Ekran ikiye ayrılır: üstte ay başlığı, hafta günleri ve gün hücreleri;
- * altta o günün ödev listesi. Izgara ayın **tamamını** tek bakışta verir ve
- * ödev yoğunluğunu günün altına konan noktayla gösterir; seçili gün dolu
- * `primary` daire, bugün (seçili değilse) `primary` yazıyla işaretlenir.
+ * Açılışta **gün şeridi** gelir: bugünün çevresinde ±30 kutu, yan yana ve
+ * tek dokunuşla gün gezinme. Şerit, uygulamanın ana işine — o günün ödevine
+ * bakmaya — en hızlı yoldur; bu yüzden varsayılan odur.
  *
- * Buraya kadar yatay gün şeridi vardı (bugünün çevresinde ±30 gün). Şerit
- * yalnızca o pencereyi gösterebiliyordu ve başka bir aya geçmek için uzun
- * süre kaydırmak gerekiyordu; ızgara hem ayın tamamını veriyor hem de
- * herhangi bir tarihe doğrudan gidiyor. Şeridin geri getirdiği tek şey olan
- * "Bugün", üst barda durmaya devam ediyor.
+ * Üst bardaki **Aylık** düğmesi aylık ızgaraya geçer: ayın tamamı tek
+ * bakışta, günün altındaki nokta o günde ödev olduğunu söyler, ay başlığındaki
+ * oklarla ay gezinilir. Düğme **hedefe** ad verir — ızgara açıkken
+ * "Günlük" der ve şeride döner. Böylece kullanıcı açık olan görünümün
+ * adını okuyup yanlış yola basmaz.
  *
- * Ay başlığındaki oklar aya geçiş yapar; seçim de yeni aya taşınır (gün
- * numarası korunur, ayın uzunluğuna göre kırpılır) — aksi hâlde ızgarada
- * bir ay görürken alttaki listeyi başka bir ayın ödevleri oluştururdu.
+ * Geçiş tercih olarak saklanır ([com.odevtakip.app.data.TakvimGorunumu]):
+ * ızgarayı seçip kapatıp açınca yine ızgara gelir. Seçili gün ise iki
+ * biçimde **ortaktır** — birinde seçilen gün ötekinde de seçili durur ve
+ * alttaki liste hiç sıçramaz.
  *
  * Ödevler [OdevKarti] ile aynı kartla gösterilir — liste ile takvim arasında
  * aynı ödev farklı görünürse kullanıcı üzerinde yanlış işlem yapabilir.
@@ -85,16 +93,33 @@ fun TakvimEkrani(
 ) {
     val seciliGun by viewModel.seciliGun.collectAsStateWithLifecycle()
     val seciliAy by viewModel.seciliAy.collectAsStateWithLifecycle()
+    val gorunum by viewModel.takvimGorunumu.collectAsStateWithLifecycle()
     val odevler by viewModel.gununOdevleri.collectAsStateWithLifecycle()
     val gunSayilari by viewModel.gunSayilari.collectAsStateWithLifecycle()
+
+    // Şeridin açılışta bugüne bakması için gerekli. Yalnızca şerit biçiminde
+    // kullanılır ama durum her iki biçimde de yaşar; geçişte kaybolmaz.
+    val seritDurumu = rememberLazyListState(initialFirstVisibleItemIndex = ONCE_GUN)
+    val hiz = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.takvim_baslik)) },
                 actions = {
-                    // gunAyarla seçimi ve görülen ayı birlikte bugüne çeker.
-                    TextButton(onClick = { viewModel.gunAyarla(LocalDate.now()) }) {
+                    // Biçim anahtarı: etiket her zaman HEDEFİ söyler.
+                    TextButton(
+                        onClick = { viewModel.takvimGorunumuAyarla(gorunum.hedefi()) },
+                    ) {
+                        Text(stringResource(gorunum.dugmeEtiketRes))
+                    }
+                    TextButton(onClick = {
+                        viewModel.gunAyarla(LocalDate.now())
+                        // Izgara açıkken şeridi bugüne kaydırmak anlamsızdır.
+                        if (gorunum == TakvimGorunumu.GUN) {
+                            hiz.launch { seritDurumu.scrollToItem(ONCE_GUN) }
+                        }
+                    }) {
                         Text(stringResource(R.string.bugun))
                     }
                     IconButton(onClick = onAyarlar) {
@@ -115,13 +140,22 @@ fun TakvimEkrani(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AylikTakvim(
-                ay = seciliAy,
-                secili = seciliGun,
-                sayilar = gunSayilari,
-                onGunSec = viewModel::gunAyarla,
-                onAyKaydir = viewModel::ayiKaydir,
-            )
+            when (gorunum) {
+                TakvimGorunumu.GUN -> GunSeridi(
+                    secili = seciliGun,
+                    sayilar = gunSayilari,
+                    onSecim = viewModel::gunAyarla,
+                    seritDurumu = seritDurumu,
+                )
+
+                TakvimGorunumu.AY -> AylikTakvim(
+                    ay = seciliAy,
+                    secili = seciliGun,
+                    sayilar = gunSayilari,
+                    onGunSec = viewModel::gunAyarla,
+                    onAyKaydir = viewModel::ayiKaydir,
+                )
+            }
 
             Text(
                 text = stringResource(
@@ -167,6 +201,123 @@ fun TakvimEkrani(
                     }
                 }
             }
+        }
+    }
+}
+
+// ---- Gün şeridi ----
+
+private const val ONCE_GUN = 30
+private const val SONRA_GUN = 60
+
+/**
+ * Yatay gün şeridi — takvimin **varsayılan** biçimi.
+ *
+ * Bugün [ONCE_GUN] adım sağda başlar; açılışta oraya kaydırılır, "Bugün"
+ * düğmesi hem seçimi hem kaydırmayı geri getirir. Şerit ±30 gün gösterir:
+ * gün gün gezinmek için kaydırmak yeterlidir, ayın tamamı gereken tek şey
+ * olduğunda ise üst bardaki düğme ızgaraya geçer.
+ */
+@Composable
+private fun GunSeridi(
+    secili: LocalDate,
+    sayilar: Map<LocalDate, Int>,
+    onSecim: (LocalDate) -> Unit,
+    seritDurumu: LazyListState,
+    modifier: Modifier = Modifier,
+) {
+    val bugun = LocalDate.now()
+    val gunler = remember(bugun) {
+        generateSequence(bugun.minusDays(ONCE_GUN.toLong())) { it.plusDays(1) }
+            .take(ONCE_GUN + SONRA_GUN + 1)
+            .toList()
+    }
+
+    LazyRow(
+        state = seritDurumu,
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(gunler, key = { it.toEpochDay() }) { gun ->
+            GunHucre(
+                gun = gun,
+                secili = gun == secili,
+                bugun = gun == bugun,
+                adet = sayilar[gun] ?: 0,
+                onClick = { onSecim(gun) },
+            )
+        }
+    }
+}
+
+/**
+ * Şeritteki tek gün kutusu.
+ *
+ * Seçili gün dolu `primary` zemin; bugün (seçili değilse) yazı rengi
+ * `primary` ile vurgulanır. Ödev olan günlerde altına küçük bir nokta konur —
+ * nokta rengi zemine göre ters çevrilir, böylece okunaklı kalır.
+ */
+@Composable
+private fun GunHucre(
+    gun: LocalDate,
+    secili: Boolean,
+    bugun: Boolean,
+    adet: Int,
+    onClick: () -> Unit,
+) {
+    val renkler = MaterialTheme.colorScheme
+
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.width(50.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = if (secili) renkler.primary else renkler.surface,
+        contentColor = if (secili) renkler.onPrimary else renkler.onSurface,
+        border = if (secili) {
+            null
+        } else {
+            BorderStroke(width = 1.dp, color = renkler.outlineVariant)
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 9.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = gun.gunKisaAdi(),
+                style = MaterialTheme.typography.labelSmall,
+                color = when {
+                    secili -> renkler.onPrimary
+                    bugun -> renkler.primary
+                    else -> renkler.onSurfaceVariant
+                },
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = gun.dayOfMonth.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                color = when {
+                    secili -> renkler.onPrimary
+                    bugun -> renkler.primary
+                    else -> renkler.onSurface
+                },
+            )
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .background(
+                        color = when {
+                            adet == 0 -> Color.Transparent
+                            secili -> renkler.onPrimary
+                            else -> renkler.primary
+                        },
+                        shape = CircleShape,
+                    ),
+            )
         }
     }
 }

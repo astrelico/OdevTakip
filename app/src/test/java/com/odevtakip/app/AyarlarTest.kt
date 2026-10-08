@@ -2,6 +2,7 @@ package com.odevtakip.app
 
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
+import com.odevtakip.app.data.TakvimGorunumu
 import com.odevtakip.app.data.TemaSecenegi
 import com.odevtakip.app.ui.OdevFiltresi
 import com.odevtakip.app.ui.suzulVeSirala
@@ -60,6 +61,47 @@ class AyarlarTest {
         // SharedPreferences metin yazıp okuduğu için round-trip kayıpsız olmalı.
         TemaSecenegi.entries.forEach { secenek ->
             assertEquals(secenek, TemaSecenegi.guvenliDeger(secenek.name))
+        }
+    }
+
+    // ---- TakvimGorunumu ----
+
+    @Test
+    fun `varsayilan takvim bicimi gun serididir`() {
+        // Yeni kurulumda tek güne bakmak ana iş olduğu için şerit gelir;
+        // ızgara, kullanıcı bilinçli olarak seçtiğinde açılır.
+        assertEquals(TakvimGorunumu.GUN, TakvimGorunumu.guvenliDeger(null))
+        assertEquals(TakvimGorunumu.GUN, TakvimGorunumu.guvenliDeger(""))
+        assertEquals(TakvimGorunumu.GUN, TakvimGorunumu.guvenliDeger("BILINMEYEN"))
+    }
+
+    @Test
+    fun `bilinen takvim bicimi metni dogru cozumlenir`() {
+        assertEquals(TakvimGorunumu.GUN, TakvimGorunumu.guvenliDeger("GUN"))
+        assertEquals(TakvimGorunumu.AY, TakvimGorunumu.guvenliDeger("AY"))
+    }
+
+    @Test
+    fun `takvim bicimi metne cevrilince geri ayni doner`() {
+        // SharedPreferences metin yazıp okuduğu için round-trip kayıpsız olmalı.
+        TakvimGorunumu.entries.forEach { gorunum ->
+            assertEquals(gorunum, TakvimGorunumu.guvenliDeger(gorunum.name))
+        }
+    }
+
+    @Test
+    fun `dugme acik gorunumun adini degil hedefi soyler`() {
+        // Düğme "Aylık" ya da "Günlük" der. Etiket hangisi olacağı açık olan
+        // görünüme göre değişir; aksi hâlde kullanıcı adını okuyup zaten
+        // açık olan yola tekrar basar.
+        assertEquals(TakvimGorunumu.AY, TakvimGorunumu.GUN.hedefi())
+        assertEquals(TakvimGorunumu.GUN, TakvimGorunumu.AY.hedefi())
+    }
+
+    @Test
+    fun `iki kez basmak bicimi geri getirir`() {
+        TakvimGorunumu.entries.forEach { gorunum ->
+            assertEquals(gorunum, gorunum.hedefi().hedefi())
         }
     }
 
