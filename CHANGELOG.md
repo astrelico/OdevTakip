@@ -5,6 +5,54 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
+## [1.3] - 2026-10-08
+
+### Eklendi
+
+- **Ana ekran widget'ı** — Widget seçicisinde "Ödev Takip · 4 × 2" olarak
+  görünür: üstte uygulama adı ve bugünün tarihi, altında "N geciken ·
+  N bugün" özeti, sonra en fazla üç ödev satırı ve kalanı söyleyen
+  "+N daha". Sıra öncelik sırasıdır — geciken önce, sonra bugün, sonra
+  ileri tarihli; her grupta en eski teslim üstte. Geciken satır,
+  uygulamadaki rozet gibi kırmızıya döner. Kutuya tıklamak ana listeyi
+  açar. Widget üç yerde kendini tazeler: ödev yazılınca, gün değişince
+  ve kendisi eklenince. `updatePeriodMillis` bilerek sıfırdır — sistem
+  en az 30 dakikada bir haber verir ve bu aralık geciken sayacını taze
+  tutmaya yetmez.
+- **İstatistik sayfası** — Alt gezinmede dördüncü sekme: toplam,
+  yapılan, geciken sayıları ve **grafik kütüphanesi kullanılmadan**
+  Canvas ile çizilmiş halka / pasta grafikleri. Renkler yalnızca
+  **durum**dan gelir, grafik ders renklerinden bağımsızdır.
+- **Arama ve sıralama** — Üst bardaki **büyüteç**, başlığın yerine açılan
+  yuvarlak bir metin alanına dönüşür; başlık, açıklama ve ders adında
+  arar (Türkçe `I`/`ı`/`i` eşleşmesi dahil). Yanındaki **sıralama**
+  simgesi alttan açılan paneli çağırır: önerilen, ders adı, ada göre,
+  yeni eklenen.
+- **Ödevi kopyala** — Detay ekranının üst barında üçüncü simge. Kaynağın
+  dersi, açıklaması, **teslim tarihi** ve **eki** yeni ödevde tekrar
+  üretilir (ek kopyalanır, dosya adı çakışmaz); durum **bekliyor**
+  olarak başlar, düzenlemeye gerek yoktur.
+- **Aylık takvim görünümü** — Takvim'in üst barındaki tek düğme iki
+  biçimi açıp kapatır. Varsayılan **gün şeridi**dir (±30 gün), **Aylık**
+  dediğinde hafta başı pazartesi olan aylık ızgara gelir, **Günlük**
+  dediğinde şeride döner. Seçim her iki biçimde ortaktır ve tercih
+  olarak saklanır: uygulama kapatılıp açılınca seçili kalır.
+- **Bildirimden hızlı tamamla** — Yaklaşan teslim ve tek ödevlik gecikme
+  bildirimlerindeki **"Tamamla"** düğmesi, ödevi uygulamayı açmadan
+  tamamlar ve o bildirimi kendiliğinden kaldırır.
+
+### Değişti
+
+- **Yeni ödev düğmesi** yenilendi: alt çubuğun üstünde, sağ alt köşede
+  **genişletilmiş** yuvarlak buton olarak durur ve çizimini değiştirdi.
+  Alt çubuk artık yalnızca dört sekmeyi taşır.
+- **Takvim** ekrandaki varsayılan biçimi tam ekran aylık ızgaraydı;
+  kullanıcı geri bildirimiyle önceki "gün gün" sıralı kutular geri
+  getirildi ve ızgara tek düğmenin ardına alındı.
+- Arka plan izlemeleri tek kapsam altında toplandı: ödevler her
+  değiştiğinde hatırlatma planı **ve** ana ekran widget'ı birlikte
+  tazelenir, hata yutulur ve akış yaşamaya devam eder.
+
 ## [1.2] - 2026-10-06
 
 ### Eklendi
@@ -97,5 +145,6 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 
 [keep-a-changelog]: https://keepachangelog.com/tr/1.1.0/
 [semver]: https://semver.org/lang/tr/
+[1.3]: https://github.com/astrelico/OdevTakip/releases/tag/v1.3
 [1.2]: https://github.com/astrelico/OdevTakip/releases/tag/v1.2
 [1.1]: https://github.com/astrelico/OdevTakip/releases/tag/v1.1
