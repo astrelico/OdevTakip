@@ -15,6 +15,12 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   ekranının altında **görsel önizleme** görünür (görsel olmayanda ad + tür +
   boyut kartı); fotoğrafın üzerine basılınca **tam ekran** açılır. Ana
   ekrandaki kartta ise ataş ikonuyla **Ekli** etiketi durur
+- **Ödevi kopyala** — detay ekranının üst barındaki kopya simgesi kaynağı
+  okuyup her şeyi (başlık, açıklama, ders, teslim tarihi, ek) forma doldurur;
+  Kaydet **yeni** bir kayıt açar. Kopya taze bir *Bekliyor* ve kendi kimliğiyle
+  gelir, ek dosyası ise **çoğaltılır** — iki kayıt aynı adı taşısaydı birini
+  silmek ötekinin ekini de silerdi. Kaydettikten sonra liste ekranına dönülür,
+  yeni kart orada durur
 - Otomatik durum: **Bekliyor → Gecikti → Tamamlandı**. Durum ayrıca bir iş
   karıştırmadan, listenin çizildiği an `sonTarih`'e göre hesaplanır.
 - **Dersler**: formda zorunlu ders seçimi (alttan açılan panel), kartın

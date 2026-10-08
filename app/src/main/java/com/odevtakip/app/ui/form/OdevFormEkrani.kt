@@ -87,9 +87,23 @@ import kotlinx.coroutines.launch
 private const val GUN_MS = 86_400_000L
 
 /**
- * Ödev ekleme ve düzenleme ekranı.
+ * Ödev ekleme, **kopyalama** ve düzenleme ekranı — üç mod, tek ekran.
  *
- * [odevId] `0` veya negatifse yeni ödev eklenir.
+ *  - `odevId` `0`'dan büyükse düzenleme: o kayıt forma yüklenir.
+ *  - `kopyaKaynakId` `0`'dan büyükse kopyalama: **kaynak** okunup forma
+ *    yazılır ama `odevId` negatif kalır, yani Kaydet yine **yeni** bir
+ *    kayıt açar. Böylece kopya; kendi kimliğini, taze bir "Bekliyor"
+ *    durumunu ve kendi oluşturma zamanını alır.
+ *  - İkisi de verilmemişse yeni ekleme.
+ *
+ * Ayrı bir "kopya formu" olmamasının nedeni üç modun da alanları, tarih
+ * seçicileri, ek kartı ve kaydetme akışını birebir paylaşması: ikinci bir
+ * ekran olsaydı her yeni alan ya da hata iki yerde birden değişmek
+ * zorunda kalırdı.
+ *
+ * Teslim tarihi **kaynaktan aynen gelir**. Kopyalama sihirli bir tarih
+ * tahmini yapmaz — "+7 gün" gibi bir kural, sonucu kullanıcı öngöremeyen
+ * bir kayıt doğururdu. Gerekirse formdaki tarih düğmesinden değişir.
  *
  * Tarih/saat tek bir `Long` (epoch millis) olarak saklanır; dönüşümler
  * [tarihSaatiniDonustur] üzerinden yapılır, böylece saat dilimi kayması olmaz.
@@ -97,14 +111,38 @@ private const val GUN_MS = 86_400_000L
  * Kaydetme üst barda değil, formun **sonunda tam genişlikte** duruyor:
  * referans tasarımdaki gibi ve başparmak erişiminde. Üst barda yalnızca geri
  * düğmesi kalır.
+ *
+ * @param kopyaKaynakId Kopyalanacak kaynağın kimliği; `-1` = kopya modu
+ *   değil. `odevId` ile **çakışmaz**: o kaydetmeye, bu okumaya bakar.
  */
 @Composable
 fun OdevFormEkrani(
     odevId: Long,
     viewModel: OdevViewModel,
     onGeri: () -> Unit,
+    kopyaKaynakId: Long = -1L,
+    /**
+     * Kopya başarıyla kaydedildiğinde çağrılır; varsayılan olarak [onGeri].
+     *
+     * Ayrı bir düğme çünkü **sonuç farklıdır**: normal kayıttan sonra geri,
+     * düzenlediğiniz kayda döner — kopyadan sonra ise kullanıcının kopyayı
+     * **gördüğü** yere, liste ekranına dönülür.
+     */
+    onKopyaBasarili: () -> Unit = onGeri,
 ) {
-    val yeniMi = odevId <= 0L
+    val kopyaMi = kopyaKaynakId > 0L
+
+    /**
+     * Formun doldurulacağı kaynak ödev; `0` = boş form.
+     *
+     * Kopyalamada bu **kaynağın** kimliğidir; kaydetme ise `odevId`'ye bakar
+     * ve o negatif kaldığı için yeni kayıt açar.
+     */
+    val kaynakId = when {
+        kopyaMi -> kopyaKaynakId
+        odevId > 0L -> odevId
+        else -> 0L
+    }
 
     var baslik by rememberSaveable { mutableStateOf("") }
     var aciklama by rememberSaveable { mutableStateOf("") }
@@ -129,7 +167,11 @@ fun OdevFormEkrani(
     // `ek`: veritabanındaki mevcut değer (düzenleme modunda başlangıçta o).
     // `secilenEkUri != null` ise kullanıcı yeni bir dosya seçmiştir ve o,
     // `ek`'in yerine geçer.
+    // `kopyaEk`: kopyalama modunda **kaynağın** ek adı. `ek`'ten ayrı
+    // tutulur; çünkü o ad hâlâ kaynak kayda ait ve içeriği Kaydet anında
+    // çoğaltılır (bkz. OdevViewModel.formuKaydet).
     var ek by remember { mutableStateOf<String?>(null) }
+    var kopyaEk by remember { mutableStateOf<String?>(null) }
     var secilenEkUri by remember { mutableStateOf<Uri?>(null) }
     var secilenEkAdi by remember { mutableStateOf<String?>(null) }
     var ekHatasi by remember { mutableStateOf(false) }
@@ -162,14 +204,21 @@ fun OdevFormEkrani(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> ekSecildi(uri) }
 
-    // Düzenleme modunda mevcut kaydı forma yükle.
-    LaunchedEffect(odevId) {
-        if (!yeniMi) {
-            viewModel.odeviGet(odevId)?.let { odev ->
-                baslik = odev.baslik
-                aciklama = odev.aciklama
-                ders = odev.ders
-                sonTarihMillis = odev.sonTarih
+    // Düzenlemede mevcut kaydı, kopyalamada **kaynağı** forma yükle.
+    LaunchedEffect(kaynakId) {
+        if (kaynakId > 0L) viewModel.odeviGet(kaynakId)?.let { odev ->
+            baslik = odev.baslik
+            aciklama = odev.aciklama
+            ders = odev.ders
+            sonTarihMillis = odev.sonTarih
+
+            if (kopyaMi) {
+                // Ek **paylaşılmaz**: aynı dosya adını taşıyan iki kayıttan
+                // birini silmek ötekinin ekini de silerdi. Ad ayrı tutulur;
+                // içeriği Kaydet'te çoğaltılır, yani formdan vazgeçilirse
+                // geriye hiçbir artık dosya kalmaz.
+                kopyaEk = odev.ek
+            } else {
                 ek = odev.ek
             }
         }
@@ -180,7 +229,7 @@ fun OdevFormEkrani(
     val ekGosterilen = if (secilenEkUri != null) {
         secilenEkAdi ?: stringResource(R.string.ek_secildi)
     } else {
-        ek
+        ek ?: kopyaEk
     }
 
     fun kaydet() {
@@ -200,6 +249,7 @@ fun OdevFormEkrani(
             sonTarih = sonTarihMillis,
             ekUri = secilenEkUri,
             ek = ek,
+            ekKopyaKaynak = kopyaEk,
             onEkHatasi = {
                 // Dosya diske yazılamadı. Ödev yine de kaydedilmez: eksik
                 // kayıt, hatadan kötüdür. Seçim başa döner, kullanıcı
@@ -212,7 +262,7 @@ fun OdevFormEkrani(
                 // Bağlamda iste: kullanıcı ilk ödevini kaydetti, yani
                 // hatırlatmanın artık bir anlamı var. İzin en fazla bir kez sorulur.
                 (context as? Activity)?.let(BildirimYonetici::izinBirKezIste)
-                onGeri()
+                if (kopyaMi) onKopyaBasarili() else onGeri()
             },
         )
     }
@@ -223,7 +273,11 @@ fun OdevFormEkrani(
                 title = {
                     Text(
                         stringResource(
-                            if (yeniMi) R.string.odev_ekle else R.string.odev_duzenle
+                            when {
+                                kopyaMi -> R.string.odev_kopyala
+                                odevId > 0L -> R.string.odev_duzenle
+                                else -> R.string.odev_ekle
+                            }
                         )
                     )
                 },
@@ -315,6 +369,8 @@ fun OdevFormEkrani(
                     secilenEkUri = null
                     secilenEkAdi = null
                     ek = null
+                    // Kopyadaki ek de kaldırılmış sayılır.
+                    kopyaEk = null
                     ekHatasi = false
                 },
                 modifier = Modifier.fillMaxWidth(),

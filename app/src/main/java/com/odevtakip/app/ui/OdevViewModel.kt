@@ -394,6 +394,11 @@ class OdevViewModel(
      *   noktada yapılır** — formdan vazgeçildiğinde artık dosya kalmaz.
      * @param ek Yeni seçim yoksa kaydedilecek mevcut ek adı; kullanıcı ek
      *   sildiyse `null`. (`ekUri` verildiğinde yok sayılır.)
+     * @param ekKopyaKaynak Ödev kopyalama modunda kaydın **kendi** ek adı.
+     *   Verilen dosya diske **yeniden** kopyalanır: iki kayıt da aynı adı
+     *   taşısaydı birini silmek ötekinin ekini de silerdi. (`ekUri` ve `ek`
+     *   verilmişse onlar kazanır — kullanıcı formda ekini zaten değiştirmiş
+     *   ya da kaldırmıştır.)
      * @param onEkHatasi Dosya kopyalanamadığında çağrılır: ödev kaydedilmez,
      *   form açık kalır ve kullanıcı dosyayı yeniden seçebilir. Eksik kayıt,
      *   hatadan kötüdür.
@@ -407,19 +412,29 @@ class OdevViewModel(
         sonTarih: Long,
         ekUri: Uri? = null,
         ek: String? = null,
+        ekKopyaKaynak: String? = null,
         onEkHatasi: () -> Unit = {},
         onBasarili: () -> Unit,
     ) {
         viewModelScope.launch {
             val mevcut = if (odevId > 0) repository.odeviAl(odevId) else null
 
-            val yeniEk = if (ekUri != null) {
-                repository.ekKopyala(ekUri) ?: run {
+            val yeniEk = when {
+                ekUri != null -> repository.ekKopyala(ekUri) ?: run {
                     onEkHatasi()
                     return@launch
                 }
-            } else {
-                ek
+
+                // Kaynak bu arada silinmişse kopyalanacak bir şey yoktur;
+                // bu durum hata değil, eksize bir kopyadır.
+                ekKopyaKaynak != null &&
+                    repository.ekDosyasi(ekKopyaKaynak).exists() ->
+                    repository.ekKopyalaMevcut(ekKopyaKaynak) ?: run {
+                        onEkHatasi()
+                        return@launch
+                    }
+
+                else -> ek
             }
 
             repository.kaydet(

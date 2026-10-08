@@ -37,6 +37,15 @@ class OdevRepository(
      */
     suspend fun ekKopyala(uri: Uri): String? = ekDeposu.kopyala(uri)
 
+    /**
+     * Depodaki mevcut bir ekin **bağımsız kopyasını** oluşturur; başarısızsa
+     * `null`.
+     *
+     * Ödev kopyalanırken kullanılır: iki kayıt aynı dosya adını taşısaydı,
+     * birini silmek ötekinin ekini de silerdi.
+     */
+    suspend fun ekKopyalaMevcut(ad: String): String? = ekDeposu.kopyalaMevcut(ad)
+
     /** Ek dosyasının tam yolu — detay ekranındaki önizleme için. */
     fun ekDosyasi(ad: String): File = ekDeposu.dosya(ad)
 

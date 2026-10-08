@@ -46,6 +46,23 @@ class EkDeposu(context: Context) {
     suspend fun kopyala(uri: Uri): String? =
         withContext(Dispatchers.IO) { kopyalaYerel(uri) }
 
+    /**
+     * Depodaki mevcut bir ek dosyasının **bağımsız kopyasını** üretir;
+     * başarısızsa `null`.
+     *
+     * Ödev kopyalarken gereklidir: iki kayıt da aynı dosya adını taşırsa
+     * birini silmek ötekinin ekini de yok ederdi — [sil] yalnızca adı okuyup
+     * dosyayı siler, diğer kaydın haberi olmaz. Bu yüzden kopya, yeni bir
+     * ad alır: kaynak "IMG.jpg" ise kopya "IMG (1).jpg" olur.
+     *
+     * Kaynak dosya yoksa `null` döner. Bu bir hata değildir: arada silinmiş
+     * bir ek, kopyanın **eksize** kalmasından başka bir sonuç doğurmaz.
+     *
+     * @param ad Depodaki dosyanın adı — yani [Odev.ek] değeri.
+     */
+    suspend fun kopyalaMevcut(ad: String): String? =
+        withContext(Dispatchers.IO) { kopyalaMevcutYerel(ad) }
+
     /** Ek dosyasını siler; dosya zaten yoksa sessizce biter. */
     suspend fun sil(ad: String) = withContext(Dispatchers.IO) { silYerel(ad) }
 
@@ -69,6 +86,24 @@ class EkDeposu(context: Context) {
             val girdi = cozucu.openInputStream(uri) ?: return null
             girdi.use { g -> hedef.outputStream().use { c -> g.copyTo(c) } }
             ad
+        } catch (e: Exception) {
+            hedef.delete()
+            null
+        }
+    }
+
+    private fun kopyalaMevcutYerel(ad: String): String? {
+        // Ad veritabanından geliyor; "…/../" ile klasörün dışına çıkmasın.
+        val kaynak = dosya(ad)
+        if (kaynak.parentFile != klasor || !kaynak.isFile) return null
+
+        val yeniAd = ekBenzersizAd(kaynak.name) { dosya(it).exists() }
+        val hedef = dosya(yeniAd)
+
+        return try {
+            klasor.mkdirs()
+            kaynak.inputStream().use { g -> hedef.outputStream().use { c -> g.copyTo(c) } }
+            yeniAd
         } catch (e: Exception) {
             hedef.delete()
             null

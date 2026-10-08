@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
@@ -115,6 +116,7 @@ fun OdevDetayEkrani(
     viewModel: OdevViewModel,
     onGeri: () -> Unit,
     onDuzenle: (Long) -> Unit,
+    onKopyala: (Long) -> Unit,
 ) {
     val odev by viewModel.seciliOdev.collectAsStateWithLifecycle()
     val yuklendi by viewModel.seciliOdevYuklendi.collectAsStateWithLifecycle()
@@ -167,6 +169,14 @@ fun OdevDetayEkrani(
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = stringResource(R.string.duzenle),
+                            )
+                        }
+                        // Kopya, silmeden önce duruyor: yıkıcı eylem en
+                        // sağda kalır ki yanlış dokunuş ona ulaşmasın.
+                        IconButton(onClick = { onKopyala(odevId) }) {
+                            Icon(
+                                imageVector = Icons.Rounded.ContentCopy,
+                                contentDescription = stringResource(R.string.kopyala),
                             )
                         }
                         IconButton(onClick = { silOnayiGoster = true }) {

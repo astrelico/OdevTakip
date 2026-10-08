@@ -60,6 +60,7 @@ private object Rotalar {
     const val TAKVIM = "takvim"
     const val FORM = "form/{odevId}"
     const val DETAY = "detay/{odevId}"
+    const val KOPYA = "kopya/{kaynakId}"
     const val AYARLAR = "ayarlar"
     const val DERSLER = "dersler"
     const val PROGRAM = "program"
@@ -68,6 +69,15 @@ private object Rotalar {
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
     fun detay(odevId: Long): String = "detay/$odevId"
+
+    /**
+     * `kaynakId`'yi okuyup **yeni** bir ödev üreten form.
+     *
+     * `form` rotasından ayrı: orada `odevId` hem okunacak kaydı hem
+     * kaydedilecek kaydı belirtir, kopyalamada ise ikisi farklıdır —
+     * okunan kaynak, kaydedilen ise sıfırdan açılan kayıttır.
+     */
+    fun kopya(kaynakId: Long): String = "kopya/$kaynakId"
 }
 
 class MainActivity : ComponentActivity() {
@@ -296,6 +306,29 @@ private fun OdevUygulamasi(
             }
 
             composable(
+                route = Rotalar.KOPYA,
+                arguments = listOf(navArgument("kaynakId") { type = NavType.LongType }),
+            ) { entry ->
+                OdevFormEkrani(
+                    odevId = -1L,
+                    kopyaKaynakId = entry.arguments?.getLong("kaynakId") ?: -1L,
+                    viewModel = viewModel,
+                    onGeri = { navController.popBackStack() },
+                    // Kopya kaydedildikten sonra dönülecek yer **listektir**:
+                    // kullanıcının görmek istediği tek şey yeni karttır.
+                    // `popUpTo` detayı ve formu yığından alır ama listeyi
+                    // tutar — filtreler ve kaydırma konumu kaybolmaz.
+                    // `launchSingleTop` aynı kaydı ikinci kez eklemesin.
+                    onKopyaBasarili = {
+                        navController.navigate(Rotalar.LISTE) {
+                            popUpTo(Rotalar.LISTE) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+
+            composable(
                 route = Rotalar.DETAY,
                 arguments = listOf(navArgument("odevId") { type = NavType.LongType }),
             ) { entry ->
@@ -304,6 +337,7 @@ private fun OdevUygulamasi(
                     viewModel = viewModel,
                     onGeri = { navController.popBackStack() },
                     onDuzenle = { navController.navigate(Rotalar.form(it)) },
+                    onKopyala = { navController.navigate(Rotalar.kopya(it)) },
                 )
             }
 

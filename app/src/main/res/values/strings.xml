@@ -35,6 +35,7 @@
     <!-- Ödev formu -->
     <string name="odev_ekle">Ödev Ekle</string>
     <string name="odev_duzenle">Ödevi Düzenle</string>
+    <string name="odev_kopyala">Ödevi Kopyala</string>
     <string name="alan_baslik">Ödev başlığı</string>
     <string name="alan_baslik_ipucu">Örn. Matematik 3. ünite soruları</string>
     <string name="alan_aciklama">Açıklama</string>
@@ -54,6 +55,7 @@
     <string name="tamamla">Tamamlandı olarak işaretle</string>
     <string name="tamamlamayi_geri_al">Tamamlama işaretini geri al</string>
     <string name="duzenle">Düzenle</string>
+    <string name="kopyala">Kopyala</string>
     <string name="sil">Sil</string>
     <string name="odev_bulunamadi">Bu ödev bulunamadı.</string>
 
