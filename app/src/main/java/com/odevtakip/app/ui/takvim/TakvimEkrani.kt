@@ -2,27 +2,26 @@
 
 package com.odevtakip.app.ui.takvim
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Assignment
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,7 +36,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,17 +46,31 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.ui.OdevKarti
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.util.ayAdiVeYili
+import com.odevtakip.app.util.ayinHucreleri
 import com.odevtakip.app.util.gunKisaAdi
 import com.odevtakip.app.util.gunUzunAdi
 import com.odevtakip.app.util.tarihMetni
 import java.time.LocalDate
-import kotlinx.coroutines.launch
+import java.time.YearMonth
 
 /**
- * Takvim: yatay gün şeridi + seçili günün ödevleri.
+ * Takvim: **aylık ızgara** + seçili günün ödevleri.
  *
- * Şerit bugünün etrafında ± gün gösterir ve açılışta bugüne kaydırılır;
- * "Bugün" düğmesi hem seçimi hem kaydırmayı geri getirir.
+ * Ekran ikiye ayrılır: üstte ay başlığı, hafta günleri ve gün hücreleri;
+ * altta o günün ödev listesi. Izgara ayın **tamamını** tek bakışta verir ve
+ * ödev yoğunluğunu günün altına konan noktayla gösterir; seçili gün dolu
+ * `primary` daire, bugün (seçili değilse) `primary` yazıyla işaretlenir.
+ *
+ * Buraya kadar yatay gün şeridi vardı (bugünün çevresinde ±30 gün). Şerit
+ * yalnızca o pencereyi gösterebiliyordu ve başka bir aya geçmek için uzun
+ * süre kaydırmak gerekiyordu; ızgara hem ayın tamamını veriyor hem de
+ * herhangi bir tarihe doğrudan gidiyor. Şeridin geri getirdiği tek şey olan
+ * "Bugün", üst barda durmaya devam ediyor.
+ *
+ * Ay başlığındaki oklar aya geçiş yapar; seçim de yeni aya taşınır (gün
+ * numarası korunur, ayın uzunluğuna göre kırpılır) — aksi hâlde ızgarada
+ * bir ay görürken alttaki listeyi başka bir ayın ödevleri oluştururdu.
  *
  * Ödevler [OdevKarti] ile aynı kartla gösterilir — liste ile takvim arasında
  * aynı ödev farklı görünürse kullanıcı üzerinde yanlış işlem yapabilir.
@@ -72,22 +84,17 @@ fun TakvimEkrani(
     onAyarlar: () -> Unit,
 ) {
     val seciliGun by viewModel.seciliGun.collectAsStateWithLifecycle()
+    val seciliAy by viewModel.seciliAy.collectAsStateWithLifecycle()
     val odevler by viewModel.gununOdevleri.collectAsStateWithLifecycle()
     val gunSayilari by viewModel.gunSayilari.collectAsStateWithLifecycle()
-
-    // Acilista bugun gorunur; sonraki girislerde kaydirma konumu korunur.
-    val seritDurumu = rememberLazyListState(initialFirstVisibleItemIndex = ONCE_GUN)
-    val hiz = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.takvim_baslik)) },
                 actions = {
-                    TextButton(onClick = {
-                        viewModel.gunAyarla(LocalDate.now())
-                        hiz.launch { seritDurumu.scrollToItem(ONCE_GUN) }
-                    }) {
+                    // gunAyarla seçimi ve görülen ayı birlikte bugüne çeker.
+                    TextButton(onClick = { viewModel.gunAyarla(LocalDate.now()) }) {
                         Text(stringResource(R.string.bugun))
                     }
                     IconButton(onClick = onAyarlar) {
@@ -108,11 +115,12 @@ fun TakvimEkrani(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            GunSeridi(
+            AylikTakvim(
+                ay = seciliAy,
                 secili = seciliGun,
                 sayilar = gunSayilari,
-                onSecim = viewModel::gunAyarla,
-                seritDurumu = seritDurumu,
+                onGunSec = viewModel::gunAyarla,
+                onAyKaydir = viewModel::ayiKaydir,
             )
 
             Text(
@@ -163,99 +171,165 @@ fun TakvimEkrani(
     }
 }
 
-// ---- Gün şeridi ----
+// ---- Aylık ızgara ----
 
-private const val ONCE_GUN = 30
-private const val SONRA_GUN = 60
+/** Gün hücresi yüksekliği — satır payı bu kadar. */
+private val HUCRE_YUKSEKLIGI = 50.dp
 
+/**
+ * Izgaranın hafta günleri: Pzt … Paz.
+ *
+ * Sabit bir pazartesiden (`2024-01-01`) üretilir; cihazın "haftanın ilk
+ * günü" ayarına bağlı değildir. Başlıklar ızgaranın kendisi gibi pazartesi
+ * ile başladığı için her ay aynı sütun düzeni korunur.
+ */
+private val haftaGunleri: List<String> = run {
+    val pazartesi = LocalDate.of(2024, 1, 1)
+    List(7) { pazartesi.plusDays(it.toLong()).gunKisaAdi() }
+}
+
+/**
+ * [ay]ın aylık takvim ızgarası.
+ *
+ * Üstte ay başlığı (oklarla aya geçiş), altında hafta günleri, sonra 5–6
+ * satırlık gün ızgarası gelir. Hücrelerin hesabı saf [ayinHucreleri] içinde
+ * ve testlidir; bu fonksiyonun işi yalnızca çizimdir.
+ *
+ * Nokta, o günde **kayıt** olduğunu söyler (tamamlanmış ödevler dâhil);
+ * durumu alttaki liste ve kart rozeti verir.
+ */
 @Composable
-private fun GunSeridi(
+private fun AylikTakvim(
+    ay: YearMonth,
     secili: LocalDate,
     sayilar: Map<LocalDate, Int>,
-    onSecim: (LocalDate) -> Unit,
-    seritDurumu: LazyListState,
+    onGunSec: (LocalDate) -> Unit,
+    onAyKaydir: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val bugun = LocalDate.now()
-    val gunler = remember(bugun) {
-        generateSequence(bugun.minusDays(ONCE_GUN.toLong())) { it.plusDays(1) }
-            .take(ONCE_GUN + SONRA_GUN + 1)
-            .toList()
-    }
+    val hucreler = remember(ay) { ayinHucreleri(ay) }
+    val renkler = MaterialTheme.colorScheme
 
-    LazyRow(
-        state = seritDurumu,
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        items(gunler, key = { it.toEpochDay() }) { gun ->
-            GunHucre(
-                gun = gun,
-                secili = gun == secili,
-                bugun = gun == bugun,
-                adet = sayilar[gun] ?: 0,
-                onClick = { onSecim(gun) },
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { onAyKaydir(-1) }) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronLeft,
+                    contentDescription = stringResource(R.string.takvim_onceki_ay),
+                )
+            }
+            Text(
+                text = ay.atDay(1).ayAdiVeYili(),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = { onAyKaydir(1) }) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = stringResource(R.string.takvim_sonraki_ay),
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+        ) {
+            haftaGunleri.forEach { ad ->
+                Text(
+                    text = ad,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = renkler.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        hucreler.chunked(7).forEach { satir ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                satir.forEach { gun ->
+                    if (gun == null) {
+                        // Ayın dışında kalan kare: aynı hafta gününü
+                        // korumak için boş bırakılır, çizilmez.
+                        Spacer(Modifier.weight(1f).height(HUCRE_YUKSEKLIGI))
+                    } else {
+                        AyHucre(
+                            gun = gun,
+                            secili = gun == secili,
+                            bugun = gun == bugun,
+                            adet = sayilar[gun] ?: 0,
+                            onClick = { onGunSec(gun) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 /**
- * Tek gün hücresi.
+ * Izgaradaki tek gün hücresi.
  *
- * Seçili gün dolu `primary` zemin; bugün (seçili değilse) yazı rengi `primary`
- * ile vurgulanır. Ödev olan günlerde altına küçük bir nokta konur — nokta
- * rengi zemine göre ters çevrilir, böylece okunaklı kalır.
+ * Seçili gün dolu `primary` daireyle kaplanır; bugün seçili değilse günü
+ * yalnızca **yazı** `primary` olur — iki vurgunun üst üste binmesi okumayı
+ * zorlaştırırdı. Ödev olan günlerde altına nokta konur ve nokta zemine göre
+ * ters çevrilir ki seçili günün üzerinde de okunaklı kalsın.
+ *
+ * Hücre satırdaki tüm payını kaplar (~57 × 50 dp): hedef, ince bir daire
+ * değil günün olduğu yatay banttır — küçük dokunma alanı kaçan tıklamaların
+ * en yaygın nedenidir.
  */
 @Composable
-private fun GunHucre(
+private fun AyHucre(
     gun: LocalDate,
     secili: Boolean,
     bugun: Boolean,
     adet: Int,
     onClick: () -> Unit,
+    // weight yalnızca RowScope içinde çalıştığı için taban genişlik çağıran
+    // taraftan gelir.
+    modifier: Modifier = Modifier,
 ) {
     val renkler = MaterialTheme.colorScheme
 
     Surface(
         onClick = onClick,
-        modifier = Modifier.width(50.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = if (secili) renkler.primary else renkler.surface,
-        contentColor = if (secili) renkler.onPrimary else renkler.onSurface,
-        border = if (secili) {
-            null
-        } else {
-            BorderStroke(width = 1.dp, color = renkler.outlineVariant)
-        },
+        modifier = modifier.height(HUCRE_YUKSEKLIGI),
+        shape = RoundedCornerShape(12.dp),
+        color = if (secili) renkler.primary else Color.Transparent,
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 9.dp, bottom = 8.dp),
+                .fillMaxSize()
+                .padding(horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = gun.gunKisaAdi(),
-                style = MaterialTheme.typography.labelSmall,
-                color = when {
-                    secili -> renkler.onPrimary
-                    bugun -> renkler.primary
-                    else -> renkler.onSurfaceVariant
-                },
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
                 text = gun.dayOfMonth.toString(),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = when {
                     secili -> renkler.onPrimary
                     bugun -> renkler.primary
                     else -> renkler.onSurface
                 },
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Box(
                 modifier = Modifier
                     .size(5.dp)

@@ -18,6 +18,7 @@ import com.odevtakip.app.data.Tercihler
 import com.odevtakip.app.util.yerelTarih
 import java.io.File
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -187,6 +188,15 @@ class OdevViewModel(
     private val _seciliGun = MutableStateFlow(LocalDate.now())
     val seciliGun: StateFlow<LocalDate> = _seciliGun.asStateFlow()
 
+    /**
+     * Takvimde **görünen** ay. [seciliGun] ile ayrı tutulur: kullanıcı
+     * ayda gezerken seçili gün o ayda olmayabilir (ör. Ekim'de 31
+     * seçilir, sonraki aya geçince gün kırpılır). Ama iki durum hiçbir
+     * zaman birbirinden kopmaz — bkz. [gunAyarla] ve [ayiKaydir].
+     */
+    private val _seciliAy = MutableStateFlow(YearMonth.from(LocalDate.now()))
+    val seciliAy: StateFlow<YearMonth> = _seciliAy.asStateFlow()
+
     /** Seçili günün ödevleri, teslim saatine göre artan (bitenler en sonda). */
     val gununOdevleri: StateFlow<List<Odev>> = _seciliGun
         .flatMapLatest { gun ->
@@ -204,8 +214,32 @@ class OdevViewModel(
         .map { liste -> liste.groupingBy { it.sonTarih.yerelTarih() }.eachCount() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
+    /**
+     * Seçili günü belirler ve **görünen ayı** o günün ayına çeker.
+     *
+     * İkinci kısım, ızgaradan gün seçilince zaten kendiliğinden doğrudur
+     * (gün o aydadır); asıl işlevi, iki durumun birbirinden kopmasını
+     * engellemek. Yoksa üstte "Kasım 2026" yazarken altta seçili gün
+     * Ekim'de kalabilir.
+     */
     fun gunAyarla(gun: LocalDate) {
         _seciliGun.value = gun
+        _seciliAy.value = YearMonth.from(gun)
+    }
+
+    /**
+     * Aylık takvimde bir önceki (`-1`) ya da sonraki (`+1`) aya geçer.
+     *
+     * Seçili gün de yeni aya taşınır — aksi hâlde ızgarada bir ay görürken
+     * alttaki listeyi başka bir ayın ödevleri oluştururdu. Gün **numarası**
+     * korunur, ayın uzunluğuna göre kırpılır: 31 Ekim'den kasımı geçince
+     * seçim 30 Kasım olur.
+     */
+    fun ayiKaydir(adim: Int) {
+        val yeniAy = _seciliAy.value.plusMonths(adim.toLong())
+        _seciliAy.value = yeniAy
+        val gun = _seciliGun.value.dayOfMonth.coerceAtMost(yeniAy.lengthOfMonth())
+        _seciliGun.value = yeniAy.atDay(gun)
     }
 
     /** Detay ekranının izlediği ödev. Silinirse null olur. */
