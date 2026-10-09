@@ -12,12 +12,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Bildirimdeki **"Tamamla"** düğmesinin alıcısı.
+ * Bildirimdeki **"Tamamla"** düğmesinin ve widget'lardaki **tamamla
+ * kutusunun** alıcısı.
  *
  * Amaç, hatırlatma döngüsünü kapatmaktır: sistem "teslimine az kaldı"
  * bildirimini gönderir, kullanıcı işi zaten bitirmiştir ve uygulamayı açıp
  * kartı bulmak istemez. Düğmeye basınca ödev doğrudan tamamlanır ve bildirim
- * kendiliğinden kalkar.
+ * kendiliğinden kalkar. Ana ekran widget'ındaki kutu da **aynı alıcıya**
+ * gider — iki yerde iki ayrı tamamlama yolu olsaydı biri diğerinin yaptığını
+ * unutabilirdi. Tek fark niyetin taşıdığı ekstradır: bildirim eylemi
+ * kaldırılacak [VERI_BILDIRIM_ID]'yi yazar, widget yazmaz, çünkü elinde
+ * kaldırılacak bir bildirim yoktur.
  *
  * ### Neden alıcı, neden activity değil?
  *
@@ -29,9 +34,10 @@ import kotlinx.coroutines.launch
  * ### Manifest kaydı neden gerekli?
  *
  * `android:exported="false"` ile **yalnızca bu uygulamanın** bildirimleri
- * bu alıcıyı uyandırabilir; üçüncü bir uygulama `PendingIntent`'i taklit
- * edip ödevi kendi isteğiyle tamamlayamaz. Yine de manifest'te listelenmek
- * zorundadır: listelenmemiş bir alıcı sistem tarafından hiç oluşturulmaz.
+ * ve niyetleri bu alıcıyı uyandırabilir; üçüncü bir uygulama `PendingIntent`'i
+ * taklit edip ödevi kendi isteğiyle tamamlayamaz. Yine de manifest'te
+ * listelenmek zorundadır: listelenmemiş bir alıcı sistem tarafından hiç
+ * oluşturulmaz.
  *
  * ### Süreç kapalıyken?
  *
@@ -39,16 +45,20 @@ import kotlinx.coroutines.launch
  * yarar: repository hazır olur ve `hatirlatlariIzle()` kurulur — o akış,
  * yazımın ardından planlanan hatırlatmayı yeniden eşitler ve bu ödev için
  * bekleyen işi iptal eder. Yani `WorkManager` tarafı elle uğraşılmadan
- * temizlenir.
+ * temizlenir. `widgetiIzle()` de kurulduğu için yazımın ardından ana ekran
+ * widget'ları kendiliğinden yeniden çizilir ve satır kaybolur.
  */
 class HizliTamamlaAlcisi : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val odevId = intent.getLongExtra(VERI_ODEV_ID, -1L)
-        val bildirimId = intent.getIntExtra(VERI_BILDIRIM_ID, -1)
+        val bildirimId = intent.getIntExtra(VERI_BILDIRIM_ID, BILDIRIM_YOK)
 
         // Eksik/bozuk bir niyetle ödev değiştirilmez: sessizce vazgeçilir.
-        if (odevId <= 0 || bildirimId < 0) return
+        // Tek şart ödev kimliğidir. [VERI_BILDIRIM_ID] **gelmeyebilir** —
+        // widget kutusunu ilgilendiren bir bildirim yoktur — ve bu bir hata
+        // değildir; yalnızca "kaldırılacak bildirim yok" demektir.
+        if (odevId <= 0) return
 
         val uygulama = context.applicationContext
         // `goAsync()`, `onReceive` döndükten sonra sürecin hâlâ yaşamasını
@@ -63,19 +73,19 @@ class HizliTamamlaAlcisi : BroadcastReceiver() {
                 val tamamlandi =
                     (uygulama as OdevTakipApplication).odevRepository.tamamla(odevId)
 
-                BildirimYonetici.bildirimiIptal(uygulama, bildirimId)
+                if (bildirimId >= 0) {
+                    BildirimYonetici.bildirimiIptal(uygulama, bildirimId)
+                }
 
-                Log.d(
-                    TAG,
-                    if (tamamlandi) "Bildirimden tamamlandı: $odevId"
-                    else "Bildirimden tamamlandı ama kayıt zaten tamammış: $odevId",
-                )
+                val kaynak = if (bildirimId >= 0) "Bildirimden" else "Widget'tan"
+                val not = if (tamamlandi) "" else " (kayıt zaten tamammış)"
+                Log.d(TAG, "$kaynak tamamlandı: $odevId$not")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // Veri yazılamadıysa bildirim **silinmez**: kullanıcı düğmeye
                 // yeniden basabilsin, sessiz bir kayıp yaşanmasın.
-                Log.e(TAG, "Bildirimden tamamlanamadı: $odevId", e)
+                Log.e(TAG, "Tamamlanamadı: $odevId", e)
             } finally {
                 sonuc.finish()
             }
@@ -83,11 +93,11 @@ class HizliTamamlaAlcisi : BroadcastReceiver() {
     }
 
     /**
-     * Niyet extra anahtarları ve yazımın yürüttüğü kapsam.
+     * Niyet extra anahtarları, yok bildirimi ve yazımın yürüttüğü kapsam.
      *
-     * `internal`: [BildirimYonetici] eylemi kurarken aynı anahtarları
-     * **tek kaynaktan** okumak zorunda — iki dosyada iki ayrı metin
-     * yazmak, sessizce eşleşmeyen bir extra demektir.
+     * `internal`: [BildirimYonetici] ile widget çizerken aynı anahtarları
+     * **tek kaynaktan** okumak zorunda — iki yerde iki ayrı metin yazmak,
+     * sessizce eşleşmeyen bir extra demektir.
      */
     internal companion object {
         const val TAG = "OdevTakip"
@@ -103,6 +113,15 @@ class HizliTamamlaAlcisi : BroadcastReceiver() {
          * söylüyor olabilir ve o da ekranda durabilir.
          */
         const val VERI_BILDIRIM_ID = "hizliBildirimId"
+
+        /**
+         * "Kaldırılacak bildirim yok" anlamı taşıyan değer.
+         *
+         * Bildirim kimlikleri 0'dan başlar; bu yüzden eksik extra bu
+         * indirgeçle karşılaşır ve alıcı bildirimi **silmeden** yalnızca
+         * ödevi tamamlar. Widget kutusu bu değeri yazar.
+         */
+        const val BILDIRIM_YOK = -1
 
         /**
          * Yazımı yürüten kapsam.

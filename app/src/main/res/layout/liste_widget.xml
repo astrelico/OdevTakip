@@ -6,6 +6,11 @@
   kalan süre. Sağ sütun sabit genişliktedir, başlıkların alt alta
   dizilmesi ancak böyle bozulmaz.
 
+  Her satırın **solunda bir tamamla kutusu** vardır: günün işi kutudan
+  işaretlenir, uygulama açılmaz ve satır kendiliğinden kaybolur. Kutu
+  ayrı bir kasadır; tıklama yalnız kutuyu yakalar, satırın geri kalanı
+  (başlık ve süre) tıklandığında olduğu gibi uygulamayı açar.
+
   Satır kasaları `gone` başlar; kaç satır dolacağı koddan gelir. İlk
   açılışta (`initialLayout` ve `previewLayout`) yalnızca başlık, tarih ve
   "Bugün için ödev yok" görünür — sahte bir ödev listesi çizilmez.
@@ -68,6 +73,15 @@
         android:orientation="horizontal"
         android:visibility="gone">
 
+        <ImageButton
+            android:id="@+id/liste_isaret1"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
         <TextView
             android:id="@+id/liste_baslik1"
             android:layout_width="0dp"
@@ -96,6 +110,15 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/liste_isaret2"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
 
         <TextView
             android:id="@+id/liste_baslik2"
@@ -126,6 +149,15 @@
         android:orientation="horizontal"
         android:visibility="gone">
 
+        <ImageButton
+            android:id="@+id/liste_isaret3"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
         <TextView
             android:id="@+id/liste_baslik3"
             android:layout_width="0dp"
@@ -154,6 +186,15 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/liste_isaret4"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
 
         <TextView
             android:id="@+id/liste_baslik4"
@@ -184,6 +225,15 @@
         android:orientation="horizontal"
         android:visibility="gone">
 
+        <ImageButton
+            android:id="@+id/liste_isaret5"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
         <TextView
             android:id="@+id/liste_baslik5"
             android:layout_width="0dp"
@@ -212,6 +262,15 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/liste_isaret6"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
 
         <TextView
             android:id="@+id/liste_baslik6"

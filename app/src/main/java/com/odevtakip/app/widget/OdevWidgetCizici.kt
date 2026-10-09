@@ -6,21 +6,27 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
 import com.odevtakip.app.MainActivity
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.R
+import com.odevtakip.app.bildirim.HizliTamamlaAlcisi
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.gercekDurum
 import com.odevtakip.app.ui.LISTE_SATIR_SAYISI
 import com.odevtakip.app.ui.WIDGET_SATIR_SAYISI
+import com.odevtakip.app.ui.WIDGET_YUVA_LISTE
+import com.odevtakip.app.ui.WIDGET_YUVA_OZET
+import com.odevtakip.app.ui.WIDGET_YUVA_SONRAKI
 import com.odevtakip.app.ui.WidgetIcerigi
 import com.odevtakip.app.ui.widgetIcerigi
 import com.odevtakip.app.ui.widgetKalanGun
 import com.odevtakip.app.ui.widgetSayaclari
 import com.odevtakip.app.ui.widgetSatirMetni
+import com.odevtakip.app.ui.widgetTamamlamaAdresi
 import com.odevtakip.app.ui.sonrakiTeslim
 import com.odevtakip.app.util.formatliTarih
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +69,17 @@ import kotlinx.coroutines.flow.first
  *
  * `updatePeriodMillis` bilerek sıfırdır: sistem en az 30 dakika ister ve
  * bu aralık "geciken" sayacını taze tutmaya yetmez.
+ *
+ * ### Kutudan tamamlama
+ *
+ * Satır taşıyan üç widget'ta her satırın solunda bir **tamamla kutusu**
+ * vardır. Kutu [HizliTamamlaAlcisi]'ni çağırır — bildirimdeki "Tamamla"
+ * düğmesiyle **aynı alıcı, aynı yazım**: iki yerde iki ayrı tamamlama
+ * yolu olsaydı biri diğerinin yaptığını unutabilirdi. Yazım bitince Room
+ * akışı tetiklenir ve kutular kendiliğinden yeniden çizilir; kutuya
+ * basmanın tek sonucu satırın kaybolmasıdır, başka bir şeye gerek yoktur.
+ *
+ * Sayaç widget'ında satır olmadığı için kutu da yoktur.
  *
  * ### Renkler
  *
@@ -153,16 +170,20 @@ object OdevWidgetCizici {
         val normalRenk = context.getColor(R.color.widget_metin)
         val hataRengi = context.getColor(R.color.widget_hata)
 
-        ozetSatirKimlikleri.forEachIndexed { i, kimlik ->
+        ozetSatirKimlikleri.forEachIndexed { i, kutu ->
             val odev = icerik.satirlar.getOrNull(i)
             if (odev == null) {
-                gorunum.setViewVisibility(kimlik, View.GONE)
+                gorunum.setViewVisibility(kutu, View.GONE)
             } else {
-                gorunum.setViewVisibility(kimlik, View.VISIBLE)
-                gorunum.setTextViewText(kimlik, widgetSatirMetni(odev))
+                gorunum.setViewVisibility(kutu, View.VISIBLE)
+                gorunum.setTextViewText(ozetMetinKimlikleri[i], widgetSatirMetni(odev))
                 // Geciken satır, uygulamadaki rozet gibi `hata` rengine döner:
                 // widget bir bakışta "burada bir sorun var" demelidir.
-                gorunum.setTextColor(kimlik, renkVeGecikti(context, odev, veri.simdi, normalRenk, hataRengi))
+                gorunum.setTextColor(
+                    ozetMetinKimlikleri[i],
+                    renkVeGecikti(context, odev, veri.simdi, normalRenk, hataRengi),
+                )
+                tamamlaKutusu(gorunum, ozetIsaretKimlikleri[i], context, WIDGET_YUVA_OZET + i, odev)
             }
         }
 
@@ -234,6 +255,7 @@ object OdevWidgetCizici {
             gorunum.setTextColor(baslik, if (gecikti) hataRengi else normalRenk)
             gorunum.setTextViewText(kalan, kalanMetni(context, odev, veri.simdi))
             gorunum.setTextColor(kalan, if (gecikti) hataRengi else ikincilRenk)
+            tamamlaKutusu(gorunum, listeIsaretKimlikleri[i], context, WIDGET_YUVA_LISTE + i, odev)
         }
 
         dahaSatiriniYaz(context, gorunum, R.id.liste_daha, icerik)
@@ -260,6 +282,9 @@ object OdevWidgetCizici {
         if (odev == null) {
             gorunum.setTextViewText(R.id.sonraki_baslik, context.getString(R.string.widget_sonraki_bos))
             gorunum.setTextViewText(R.id.sonraki_alt, "")
+            // Tamamlanacak bir şey yokken kutu da görünmez: dolu halka,
+            // "yapılacak bir şey var" der ama gösterilen bir şey olmazdı.
+            gorunum.setViewVisibility(R.id.sonraki_isaret, View.GONE)
             gorunum.setOnClickPendingIntent(
                 R.id.sonraki_kok,
                 anaEkranNiyeti(context, TIKLAMA_SONRAKI),
@@ -275,6 +300,8 @@ object OdevWidgetCizici {
                     context.getColor(R.color.widget_ikincil)
                 },
             )
+            gorunum.setViewVisibility(R.id.sonraki_isaret, View.VISIBLE)
+            tamamlaKutusu(gorunum, R.id.sonraki_isaret, context, WIDGET_YUVA_SONRAKI, odev)
             gorunum.setOnClickPendingIntent(
                 R.id.sonraki_kok,
                 detayNiyeti(context, odev.id),
@@ -356,6 +383,31 @@ object OdevWidgetCizici {
         }
     }
 
+    /**
+     * Satırdaki tamamla kutusuna tıklamayı ve erişilebilirlik etiketini yazar.
+     *
+     * Etiket ödevin adını taşır: ekranda altısı da aynı halka olsa sesli
+     * okuyucu "Matematik — Üslü ifadeler tamamla" diyebilsin. Sabit
+     * [R.string.widget_tamamla] yalnızca düzenin ilk hâlinde geçerlidir.
+     *
+     * @param yuva Kutunun kendi numarası — ödevin kimliği değil. Adresin
+     *   neden ödevden değil yuvadan geldiğini bkz. [widgetTamamlamaAdresi].
+     */
+    private fun tamamlaKutusu(
+        gorunum: RemoteViews,
+        kimlik: Int,
+        context: Context,
+        yuva: Int,
+        odev: Odev,
+    ) {
+        gorunum.setOnClickPendingIntent(kimlik, hizliTamamlaNiyeti(context, yuva, odev.id))
+        gorunum.setCharSequence(
+            kimlik,
+            "setContentDescription",
+            context.getString(R.string.widget_tamamla_ada, widgetSatirMetni(odev)),
+        )
+    }
+
     // ---- Niyetler ----
 
     /**
@@ -394,6 +446,28 @@ object OdevWidgetCizici {
         )
     }
 
+    /**
+     * Tamamla kutusunun yayını — [HizliTamamlaAlcisi]'ni çağırır.
+     *
+     * Adres **yuvadan**, extra **ödevden** gelir (bkz. [widgetTamamlamaAdresi]).
+     * `FLAG_UPDATE_CURRENT` bu ikilinin yerinde tazelenmesini sağlar: kutu
+     * yeni bir ödev gösterdiğinde eski extra sessizce ezilir ve sistemde
+     * kullanılmayan bir niyet birikmez.
+     *
+     * `FLAG_IMMUTABLE` zorunlu; doldurulacak bir extra yok, hepsi baştan
+     * yazılır — gönderenin (launcher) ekleyebileceği bir şey bırakılmaz.
+     */
+    private fun hizliTamamlaNiyeti(context: Context, yuva: Int, odevId: Long): PendingIntent {
+        val niyet = Intent(context, HizliTamamlaAlcisi::class.java).apply {
+            data = Uri.parse(widgetTamamlamaAdresi(yuva))
+            putExtra(HizliTamamlaAlcisi.VERI_ODEV_ID, odevId)
+        }
+        return PendingIntent.getBroadcast(
+            context, TAMAMLAMA, niyet,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     private val bayraklar: Int
         get() = Intent.FLAG_ACTIVITY_NEW_TASK or
             Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -401,9 +475,17 @@ object OdevWidgetCizici {
 
     // ---- Kimlik listeleri ----
 
-    /** Özet widget'ının üç satır kimliği, soldan sağa. */
+    /** Özet widget'ının üç satır kasası, soldan sağa. */
     private val ozetSatirKimlikleri =
         intArrayOf(R.id.widget_satir1, R.id.widget_satir2, R.id.widget_satir3)
+
+    /** Kasanın içindeki metin — kutuyla karıştırılmamalı, ayrı kimliktir. */
+    private val ozetMetinKimlikleri =
+        intArrayOf(R.id.widget_metin1, R.id.widget_metin2, R.id.widget_metin3)
+
+    /** Özet widget'ının tamamla kutuları, satırlarla aynı sırada. */
+    private val ozetIsaretKimlikleri =
+        intArrayOf(R.id.widget_isaret1, R.id.widget_isaret2, R.id.widget_isaret3)
 
     /** Liste widget'ının altı satır kasası, her kasada başlık ve süre vardır. */
     private val listeSatirKimlikleri = intArrayOf(
@@ -421,6 +503,12 @@ object OdevWidgetCizici {
         R.id.liste_kalan4, R.id.liste_kalan5, R.id.liste_kalan6,
     )
 
+    /** Liste widget'ının tamamla kutuları, satırlarla aynı sırada. */
+    private val listeIsaretKimlikleri = intArrayOf(
+        R.id.liste_isaret1, R.id.liste_isaret2, R.id.liste_isaret3,
+        R.id.liste_isaret4, R.id.liste_isaret5, R.id.liste_isaret6,
+    )
+
     /**
      * Tıklama istek kodları.
      *
@@ -434,4 +522,15 @@ object OdevWidgetCizici {
     private const val TIKLAMA_SAYAC = 10
     private const val TIKLAMA_LISTE = 20
     private const val TIKLAMA_SONRAKI = 30
+
+    /**
+     * Tamamla kutularının istek kodu — **tek bir değer**, kutu başına değil.
+     *
+     * Ayırt edici yük istek kodunda değil, [hizliTamamlaNiyeti] adresinin
+     * üstündedir; bu yüzden kod paylaşılsa bile kutular birbirinin niyetini
+     * ezmez. Bildirim eylemi ise adresi olmayan başka bir niyettir ve kendi
+     * kodunu (bildirim kimliği) kullanır — iki eylem hiçbir koşulda
+     * birleşemez.
+     */
+    private const val TAMAMLAMA = 40
 }

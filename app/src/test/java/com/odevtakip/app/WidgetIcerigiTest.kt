@@ -4,11 +4,15 @@ import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.ui.LISTE_SATIR_SAYISI
 import com.odevtakip.app.ui.WIDGET_SATIR_SAYISI
+import com.odevtakip.app.ui.WIDGET_YUVA_LISTE
+import com.odevtakip.app.ui.WIDGET_YUVA_OZET
+import com.odevtakip.app.ui.WIDGET_YUVA_SONRAKI
 import com.odevtakip.app.ui.sonrakiTeslim
 import com.odevtakip.app.ui.widgetIcerigi
 import com.odevtakip.app.ui.widgetKalanGun
 import com.odevtakip.app.ui.widgetSayaclari
 import com.odevtakip.app.ui.widgetSatirMetni
+import com.odevtakip.app.ui.widgetTamamlamaAdresi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -331,5 +335,39 @@ class WidgetIcerigiTest {
             0L,
             widgetKalanGun(odev("sabah", sonTarih = milis(gun, LocalTime.of(9, 0))), simdi),
         )
+    }
+
+    // ---- Tamamla kutusunun niyet adresi ----
+
+    @Test
+    fun `ayni_yuva_her_zaman_ayni_adresi_verir`() {
+        // Adres sabit kalınca sistemde tek niyet kaydı yaşar ve yazım
+        // `FLAG_UPDATE_CURRENT` ile extra'yı **yerinde** tazeler.
+        // Değişseydi her çizimde bir yenisi birikirdi.
+        assertEquals(widgetTamamlamaAdresi(7), widgetTamamlamaAdresi(7))
+    }
+
+    @Test
+    fun `farkli_yuvalar_farkli_adres_verir`() {
+        // `PendingIntent` eşitliği extra'ları içermez: adresler aynı
+        // olsaydı on bir kutu tek bir kayıtta birleşir ve kutuya
+        // basıldığında listedeki **son** ödev tamamlanırdı.
+        val adresler = (
+            (0 until WIDGET_SATIR_SAYISI).map { WIDGET_YUVA_OZET + it } +
+                (0 until LISTE_SATIR_SAYISI).map { WIDGET_YUVA_LISTE + it } +
+                WIDGET_YUVA_SONRAKI
+            ).map { widgetTamamlamaAdresi(it) }
+
+        assertEquals(WIDGET_SATIR_SAYISI + LISTE_SATIR_SAYISI + 1, adresler.size)
+        assertEquals(adresler.size, adresler.toSet().size)
+    }
+
+    @Test
+    fun `widget_yuva_araliklari_kesismez`() {
+        // Yukarıdaki test yalnızca bugünkü kutuları kapsar; bu ise
+        // aritmiğin kendisini korur. Satır sınırı büyür ya da yeni bir
+        // widget eklenirse çakışma sessizce geri gelmesin.
+        assertTrue(WIDGET_YUVA_OZET + WIDGET_SATIR_SAYISI <= WIDGET_YUVA_LISTE)
+        assertTrue(WIDGET_YUVA_LISTE + LISTE_SATIR_SAYISI <= WIDGET_YUVA_SONRAKI)
     }
 }

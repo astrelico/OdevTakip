@@ -250,4 +250,11 @@
     <string name="widget_kalan_gecikti">Gecikti</string>
     <string name="widget_kalan_gun">%d gün</string>
 
+    <!-- Satır başındaki tamamla kutusu. `widget_tamamla` kutunun kendi
+         sabit etiketidir, düzen dosyasında yazılır. `widget_tamamla_ada`
+         ise koddan yazılan erişilebilirlik etiketidir: ekranda altısı da
+         aynı kutu olsa sesli okuyucu hangi iş için basıldığını söyleyebilsin. -->
+    <string name="widget_tamamla">Tamamla</string>
+    <string name="widget_tamamla_ada">%s tamamla</string>
+
 </resources>

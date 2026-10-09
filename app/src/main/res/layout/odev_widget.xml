@@ -7,12 +7,18 @@
   katmanla kurulur: üstte başlık + tarih, altında özet, sonra en fazla üç
   ödev satırı ve (varsa) satırı aşan kalanı söyleyen tek satır.
 
+  Her ödev satırı yatay bir kasadır: solda tamamla kutusu, sağda metin.
+  Kutu ayrı bir kasadır ki tıklama satırın tamamını değil **yalnızca
+  kutuyu** yakalasın — satıra dokunmak uygulamayı açmaya devam eder.
+
   Satırlar `gone` başlar; kaç tanesinin görüneceğini kod belirler. İlk
   açılışta (`initialLayout` ve `previewLayout`) yalnızca başlık ile
   "Bugün için ödev yok" görünür. Bu bilinçli bir tercih: aynı dosya
   seçicideki önizlemeyi de besler, orada sahte bir ödev listesi
   göstermek uygulamanın çalışmadığı izlenimini verirdi — boş durum ise
-  uygulamanın gerçekten verebileceği bir cevaptır.
+  uygulamanın gerçekten verebileceği bir cevaptır. Boş satırda görünür
+  bir tamamla kutusu da çizilmezdi: "yapılacak bir şey var" derdi ama
+  gösterilen bir şey olmazdı.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_kok"
@@ -63,43 +69,98 @@
         android:textColor="@color/widget_metin"
         android:textSize="13sp" />
 
-    <TextView
+    <LinearLayout
         android:id="@+id/widget_satir1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/widget_metin"
-        android:textSize="13sp" />
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
 
-    <TextView
+        <ImageButton
+            android:id="@+id/widget_isaret1"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
+        <TextView
+            android:id="@+id/widget_metin1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_metin"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/widget_satir2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/widget_metin"
-        android:textSize="13sp"
-        android:visibility="gone" />
+        android:layout_marginTop="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
 
-    <TextView
+        <ImageButton
+            android:id="@+id/widget_isaret2"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
+        <TextView
+            android:id="@+id/widget_metin2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_metin"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/widget_satir3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/widget_metin"
-        android:textSize="13sp"
-        android:visibility="gone" />
+        android:layout_marginTop="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/widget_isaret3"
+            android:layout_width="28dp"
+            android:layout_height="18dp"
+            android:background="@null"
+            android:contentDescription="@string/widget_tamamla"
+            android:scaleType="centerInside"
+            android:src="@drawable/widget_isaret" />
+
+        <TextView
+            android:id="@+id/widget_metin3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_metin"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_daha"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/widget_ikincil"

@@ -163,3 +163,40 @@ fun sonrakiTeslim(odevler: List<Odev>, simdi: Long): Odev? =
  */
 fun widgetKalanGun(odev: Odev, simdi: Long): Long =
     ChronoUnit.DAYS.between(simdi.yerelTarih(), odev.sonTarih.yerelTarih())
+
+// ---- Tamamla kutusunun niyet adresi ----
+
+/**
+ * Tamamla kutusunun **yuva** tabanları: her widget'ın kendi aralığı vardır.
+ *
+ * Yuva, kutunun tuttuğu ödevden **bağımsızdır**: ödev değişse de yuva
+ * aynı kalır. Bunun nedeni [widgetTamamlamaAdresi] yorumunda.
+ */
+const val WIDGET_YUVA_OZET = 0
+
+/** [WIDGET_YUVA_OZET] üç satır kaplar; aralık ona göre açılır. */
+const val WIDGET_YUVA_LISTE = 10
+
+/** Sonraki teslim widget'ında yalnızca tek satır, dolayısıyla tek yuva. */
+const val WIDGET_YUVA_SONRAKI = 20
+
+/**
+ * Tamamla kutusunun gönderdiği yayının **adresi**.
+ *
+ * ### Neden extra değil adres?
+ *
+ * `PendingIntent` eşitliği `Intent.filterEquals` **extra'ları içermez**: aynı
+ * bileşene ve aynı adrese sahip iki niyet, istek kodu da aynıysa sistemde
+ * **tek kayıt**tır ve en son yazılan extra hepsine uygulanır. Üç widget'taki
+ * on bir kutunun hepsi "aynı niyet" çıkardı, bir kutuya basıldığında listedeki
+ * **son** ödev tamamlanırdı — sessiz ve ciddi bir hata.
+ *
+ * Adres bu yüzden kutunun **kendi yuvasını** taşır, ödevin kimliğini değil.
+ * Yuva sabit kaldığı için `FLAG_UPDATE_CURRENT` aynı kaydı yerinde günceller:
+ * kutu yeni bir ödev gösterdiğinde eski niyet çöpe gitmez, extra tazelenir.
+ * Aksi hâlde her çizimde sistemde bir niyet daha birikirdi.
+ *
+ * Bildirim eyleminin niyeti bu adrese **sahip değildir**; o yüzden iki eylem
+ * aynı alıcıya varsa bile asla birbirinin extra'larını ezemez.
+ */
+fun widgetTamamlamaAdresi(yuva: Int): String = "odevtakip://widget/tamamla/$yuva"

@@ -102,6 +102,16 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   - **Sonraki teslim** (2 × 1) — tek ödev: adı, dersi, kalan gün. Tek
     tıklamalı tek widget'tır, **o ödevin detay** ekranını açar
 
+  Satır taşıyan üç kutuda her satırın solunda bir **tamamla kutusu** da vardır:
+  iş uygulama açılmadan kutudan bitirilir ve satır kendiliğinden kaybolur. Kutu
+  bir durum değil bir **eylemdir** — widget yalnızca bekleyen işleri
+  gösterdiği için dolu bir kutu çizilmez, kaybolan satır geri bildirimin
+  kendisidir. Tamamlama, bildirimdeki "Tamamla" düğmesiyle **aynı alıcıya**
+  gider: iki yerde iki ayrı yol olsaydı biri diğerinin yaptığını unutabilirdi.
+  Kutu satıra değil kendi yuvasına bağlıdır, çünkü `PendingIntent` eşitliği
+  extra'ları içermez — yuva sabit kaldığı için her çizimde aynı kayıt
+  tazelenir ve sistemde kullanılmayan niyet birikmez
+
   Dördü de aynı kovalardan beslenir: önce geciken, sonra bugün, sonra ileri
   tarihli; her grupta en eski teslim üstte. Geciken satır uygulamadaki rozet
   gibi kırmızıya döner, tamamlananlar baştan elenir. İki widget birbirini
