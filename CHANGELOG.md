@@ -5,6 +5,62 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
+## [1.4] - 2026-10-11
+
+### Eklendi
+
+- **Üç yeni widget** — Artık dört ana ekran widget'ı var, her biri farklı
+  bir işe yarar ve boyutu ona göre seçilir:
+  - **Bugünün Özeti** (4 × 2, öncekinden kalan) — başlık, tarih, "N geciken ·
+    N bugün" ve en fazla üç ödev satırı.
+  - **Sayaçlar** (2 × 1) — geciken / bugün / toplam sayılarını üç büyük rakamla
+    gösterir; bakışta anlaşılan tek şey buysa doğru seçim.
+  - **Günün Listesi** (4 × 3) — geciken ve bugün teslim edilecek ödevleri
+    **teslim süresiyle** listeler; satırlar daha uzun olduğu için okunması
+    kolaydır.
+  - **Sonraki Teslim** (2 × 2) — en yakın teslim tarihine sahip ödevi ve
+    **kalan süreyi** gösterir ("2 gün", "Gecikti").
+
+  Dördü de aynı çizim yolunu paylaşır: tek bir sorgu okunur, dört RemoteViews
+  üretilir. Compose kullanılmaz — launcher'a şişme bindirmesin diye.
+- **Widget satırında hızlı tamamla** — Ödev Özeti, Günün Listesi ve Sonraki
+  Teslim satırlarının başındaki kutucuk, ödevi **uygulamayı açmadan**
+  tamamlar ve widget'ı o anda tazeler. Boş halka dolu tik olur. Bildirimdeki
+  "Tamamla" ile aynı davranış.
+
+### Değişti
+
+- **Arayüz "premium" düzene geçti** — işlevsellik aynı, yalnızca görünüm:
+  - Üst barlara ayrı zemin ve altında ince bir çizgi (dokuz ekranda ortak).
+  - Kartlarda duruş gölgesi + hairline çerçeve; ayırt edicilik artık çizgiden
+    geliyor.
+  - Alt menüye ayırıcı ve ekranla arasına boşluk eklendi.
+  - Yeni ödev düğmesi mavi degradeli.
+  - Temada köşe yarıçapları yumuşatıldı (6 / 10 / 14 / 20 / 28), harf aralığı
+    sıfırlandı.
+  - Boş durumlarda (liste, gün, istatistik) ikon artık bir dairenin içinde.
+- **Kart gölgeleri koyu temada tamamen kalktı.** Koyu zeminde zaten
+  görünmüyorlardı; karşılığında her kart için RenderNode bir blur katmanı
+  çiziyordu. Ayırt ediciliği hairline zaten taşıyor. Açık temada 2 dp gölge
+  aynen duruyor.
+- **Sekme geçişleri kısaldı.** Varsayılan hareketli geçişte eski ve yeni
+  ekran bir süre **aynı anda** çiziliyordu — hem kompozisyon iki kez ödeniyor
+  hem de karede bindirim ikiye katlanıyordu. Geçiş 110 ms'lik kısa bir
+  soldurmaya çevrildi.
+
+### Performans
+
+- **Soğuk açılış ~2900 ms'den ~545 ms'ye indi** (Galaxy A51, ölçüm). İki
+  parça halinde geldi:
+  - Release derlemesine geçiş tek başına açılışı ~750 ms'ye düşürdü; debug
+    derlemede ART yorumlayarak çalışır ve ilk kompozisyon JIT ile derlenir.
+  - **Baseline profile** eklendi: `:benchmark` modülü uygulamayı gerçek bir
+    senaryoyla gezer ve yürütülen sıcak yolların profilini çıkarır. Profil
+    APK'ya gömülür, Android kurulumda dexopt'a verir. `startup-prof.txt` de
+    üretilir — yalnızca açılış sırasında dokunulan yolları kapsar.
+- Kare çiziminde de iki kazanç: ölçü/düzenleme 0.18 ms'de kalırken sekme
+  geçişlerinde kare p90 **80.7 ms'den 54.4 ms'ye** düştü.
+
 ## [1.3] - 2026-10-08
 
 ### Eklendi
@@ -145,6 +201,7 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 
 [keep-a-changelog]: https://keepachangelog.com/tr/1.1.0/
 [semver]: https://semver.org/lang/tr/
+[1.4]: https://github.com/astrelico/OdevTakip/releases/tag/v1.4
 [1.3]: https://github.com/astrelico/OdevTakip/releases/tag/v1.3
 [1.2]: https://github.com/astrelico/OdevTakip/releases/tag/v1.2
 [1.1]: https://github.com/astrelico/OdevTakip/releases/tag/v1.1

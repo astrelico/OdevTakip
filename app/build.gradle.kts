@@ -17,8 +17,8 @@ android {
         applicationId = "com.odevtakip.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -28,6 +28,16 @@ android {
             optimization {
                 enable = false
             }
+            // APK'nın kurulabilmesi için imza zorunlu; uygulama Google Play'e
+            // konmayacağı için imzalama anahtarı olarak **debug anahtarı**
+            // kullanılıyor. Bu, SDK kurulumunda otomatik üretilen anahtardır
+            // (~/.android/debug.keystore) ve parolası herkeste aynıdır.
+            //
+            // Bilinçli bir ödün: Play'e çıkacak olsaydık buraya özel bir
+            // keystore gerekirdi ve o anahtar **asla değişmemeliydi** —
+            // değişirse kullanıcıların elindeki sürümün üstüne güncelleme
+            // kurulamaz. Şimdilik GitHub dağıtımı için yeterli.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
