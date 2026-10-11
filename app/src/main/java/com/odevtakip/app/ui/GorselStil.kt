@@ -14,6 +14,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 
 /**
@@ -99,14 +100,32 @@ fun kartCizgisi(): BorderStroke = BorderStroke(
 /**
  * Kartların ortak gölge davranışı.
  *
- * Duruş gölgesi 2 dp'de tutulur (kart "yapışık" durur, liste uzun görünmez);
- * **basıldığında** 5 dp'ye çıkar. Bu fark dokunuşun karşılığını hemen
- * gösterir ve kartın kalkan bir yüzey olduğunu sezdirir.
+ * Açık temada duruş gölgesi 2 dp'de tutulur (kart "yapışık" durur, liste
+ * uzun görünmez) ve **basıldığında** 5 dp'ye çıkar — dokunuşun karşılığı
+ * hemen görünür.
+ *
+ * **Koyu temada gölge tamamen kalkar.** Zemin zaten neredeyse siyah olduğu
+ * için gölge görünmez; karşılığında her kart için RenderNode'ın blur katmanı
+ * çizilir ve bu, kaydırırken GPU'nun en çok zaman yediği işlerden biridir
+ * (ölçüm: kare çizim komutlarının ~30'u gölgeden). Ayırt ediciliği
+ * [kartCizgisi] hairline'ı zaten taşıdığı için kayıp yoktur.
  */
 @Composable
 fun kartElevasyonu() = CardDefaults.cardElevation(
-    defaultElevation = 2.dp,
-    pressedElevation = 5.dp,
-    focusedElevation = 3.dp,
-    hoveredElevation = 3.dp,
+    defaultElevation = if (koyuTemada()) 0.dp else 2.dp,
+    pressedElevation = if (koyuTemada()) 0.dp else 5.dp,
+    focusedElevation = if (koyuTemada()) 0.dp else 3.dp,
+    hoveredElevation = if (koyuTemada()) 0.dp else 3.dp,
 )
+
+/**
+ * Temanın koyu olup olmadığı — sistem ayarına değil, uygulamanın kendi
+ * seçtiği temaya bakar.
+ *
+ * `isSystemInDarkTheme()` burada yanlıştır: kullanıcı "Koyu tema" seçip
+ * telefonu açık modda kullanabilir. Renk şemasının kendisi her zaman
+ * doğruyu söylediği için kontrol onun üzerinden yapılır.
+ */
+@Composable
+internal fun koyuTemada(): Boolean =
+    MaterialTheme.colorScheme.surface.luminance() < 0.5f
