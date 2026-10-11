@@ -185,3 +185,24 @@ vektörlerdir. `minSdk` 24 olduğundan adaptive icon'un kullanamadığı API 24/
 için gereken `mipmap-*/ic_launcher*.png` dosyaları ise `tools/uret-ikon.ps1`
 tarafından **aynı ölçülerden** üretilir — yine içe aktarılmış tek bir görsel
 yoktur.
+
+## Görsel dil
+
+Arayüz "düz zemin" olmaktan çıkarılıp katmanlı bir yüzeysellikle kuruldu.
+Kararların tamamı iki dosyada toplanır: `ui/GorselStil.kt` (üst bar, kart,
+hairline) ve `ui/theme/Theme.kt` (şekiller, tipografi, vurgu gradyanı).
+
+- **Zemin ayrımı:** üst barlar ve alt menü `surface` zeminli ve alt kenarında
+  %50-opacity bir hairline taşır; içerik `background` üzerinde durur. Her
+  ekran bir yüzeyin üstünde duruyormuş gibi okunur.
+- **Kart:** beyaz `surface` + 2 dp gölge + %60-opacity `outlineVariant`
+  hairline + 20 dp köşe. Gölge açık temada, hairline koyu temada ayırt ediciliği
+  taşır; ikisi de her temada çizildiği için tema değişiminde kart kaybolmaz.
+  Basınca gölge 5 dp'ye çıkar — dokunuşun karşılığı hemen görünür.
+- **Vurgu:** "Ödev Ekle" düğmesi düz mavi yerine **mavi bir degrade**dir
+  (`vurguGradyani`) ve 10 dp gölgeyle kaldırılmıştır. Uçlar temaya göre seçilir
+  ve her iki uçta da metin kontrastı AA sınırının üzerindedir (~4.8:1).
+- **Boş durumlar:** ikon, yumuşak bir dairenin içinde durur — boş ekran
+  "kırık" değil, "hazır" görünür.
+- **Tipografi:** Türkçe için harf aralığı 0'a çekilir; köşe yarıçapları
+  6/10/14/20/28 dp ölçeğine oturtulur.

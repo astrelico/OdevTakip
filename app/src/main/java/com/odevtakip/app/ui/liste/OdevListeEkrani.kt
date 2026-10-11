@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -39,9 +40,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +65,7 @@ import com.odevtakip.app.ui.OdevFiltresi
 import com.odevtakip.app.ui.OdevKarti
 import com.odevtakip.app.ui.OdevSiralamasi
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.dersler.DersSecimPaneli
 
 /**
@@ -112,8 +113,8 @@ fun OdevListeEkrani(
     Scaffold(
         topBar = {
             if (aramaAcik) {
-                TopAppBar(
-                    navigationIcon = {
+                UstBar(
+                    gezinmeIkonu = {
                         IconButton(
                             onClick = {
                                 aramaAcik = false
@@ -126,14 +127,14 @@ fun OdevListeEkrani(
                             )
                         }
                     },
-                    title = {
+                    baslik = {
                         AramaAlani(
                             deger = arama,
                             onDegisiklik = viewModel::aramaAyarla,
                             onTemizle = { viewModel.aramaAyarla("") },
                         )
                     },
-                    actions = {
+                    eylemler = {
                         SiralamaDugmesi(
                             secili = siralama,
                             onClick = { siralamaPanelGoster = true },
@@ -145,14 +146,11 @@ fun OdevListeEkrani(
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
                 )
             } else {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.liste_baslik)) },
-                    actions = {
+                UstBar(
+                    baslik = { Text(stringResource(R.string.liste_baslik)) },
+                    eylemler = {
                         IconButton(onClick = { aramaAcik = true }) {
                             Icon(
                                 imageVector = Icons.Rounded.Search,
@@ -170,9 +168,6 @@ fun OdevListeEkrani(
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
                 )
             }
         },
@@ -458,7 +453,8 @@ private fun FiltreCipleri(
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = seciliMi,
-                    borderColor = renkler.outlineVariant,
+                    // Kartların hairline'ı ile aynı ağırlıkta.
+                    borderColor = renkler.outlineVariant.copy(alpha = 0.6f),
                 ),
             )
         }
@@ -480,13 +476,23 @@ private fun BosDurum(metin: String, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.Assignment,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.outline,
-        )
-        Spacer(Modifier.height(16.dp))
+        // İkon bir dairenin içinde durur: boş ekran "kırık" değil, "hazır"
+        // görünür — kullanıcıya yapılacak bir şey olmadığı değil, henüz hiçbir
+        // şey konmadığı söylenir.
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.primary,
+            shape = CircleShape,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.Assignment,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(28.dp)
+                    .size(56.dp),
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = metin,
             style = MaterialTheme.typography.bodyLarge,

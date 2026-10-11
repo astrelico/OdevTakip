@@ -31,8 +31,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +45,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.data.Ders
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 
 /**
  * Ders ekle-değiştir ekranı (Ayarlar → "Ders ekle-değiştir").
@@ -118,9 +119,9 @@ fun DersEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.dersler_baslik)) },
-                navigationIcon = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.dersler_baslik)) },
+                gezinmeIkonu = {
                     IconButton(onClick = onGeri) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -128,9 +129,6 @@ fun DersEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -261,7 +259,7 @@ private fun DersListesi(
 
 // ---- Ortak kart ----
 
-/** Ayarlar kartlarıyla aynı dil: beyaz `surface`, 2 dp gölge, çerçevesiz. */
+/** Ayarlar kartlarıyla aynı dil: beyaz `surface`, 2 dp gölge, %60 hairline. */
 @Composable
 private fun Kart(content: @Composable () -> Unit) {
     Card(
@@ -269,7 +267,8 @@ private fun Kart(content: @Composable () -> Unit) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         Column(
             modifier = Modifier

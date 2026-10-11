@@ -8,6 +8,9 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -206,6 +209,10 @@ private val OdevTipografisi = Typography(
         letterSpacing = 0.sp,
     ),
     titleSmall = varsayilanTipografi.titleSmall.copy(letterSpacing = 0.sp),
+    // Türkçe metinde varsayılan 0.5sp harf aralığı satırı gereksiz açar;
+    // sıkışık gövde hem daha okunaklı hem dar ekranda daha az kırpılma demek.
+    bodyLarge = varsayilanTipografi.bodyLarge.copy(letterSpacing = 0.sp),
+    bodyMedium = varsayilanTipografi.bodyMedium.copy(letterSpacing = 0.sp),
     // Rozet ve çip etiketleri Türkçe'de düzgün oturması için sıkıştırılır.
     labelLarge = varsayilanTipografi.labelLarge.copy(letterSpacing = 0.sp),
     labelMedium = varsayilanTipografi.labelMedium.copy(letterSpacing = 0.sp),
@@ -218,14 +225,59 @@ private val OdevTipografisi = Typography(
  * Köşe yarıçapı ölçeği. Kartlar (`large`) ve tam ekran yüzeyler (`extraLarge`)
  * bu jetonları kullanır; böylece tüm kartların köşesini tek yerden değiştirmek
  * mümkün olur.
+ *
+ * `large` bilerek 20 dp: 16 dp bir kenarı "kesilmiş dikdörtgen", 20 dp ise
+ * hâlâ dikdörtgen olan ama dördüncü nesil bir arayüzün köşesidir. `medium`
+ * gün hücreleri ve çiplerde kullanılır, 14 dp ile aynı dili konuşur.
  */
 private val OdevSekilleri = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
+
+// ---- Vurgu gradyanı ----
+
+/**
+ * Uygulamanın tek "aksiyon rengi": mavi bir degrade.
+ *
+ * Düz mavi bir düğme doğru çalışır ama hiçbir şey **anlatmaz**. Aynı mavinin
+ * iki tonu arasındaki geçiş ise yüzeye derinlik verir; ışık soldan sağa
+ * gider, düğme ekrana yapışık değil, havada durur gibi görünür.
+ *
+ * Uçlar temaya göre seçilir ve **kontrast güvencesiyle** seçilir:
+ *
+ * | Tema | Uçlar                     | Metin        | En kötü kontrast |
+ * |------|---------------------------|--------------|------------------|
+ * | Açık | `#3B6FD1` → `#1B4B9E`     | beyaz        | ~4.8:1           |
+ * | Koyu | `#8FB4FA` → `#5B87E0`     | `#0A1B3D`    | ~4.8:1           |
+ *
+ * Koyu temada metin **koyu** yazılır: degrade burada açık maviye döner,
+ * beyaz yazı okunmaz hâle gelirdi.
+ */
+private val AcikVurguGradyani = listOf(Color(0xFF3B6FD1), Color(0xFF1B4B9E))
+private val KoyuVurguGradyani = listOf(Color(0xFF8FB4FA), Color(0xFF5B87E0))
+private val AcikVurguMetni = Color(0xFFFFFFFF)
+private val KoyuVurguMetni = Color(0xFF0A1B3D)
+
+// Tema, [OdevTakipTheme] içinde bir kez çözülür; ekranlar [vurguGradyani]
+// ile okur, hangi temada olduklarını ayrıca sormak zorunda kalmaz.
+private val YerelVurguGradyani = staticCompositionLocalOf { AcikVurguGradyani }
+private val YerelVurguMetni = staticCompositionLocalOf { AcikVurguMetni }
+
+/**
+ * Vurgu düğmesinin ([com.odevtakip.app.MainActivity]'deki "Ödev Ekle") degrade zemini.
+ */
+@Composable
+fun vurguGradyani(): Brush = Brush.horizontalGradient(YerelVurguGradyani.current)
+
+/**
+ * Degrade zemini üzerinde okunabilen metin rengi — [vurguGradyani] ile birlikte kullanılır.
+ */
+@Composable
+fun vurguMetni(): Color = YerelVurguMetni.current
 
 /**
  * Uygulamanın teması. Koyu tema hangi ayarla açılır, [com.odevtakip.app.data.TemaSecenegi] söyler.
@@ -242,10 +294,16 @@ fun OdevTakipTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) KoyuRenkler else AcikRenkler,
-        typography = OdevTipografisi,
-        shapes = OdevSekilleri,
-        content = content
-    )
+    CompositionLocalProvider(
+        YerelVurguGradyani provides
+            if (darkTheme) KoyuVurguGradyani else AcikVurguGradyani,
+        YerelVurguMetni provides if (darkTheme) KoyuVurguMetni else AcikVurguMetni,
+    ) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) KoyuRenkler else AcikRenkler,
+            typography = OdevTipografisi,
+            shapes = OdevSekilleri,
+            content = content
+        )
+    }
 }

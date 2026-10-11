@@ -36,8 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,7 +57,10 @@ import com.odevtakip.app.data.GUNLUK_DERS_SAYISI
 import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.gununDersSayisi
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.dersler.DersSecimPaneli
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 
 /**
  * Ders programı: haftanın gününü seç, o günün ders saatlerine elle ders ata.
@@ -168,9 +169,9 @@ fun ProgramEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.program_baslik)) },
-                actions = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.program_baslik)) },
+                eylemler = {
                     IconButton(onClick = onAyarlar) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
@@ -178,9 +179,6 @@ fun ProgramEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -330,7 +328,8 @@ private fun GunCipleri(
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = seciliMi,
-                    borderColor = renkler.outlineVariant,
+                    // Kartların hairline'ı ile aynı ağırlıkta.
+                    borderColor = renkler.outlineVariant.copy(alpha = 0.6f),
                 ),
             )
         }
@@ -367,7 +366,8 @@ private fun SaatlerKarti(
         colors = CardDefaults.cardColors(
             containerColor = renkler.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         saatler.forEachIndexed { indeks, (sira, ders) ->
             if (indeks > 0) {

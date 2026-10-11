@@ -50,8 +50,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -74,7 +72,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.bildirim.BildirimYonetici
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.dersler.DersSecimPaneli
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 import com.odevtakip.app.util.formatliSaat
 import com.odevtakip.app.util.formatliTarih
 import com.odevtakip.app.util.tarihSaatiniDonustur
@@ -269,8 +270,8 @@ fun OdevFormEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
+            UstBar(
+                baslik = {
                     Text(
                         stringResource(
                             when {
@@ -281,7 +282,7 @@ fun OdevFormEkrani(
                         )
                     )
                 },
-                navigationIcon = {
+                gezinmeIkonu = {
                     IconButton(onClick = onGeri) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -289,9 +290,6 @@ fun OdevFormEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -506,7 +504,8 @@ private fun TarihSaatSecici(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = kartCizgisi(),
+            elevation = kartElevasyonu(),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -604,7 +603,8 @@ private fun EkAlani(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = kartCizgisi(),
+                    elevation = kartElevasyonu(),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

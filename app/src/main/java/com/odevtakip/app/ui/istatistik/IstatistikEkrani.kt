@@ -40,8 +40,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,11 +65,14 @@ import com.odevtakip.app.ui.Dilim
 import com.odevtakip.app.ui.GunlukSayim
 import com.odevtakip.app.ui.Istatistik
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.dersDagilimi
 import com.odevtakip.app.ui.durumDilimleri
 import com.odevtakip.app.ui.durumMetni
 import com.odevtakip.app.ui.durumRengi
 import com.odevtakip.app.ui.istatistikHesapla
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 import com.odevtakip.app.ui.sonGunlerinTamamlanmasi
 import com.odevtakip.app.util.gunKisaAdi
 import kotlin.math.max
@@ -119,9 +120,9 @@ fun IstatistikEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.istatistik_baslik)) },
-                actions = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.istatistik_baslik)) },
+                eylemler = {
                     IconButton(onClick = onAyarlar) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
@@ -129,9 +130,6 @@ fun IstatistikEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -181,7 +179,8 @@ private fun Kart(content: @Composable ColumnScope.() -> Unit) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         Column(
             modifier = Modifier
@@ -408,7 +407,8 @@ private fun SayiTasi(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = renkler.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         Row(
             modifier = Modifier
@@ -695,14 +695,24 @@ private fun BosDurum(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.PieChart,
-            contentDescription = null,
-            tint = renkler.outline,
-            modifier = Modifier.size(56.dp),
-        )
+        // Boş ekran "kırık" değil "hazır" görünür: ikon yumuşak bir dairenin
+        // içinde durur, ekranın geri kalanı gibi o da tasarlanmış bir yüzeydir.
+        Box(
+            modifier = Modifier
+                .size(104.dp)
+                .clip(CircleShape)
+                .background(renkler.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.PieChart,
+                contentDescription = null,
+                tint = renkler.primary,
+                modifier = Modifier.size(46.dp),
+            )
+        }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(20.dp))
 
         Text(
             text = stringResource(R.string.istatistik_bos),

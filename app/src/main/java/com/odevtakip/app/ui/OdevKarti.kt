@@ -57,8 +57,9 @@ import kotlinx.coroutines.launch
  * farklı görürse kullanıcı yanlış kartta işlem yapabilir.
  *
  * Görünüm mantığı referans tasarımla uyumludur: zemin daima [MaterialTheme]'ın
- * `surface`'idir (açık temada beyaz), ayrım çerçevelerle değil **gölgeyle**
- * kurulur. Durum; üstü çizili başlık ve renkli rozet ile bildirilir.
+ * `surface`'idir (açık temada beyaz), ayrım gölge + ince bir hairline ile
+ * kurulur (`kartCizgisi`). Tek çerçeveli kart listeyi kutulara böler; iki
+ * çizgi tek çizgiden daha "pahalı" durur ama listede gürültü yaratmaz. Durum; üstü çizili başlık ve renkli rozet ile bildirilir.
  *
  * Tek istisna **aciliyet**tir: teslim gününe girilmiş ya da yarın teslim
  * varsa ve iş bitmemişse kart, kırmızı çerçeveli bir kutucuğa dönüşür ve
@@ -168,7 +169,10 @@ fun OdevKarti(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            // Aciliyet çerçevesi varsa hairline çizilmez: ikisi aynı kenarda
+            // üst üste biner, kırmızı kutucuk "iki çizgili" görünürdü.
+            border = if (cerceve == null) kartCizgisi() else null,
+            elevation = kartElevasyonu(),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

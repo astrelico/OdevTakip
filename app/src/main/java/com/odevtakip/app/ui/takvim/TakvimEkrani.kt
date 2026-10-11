@@ -2,7 +2,6 @@
 
 package com.odevtakip.app.ui.takvim
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,8 +35,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -53,6 +50,8 @@ import com.odevtakip.app.R
 import com.odevtakip.app.data.TakvimGorunumu
 import com.odevtakip.app.ui.OdevKarti
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
+import com.odevtakip.app.ui.kartCizgisi
 import com.odevtakip.app.util.ayAdiVeYili
 import com.odevtakip.app.util.ayinHucreleri
 import com.odevtakip.app.util.gunKisaAdi
@@ -104,9 +103,9 @@ fun TakvimEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.takvim_baslik)) },
-                actions = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.takvim_baslik)) },
+                eylemler = {
                     // Biçim anahtarı: etiket her zaman HEDEFİ söyler.
                     TextButton(
                         onClick = { viewModel.takvimGorunumuAyarla(gorunum.hedefi()) },
@@ -129,9 +128,6 @@ fun TakvimEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -274,11 +270,9 @@ private fun GunHucre(
         shape = MaterialTheme.shapes.medium,
         color = if (secili) renkler.primary else renkler.surface,
         contentColor = if (secili) renkler.onPrimary else renkler.onSurface,
-        border = if (secili) {
-            null
-        } else {
-            BorderStroke(width = 1.dp, color = renkler.outlineVariant)
-        },
+        // Kartlarla aynı hairline: şerit, listenin üstünde duran ayrı bir
+        // kat gibi okunur ama kutucuk kutucuk görünmez.
+        border = if (secili) null else kartCizgisi(),
     ) {
         Column(
             modifier = Modifier
@@ -506,13 +500,20 @@ private fun GunBosDurum(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.Assignment,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.outline,
-        )
-        Spacer(Modifier.height(16.dp))
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.primary,
+            shape = CircleShape,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.Assignment,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(28.dp)
+                    .size(56.dp),
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = stringResource(R.string.takvim_bos),
             style = MaterialTheme.typography.bodyLarge,

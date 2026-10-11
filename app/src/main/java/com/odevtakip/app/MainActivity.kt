@@ -6,7 +6,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -19,6 +22,8 @@ import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -30,6 +35,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,6 +59,8 @@ import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.program.ProgramEkrani
 import com.odevtakip.app.ui.takvim.TakvimEkrani
 import com.odevtakip.app.ui.theme.OdevTakipTheme
+import com.odevtakip.app.ui.theme.vurguGradyani
+import com.odevtakip.app.ui.theme.vurguMetni
 import com.odevtakip.app.util.turkceyeSabitle
 
 /** Uygulamanın gezinme rotaları. */
@@ -374,6 +383,11 @@ private fun OdevUygulamasi(
  * binmelerini gerektiren eski düzeni gereksiz kıldı: menü bir `Box`'a bile
  * ihtiyaç duymuyor.
  *
+ * Zemin `surfaceContainerLow`dur — ekranın `background`'ından bir tık
+ * açık, kartların beyazından bir tık koyu. Böylece bar "ekranın bir parçası"
+ * değil, **üzerinde durulan ayrı bir kat** gibi okunur; üstündeki hairline
+ * bu ayrımı söyler.
+ *
  * @param seciliRota Hangi sekmenin seçili olduğunu belirler.
  */
 @Composable
@@ -383,34 +397,41 @@ private fun AltMenu(
 ) {
     val renkler = MaterialTheme.colorScheme
 
-    NavigationBar(
-        containerColor = renkler.surface,
-        contentColor = renkler.onSurface,
-    ) {
-        NavigationBarItem(
-            selected = seciliRota == Rotalar.LISTE,
-            onClick = { onSecim(Rotalar.LISTE) },
-            icon = { Icon(Icons.AutoMirrored.Rounded.Assignment, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_odevler)) },
+    Column {
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = renkler.outlineVariant.copy(alpha = 0.5f),
         )
-        NavigationBarItem(
-            selected = seciliRota == Rotalar.TAKVIM,
-            onClick = { onSecim(Rotalar.TAKVIM) },
-            icon = { Icon(Icons.Rounded.DateRange, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_takvim)) },
-        )
-        NavigationBarItem(
-            selected = seciliRota == Rotalar.PROGRAM,
-            onClick = { onSecim(Rotalar.PROGRAM) },
-            icon = { Icon(Icons.Rounded.School, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_program)) },
-        )
-        NavigationBarItem(
-            selected = seciliRota == Rotalar.ISTATISTIK,
-            onClick = { onSecim(Rotalar.ISTATISTIK) },
-            icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_istatistik)) },
-        )
+        NavigationBar(
+            containerColor = renkler.surfaceContainerLow,
+            contentColor = renkler.onSurface,
+            tonalElevation = 0.dp,
+        ) {
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.LISTE,
+                onClick = { onSecim(Rotalar.LISTE) },
+                icon = { Icon(Icons.AutoMirrored.Rounded.Assignment, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_odevler)) },
+            )
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.TAKVIM,
+                onClick = { onSecim(Rotalar.TAKVIM) },
+                icon = { Icon(Icons.Rounded.DateRange, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_takvim)) },
+            )
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.PROGRAM,
+                onClick = { onSecim(Rotalar.PROGRAM) },
+                icon = { Icon(Icons.Rounded.School, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_program)) },
+            )
+            NavigationBarItem(
+                selected = seciliRota == Rotalar.ISTATISTIK,
+                onClick = { onSecim(Rotalar.ISTATISTIK) },
+                icon = { Icon(Icons.Rounded.PieChart, contentDescription = null) },
+                label = { Text(stringResource(R.string.nav_istatistik)) },
+            )
+        }
     }
 }
 
@@ -429,6 +450,9 @@ private fun AltMenu(
  *    (`+` tek başına "ekle" mi "yeni sekme" mi belirsizdi) hem de hap
  *    kesim [CircleShape] ile düz daireden daha çağdaş duruyor. Kalem
  *    simgesi, kart üzerindeki "Düzenle" eylemiyle aynı dili konuşur.
+ *    Zemin tek renk değil **mavi bir degrade**dir ([vurguGradyani]) ve
+ *    10 dp gölgeyle kaldırılmıştır: ekranın en güçlü eylemi, ekranın en
+ *    güçlü nesnesi olarak durur.
  *
  * Düğme yalnızca **ödevle ilgili** iki sekmede çizilir: Ders Programı'nda
  * hem gereksiz hem de kartın altındaki "Ders ekle" satırının ortasına
@@ -442,19 +466,31 @@ private fun AltMenu(
  */
 @Composable
 private fun YeniOdevDugmesi(onClick: () -> Unit) {
-    val renkler = MaterialTheme.colorScheme
-
-    ExtendedFloatingActionButton(
-        onClick = onClick,
-        shape = CircleShape,
-        containerColor = renkler.primary,
-        contentColor = renkler.onPrimary,
-        icon = {
-            Icon(
-                imageVector = Icons.Rounded.Edit,
-                contentDescription = null,
-            )
-        },
-        text = { Text(stringResource(R.string.odev_ekle)) },
-    )
+    // Gölge ve zemin **dışta** çizilir: M3'ün kendi düğme yüzeyi şeffaf
+    // bırakılır, böylece arkasındaki degrade görünür ve gölge tek katman olur.
+    Box(
+        modifier = Modifier
+            .shadow(elevation = 10.dp, shape = CircleShape)
+            .background(brush = vurguGradyani(), shape = CircleShape),
+    ) {
+        ExtendedFloatingActionButton(
+            onClick = onClick,
+            shape = CircleShape,
+            containerColor = Color.Transparent,
+            contentColor = vurguMetni(),
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                focusedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+            ),
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Edit,
+                    contentDescription = null,
+                )
+            },
+            text = { Text(stringResource(R.string.odev_ekle)) },
+        )
+    }
 }

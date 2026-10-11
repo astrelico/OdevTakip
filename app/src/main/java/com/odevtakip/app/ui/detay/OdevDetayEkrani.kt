@@ -45,8 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -77,8 +75,11 @@ import com.odevtakip.app.data.ekGorselMi
 import com.odevtakip.app.data.ekTuru
 import com.odevtakip.app.data.gercekDurum
 import com.odevtakip.app.ui.OdevViewModel
+import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.durumMetni
 import com.odevtakip.app.ui.durumRengi
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 import com.odevtakip.app.ui.teslimMetni
 import com.odevtakip.app.util.formatliSaat
 import com.odevtakip.app.util.formatliTarih
@@ -153,9 +154,9 @@ fun OdevDetayEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.odev_detay)) },
-                navigationIcon = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.odev_detay)) },
+                gezinmeIkonu = {
                     IconButton(onClick = onGeri) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -163,7 +164,7 @@ fun OdevDetayEkrani(
                         )
                     }
                 },
-                actions = {
+                eylemler = {
                     if (odev != null) {
                         IconButton(onClick = { onDuzenle(odevId) }) {
                             Icon(
@@ -188,9 +189,6 @@ fun OdevDetayEkrani(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
         bottomBar = {
@@ -284,7 +282,8 @@ private fun OdevIcerik(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = kartCizgisi(),
+            elevation = kartElevasyonu(),
         ) {
             Row(
                 modifier = Modifier.padding(16.dp),
@@ -570,7 +569,8 @@ private fun DosyaKarti(dosya: File) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -673,27 +673,34 @@ private fun TamamlaDugmesi(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.navigationBarsPadding(),
     ) {
-        val tamamlandi = odev.durum == Durum.TAMAMLANDI
-        Button(
-            onClick = if (tamamlandi) onGeriAl else onTamamla,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .height(52.dp),
-            colors = if (tamamlandi) {
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                ButtonDefaults.buttonColors()
-            },
-        ) {
-            Text(
-                text = stringResource(
-                    if (tamamlandi) R.string.tamamlamayi_geri_al else R.string.tamamla
-                )
+        Column {
+            // Çubuk da bir yüzeydir: içerikten hairline ile ayrılır.
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             )
+            val tamamlandi = odev.durum == Durum.TAMAMLANDI
+            Button(
+                onClick = if (tamamlandi) onGeriAl else onTamamla,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(52.dp),
+                colors = if (tamamlandi) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    ButtonDefaults.buttonColors()
+                },
+            ) {
+                Text(
+                    text = stringResource(
+                        if (tamamlandi) R.string.tamamlamayi_geri_al else R.string.tamamla
+                    )
+                )
+            }
         }
     }
 }

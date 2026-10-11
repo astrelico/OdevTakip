@@ -36,8 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +54,9 @@ import com.odevtakip.app.R
 import com.odevtakip.app.bildirim.BildirimYonetici
 import com.odevtakip.app.data.HatirlatmaAraligi
 import com.odevtakip.app.data.TemaSecenegi
+import com.odevtakip.app.ui.UstBar
+import com.odevtakip.app.ui.kartCizgisi
+import com.odevtakip.app.ui.kartElevasyonu
 
 /**
  * Ayarlar: tema, liste görünürlüğü, teslim öncesi hatırlatma ve bildirim izni.
@@ -80,9 +81,9 @@ fun AyarlarEkrani(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.ayarlar_baslik)) },
-                navigationIcon = {
+            UstBar(
+                baslik = { Text(stringResource(R.string.ayarlar_baslik)) },
+                gezinmeIkonu = {
                     IconButton(onClick = onGeri) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
@@ -90,9 +91,6 @@ fun AyarlarEkrani(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
             )
         },
     ) { innerPadding ->
@@ -428,8 +426,9 @@ private fun DersKarti(onAc: () -> Unit) {
 /**
  * Ayar grubu kartı.
  *
- * Liste kartlarıyla aynı görsel ayar (beyaz `surface`, 2 dp gölge, çerçevesiz);
- * ayarlar ekranı uygulamanın geri kalanından başka bir dil konuşmasın.
+ * Liste kartlarıyla aynı görsel ayar (beyaz `surface`, 2 dp gölge, %60
+ * hairline); ayarlar ekranı uygulamanın geri kalanından başka bir dil
+ * konuşmasın.
  */
 @Composable
 private fun AyarKarti(
@@ -442,7 +441,8 @@ private fun AyarKarti(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
     ) {
         Column(
             modifier = Modifier
