@@ -24,3 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "OdevTakip2"
 include(":app")
+// Baseline profile üreten modül. Uygulamanın kendisi gibi dağıtılır; yalnızca
+// test kaynağı barındırır ve uygulamanın release varyantını hedefler.
+include(":benchmark")

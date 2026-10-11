@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Benchmark sonuçları ve profiller /sdcard/Android/media altına yazılır;
+         API 28-29'da bu yazma izne bağlıdır. API 30+ üzerindeScoped Storage
+         izinsiz çalışır, bu yüzden maxSdkVersion ile sınırlandırılmıştır. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
+</manifest>

@@ -145,6 +145,39 @@ görünür. Arayüz tamamen **Türkçe**'dir.
 ./gradlew connectedDebugAndroidTest   # cihaz/emülatör testleri
 ```
 
+## Performans
+
+Soğuk açılış, uygulamanın en görünür yavaşlığıdır ve Compose'un ilk
+kompozisyonu ile açılış sırasındaki sınıf yüklemelerinden beslenir. Bu
+proje iki katmanlı bir çözümle karşılar.
+
+**Baseline profile.** `:benchmark` modülü uygulamayı gerçek bir
+senaryoyla gezer — liste kaydırır, sekmeler arası geçer, detay ve form
+ekranını açar — ve bu sırada yürütülen sıcak yolların profilini çıkarır.
+Profil APK'ya `assets/dexopt/baseline.prof` olarak gömülür; Android kurulumda
+`dex2oat`'a verir, uygulama ilk açılışta o yolları yorumlayarak değil
+önceden derlenmiş hâlde çalışır.
+
+Profil **elle güncellenmelidir**: arayüzün gezinme yolları değişince
+yeniden üretilmelidir. Üretim, bağlı bir cihazda çalışır (release varyantı
+`debuggable` olmadığı için yalnızca o varyanttan profil alınır):
+
+```bash
+./gradlew :app:generateReleaseBaselineProfile
+```
+
+Çıktı `app/src/release/generated/baselineProfiles/` içine yazılır ve commit
+edilir. Yalnızca `baseline-prof.txt` değil, `startup-prof.txt` de üretilir;
+ikincisi yalnızca açılış sırasında dokunulan yolları kapsar ve cold start'i
+hızlandıran asıl parça odur.
+
+**Kare çizimi.** UI thread'in ölçü/düzenleme maliyeti ölçümle 0.2 ms'de
+kalmıştır; darboğaz ekranın çizimidir. Bu yüzden koyu temada kart
+gölgeleri tamamen kaldırılmıştır (koyu zeminde zaten görünmezler, karşılığında
+her kart için RenderNode bir blur katmanı çizer) ve ekran geçişleri 110 ms'lik
+kısa bir soldurmaya çevrilmiştir; varsayılan hareketli geçişte iki ekran bir
+süre aynı anda çizilir. Ölçümler `dumpsys gfxinfo ... framestats` ile alınır.
+
 ## Proje yapısı
 
 ```

@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
+    // Baseline profile desteğini uygulamaya ekler: :benchmark modülünün
+    // ürettiği profili release APK'ya gömer.
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -36,6 +39,11 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    // Baseline profile eklentisi release varyantının dışa aktarılmasını ister;
+    // verilmazse profil APK'ya gömülemez.
+    publishing {
+        singleVariant("release")
     }
 }
 
@@ -72,6 +80,11 @@ dependencies {
 
     // Arka plan işleri: gecikmiş ödev senkronu (Faz 3)
     implementation(libs.androidx.work.runtime)
+
+    // Baseline profile: benchmark modülünün ürettiği profil buradan APK'ya
+    // girer; profileinstaller profili ilk açılışta cihazdexopt'una kurar.
+    baselineProfile(project(":benchmark"))
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)

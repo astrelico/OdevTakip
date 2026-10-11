@@ -17,6 +17,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OdevTakip2">
 
+        <!--
+            Macrobenchmark'in release varyantını profilleyebilmesi için gerekli.
+
+            debuggable olmayan bir paket yalnızca "profileable" ise dışarıdan
+            profil çekilebilir. shell="true", izni yalnızca shell kimliğine
+            (adb) verir; üçüncü parti uygulamalar aynı izni alamaz. Yine de
+            üretim sürümlerinde gerekli değildir — benchmark modülü bu etiketi
+            derleme sırasında da ekleyebilir; burada açıkça taşınmasının
+            sebebi, profilin ne zaman üretildiğinin bağımsız olması.
+        -->
+        <profileable android:shell="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
