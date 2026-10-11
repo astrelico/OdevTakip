@@ -166,6 +166,13 @@ yeniden üretilmelidir. Üretim, bağlı bir cihazda çalışır (release varyan
 ./gradlew :app:generateReleaseBaselineProfile
 ```
 
+> **Uyarı — bu komut cihazdaki uygulama verisini siler.** Eklenti her
+> iterasyonda paketi kalıcı olarak kaldırıp yeniden kurar (logcat'te
+> `Uninstalling` / `Installing` ve `PACKAGE_FULLY_REMOVED`); Room veritabanı,
+> ek dosyalar ve tercihler dahil her şey gider ve geri getirilemez. Üretim
+> verisi taşıyan bir telefonda çalıştırılmamalıdır — ayrı bir test cihazı
+> ya da emülatör kullanın.
+
 Çıktı `app/src/release/generated/baselineProfiles/` içine yazılır ve commit
 edilir. Yalnızca `baseline-prof.txt` değil, `startup-prof.txt` de üretilir;
 ikincisi yalnızca açılış sırasında dokunulan yolları kapsar ve cold start'i

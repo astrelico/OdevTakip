@@ -19,6 +19,19 @@ import org.junit.runner.RunWith
  * profili kurulumda dexopt'a verir; uygulama ilk açılışta o yolları yorumlayarak
  * değil, önceden derlenmiş hâlde çalışır.
  *
+ * ## UYARI: bu test cihazdaki uygulama verisini SİLER
+ *
+ * Eklenti her iterasyonda profilin eski kalıplardan arınması için paketi
+ * **kalıcı olarak kaldırıp yeniden kurar** (`Uninstalling` / `Installing`,
+ * logcat'te `PACKAGE_FULLY_REMOVED`). Room veritabanı, ek dosyalar ve
+ * tercihler de dahil her şey gider; geri getirilemez.
+ *
+ * Bu bilinçli bir ödünleşmedir: stabil bir ölçüm için derlenmiş durumun ve
+ * verinin her iterasyonda aynı olması gerekir, benchmark'ın kendi davranışı
+ * budur. Yine de **çalıştırmadan önce cihazdaki verinin önemsiz olduğundan
+ * emin olun** ya da ayrı bir test cihazı kullanın. Üretim verisi taşıyan
+ * bir telefonda asla çalıştırılmamalıdır.
+ *
  * Cihazda yalnızca release varyantı çalıştırılır. Debug varyantı profil
  * üretemez: `debuggable=true` olan paketlerde ART profili uygulamaz.
  *

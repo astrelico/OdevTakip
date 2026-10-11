@@ -1,3 +1,11 @@
+// Baseline profile üreten modül.
+//
+// UYARI: `:app:generateReleaseBaselineProfile` bu modülü çalıştırırken
+// eklenti, profildeki eski kalıplardan arınmak için hedef paketi KALICI olarak
+// kaldırıp yeniden kurar. Cihazdaki uygulama verisi (Room veritabanı, ek
+// dosyalar, tercihler) silinir ve geri getirilemez. Üretim verisi taşıyan
+// bir telefonda çalıştırılmamalıdır. Ayrıntı:
+// BaselineProfileUretici sınıfındaki KDoc'a bakın.
 plugins {
     // com.android.application değil, com.android.test: bu modül kendisi
     // dağıtılmaz, yalnızca başka bir projeyi (app) test eden bir araçtır.
