@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -53,10 +54,12 @@ private class MenuOgesi(
  * ve öğeler bir "sekme" değil, birer **bağlantı**. Birini seçili göstermek
  * her açılışta yanlış bir durum söylemiş olurdu.
  *
+ * @param denemelerHedefi Deneme sınavları listesini açar; menü kapanır.
  * @param hakkindaHedefi Hakkında sayfasını açar; menü kapanır.
  */
 @Composable
 fun YanMenu(
+    denemelerHedefi: () -> Unit,
     hakkindaHedefi: () -> Unit,
 ) {
     val renkler = MaterialTheme.colorScheme
@@ -105,6 +108,16 @@ fun YanMenu(
 
             // ---- Öğeler ----
             val ogeler = listOf(
+                MenuOgesi(
+                    etiket = stringResource(R.string.menu_denemeler),
+                    ikon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Assessment,
+                            contentDescription = null,
+                        )
+                    },
+                    tik = denemelerHedefi,
+                ),
                 MenuOgesi(
                     etiket = stringResource(R.string.menu_hakkinda),
                     ikon = {

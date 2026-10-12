@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Ders
+import com.odevtakip.app.data.Deneme
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
@@ -167,6 +168,19 @@ class OdevViewModel(
      * göstermesi gibi bir tutarsızlık doğururdu.
      */
     val tumOdevler: StateFlow<List<Odev>> = repository.tumOdevleri()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // ---- Deneme sınavları ----
+
+    /**
+     * Denemeler, **tarih azalan** sırayla — en son yapılan en üstte.
+     *
+     * Ödev listesindeki filtre/arama/sıralama üçlüsü burada **yoktur**:
+     * denemelerin tek sıralanma mantığı zaman olduğu için süzgeç eklemek
+     * yalnızca "neden boş" sorusunu gündeme getirirdi. Sıralama kararı
+     * DAO'nun kendisine gömülüdür ([com.odevtakip.app.data.DenemeDao]).
+     */
+    val denemeler: StateFlow<List<Deneme>> = repository.tumDenemeleri()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**

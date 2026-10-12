@@ -62,6 +62,7 @@ import com.odevtakip.app.ui.dersler.DersEkrani
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.hakkinda.HakkindaEkrani
+import com.odevtakip.app.ui.deneme.DenemeListeEkrani
 import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.menu.YanMenu
@@ -93,6 +94,7 @@ private object Rotalar {
     const val PROGRAM = "program"
     const val ISTATISTIK = "istatistik"
     const val HAKKINDA = "hakkinda"
+    const val DENEMELER = "denemeler"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -287,6 +289,7 @@ private fun OdevUygulamasi(
         gesturesEnabled = anaEkran,
         drawerContent = {
             YanMenu(
+                denemelerHedefi = { menuKapatSonraGit(Rotalar.DENEMELER) },
                 hakkindaHedefi = { menuKapatSonraGit(Rotalar.HAKKINDA) },
             )
         },
@@ -446,6 +449,16 @@ private fun OdevUygulamasi(
                 // Alt menü görünmez — orası yalnızca dört ana sekmede çizer.
                 composable(Rotalar.HAKKINDA) {
                     HakkindaEkrani(
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
+
+                // Deneme sınavları da yan menüden girilen bir rotadır;
+                // menü hedeflerinin ikisi de yığına itilir, ana sekmelere
+                // `popUpTo` ile dönülmez.
+                composable(Rotalar.DENEMELER) {
+                    DenemeListeEkrani(
+                        viewModel = viewModel,
                         onGeri = { navController.popBackStack() },
                     )
                 }

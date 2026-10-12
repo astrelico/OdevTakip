@@ -117,6 +117,9 @@
     <string name="deneme_ekle">Deneme ekle</string>
     <string name="deneme_bos">Henüz deneme sınavı yok.\nSağ alttaki düğmeyle ilk sonucunu ekle.</string>
     <string name="deneme_sayisi">%1$d deneme</string>
+    <string name="deneme_sonuc">%1$d doğru · %2$d yanlış</string>
+    <string name="deneme_net_etiket">Net</string>
+    <string name="deneme_puan">Puan %1$s</string>
 
     <!-- Genel -->
     <string name="geri">Geri</string>
