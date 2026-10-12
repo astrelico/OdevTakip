@@ -130,6 +130,15 @@
     <string name="deneme_puan_etiket">Puan</string>
     <string name="deneme_sil_onay_baslik">Deneme silinsin mi?</string>
 
+    <!-- Deneme sınavları: ekleme/düzenleme formu -->
+    <string name="deneme_duzenle">Denemeyi Düzenle</string>
+    <string name="deneme_alan_ad">Deneme adı</string>
+    <string name="deneme_alan_ad_ipucu">Örn. 3. Deneme, TYT Prova 2</string>
+    <string name="deneme_ad_zorunlu">Deneme adı boş olamaz</string>
+    <string name="deneme_sayi_hata">0 veya daha büyük bir sayı gir</string>
+    <string name="deneme_puan_ipucu">Örn. 84,25 (isteğe bağlı)</string>
+    <string name="deneme_puan_hata">Geçerli bir puan gir (virgül kullanabilirsin)</string>
+
     <!-- Genel -->
     <string name="geri">Geri</string>
     <string name="geri_al">Geri al</string>

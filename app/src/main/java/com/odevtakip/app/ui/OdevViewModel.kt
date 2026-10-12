@@ -462,6 +462,50 @@ class OdevViewModel(
         }
     }
 
+    // ---- Deneme formu ----
+
+    /** Form düzenleme modunda kaydı bir kez okur. */
+    suspend fun denemeyiGet(id: Long): Deneme? = repository.denemeyiAl(id)
+
+    /**
+     * Formu kaydeder: yeni (`denemeId <= 0`) ya da düzenlenen kayıt.
+     *
+     * `olusturmaTarihi` mevcut kayıttan korunur — düzenleme, kaydın
+     * "eklenme" künyesini sıfırlamaz. `tarih` günün başına indirgenir
+     * ([OdevRepository.denemeKaydet]); form öğlen kurabilir, bu yüzden
+     * indirgeme burada da gereklidir.
+     */
+    fun denemeFormunuKaydet(
+        denemeId: Long,
+        ad: String,
+        ders: String,
+        tarih: Long,
+        dogru: Int,
+        yanlis: Int,
+        puan: Double?,
+        aciklama: String,
+        onBasarili: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            val mevcut = if (denemeId > 0) repository.denemeyiAl(denemeId) else null
+
+            repository.denemeKaydet(
+                Deneme(
+                    id = mevcut?.id ?: 0L,
+                    ad = ad.trim(),
+                    tarih = tarih,
+                    ders = ders.trim(),
+                    dogru = dogru,
+                    yanlis = yanlis,
+                    puan = puan,
+                    aciklama = aciklama.trim(),
+                    olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),
+                )
+            )
+            onBasarili()
+        }
+    }
+
     // ---- Dosya / fotoğraf eki ----
 
     /**

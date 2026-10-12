@@ -64,6 +64,7 @@ import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.hakkinda.HakkindaEkrani
 import com.odevtakip.app.ui.deneme.DenemeListeEkrani
 import com.odevtakip.app.ui.deneme.DenemeDetayEkrani
+import com.odevtakip.app.ui.deneme.DenemeFormEkrani
 import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.menu.YanMenu
@@ -97,6 +98,7 @@ private object Rotalar {
     const val HAKKINDA = "hakkinda"
     const val DENEMELER = "denemeler"
     const val DENEME_DETAY = "deneme/{denemeId}"
+    const val DENEME_FORM = "deneme-form/{denemeId}"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -104,6 +106,9 @@ private object Rotalar {
 
     /** Deneme detayı; liste kartından girilir. */
     fun denemeDetay(denemeId: Long): String = "deneme/$denemeId"
+
+    /** Deneme formu; yeni kayıt için `denemeId = -1`. */
+    fun denemeForm(denemeId: Long = -1L): String = "deneme-form/$denemeId"
 
     /**
      * `kaynakId`'yi okuyup **yeni** bir ödev üreten form.
@@ -469,6 +474,12 @@ private fun OdevUygulamasi(
                                 launchSingleTop = true
                             }
                         },
+                        onEkle = {
+                            // Çift dokunuşta form iki kez yığılmasın.
+                            navController.navigate(Rotalar.denemeForm()) {
+                                launchSingleTop = true
+                            }
+                        },
                         onGeri = { navController.popBackStack() },
                     )
                 }
@@ -480,6 +491,31 @@ private fun OdevUygulamasi(
                     arguments = listOf(navArgument("denemeId") { type = NavType.LongType }),
                 ) { entry ->
                     DenemeDetayEkrani(
+                        denemeId = entry.arguments?.getLong("denemeId") ?: -1L,
+                        viewModel = viewModel,
+                        onDuzenle = {
+                            navController.navigate(Rotalar.denemeForm(it)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
+
+                // Deneme formu; liste ile detayın ortak kapısıdır. Kaydet
+                // sonra ekran yığında ne varsa oraya döner (popBackStack):
+                // liste → forma → kaydet → liste, detay → düzenle → kaydet
+                // → detay. Ekranlar Flow izlediği için dönüşte veri tazedir.
+                composable(
+                    route = Rotalar.DENEME_FORM,
+                    arguments = listOf(
+                        navArgument("denemeId") {
+                            type = NavType.LongType
+                            defaultValue = -1L
+                        }
+                    ),
+                ) { entry ->
+                    DenemeFormEkrani(
                         denemeId = entry.arguments?.getLong("denemeId") ?: -1L,
                         viewModel = viewModel,
                         onGeri = { navController.popBackStack() },

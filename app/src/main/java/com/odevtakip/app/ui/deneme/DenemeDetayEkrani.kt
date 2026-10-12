@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,19 +63,23 @@ import com.odevtakip.app.util.formatliTarih
  *    "durum + teslim" kartının yerini denemenin tek gerçeği, net, alır.
  *  - **Tamamlama düğmesi yoktur**: deneme bitmiştir; geri alınacak bir
  *    işaret yoktur (bkz. [Deneme]).
- *  - **Düzenleme yoktur**: form sonraki adımda gelir; o adımda üst
- *    bara `Düzenle` eklenecektir.
+ *
+ * Üst barda üç düğme durur: geri, **Düzenle** (formu açar) ve **Sil**
+ * (onay diyaloğuyla). Sıralama bilinçlidir: geri solda, eylemler sağda;
+ * sil kırmızıdır çünkü geri alınamazdır — düzenlemek ise günlük iştir.
  *
  * Ekran [OdevViewModel.seciliDeneme] akışını izler; kayıt başka bir yerde
  * silinirse kendiliğinden "bulunamadı" durumuna düşer.
  *
  * @param denemeId Gösterilecek kaydın kimliği.
+ * @param onDuzenle Üst bardaki Düzenle; form sayfasını açar.
  * @param onGeri Üst bardaki geri düğmesi; listeye döner.
  */
 @Composable
 fun DenemeDetayEkrani(
     denemeId: Long,
     viewModel: OdevViewModel,
+    onDuzenle: (Long) -> Unit,
     onGeri: () -> Unit,
 ) {
     val deneme by viewModel.seciliDeneme.collectAsStateWithLifecycle()
@@ -111,6 +116,12 @@ fun DenemeDetayEkrani(
                 },
                 eylemler = {
                     if (deneme != null) {
+                        IconButton(onClick = { onDuzenle(denemeId) }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = stringResource(R.string.duzenle),
+                            )
+                        }
                         IconButton(onClick = { silOnayiGoster = true }) {
                             Icon(
                                 imageVector = Icons.Rounded.Delete,
