@@ -91,6 +91,7 @@ fun OdevListeEkrani(
     viewModel: OdevViewModel,
     onOdevSec: (Long) -> Unit,
     onAyarlar: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     val filtre by viewModel.filtre.collectAsStateWithLifecycle()
     val odevler by viewModel.odevler.collectAsStateWithLifecycle()
@@ -150,6 +151,7 @@ fun OdevListeEkrani(
             } else {
                 UstBar(
                     baslik = { Text(stringResource(R.string.liste_baslik)) },
+                    menuAc = onMenu,
                     eylemler = {
                         IconButton(onClick = { aramaAcik = true }) {
                             Icon(

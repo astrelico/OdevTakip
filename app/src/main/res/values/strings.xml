@@ -81,6 +81,43 @@
     <string name="sil_onay_metin">\"%1$s\" silinecek. Bu işlem geri alınamaz.</string>
     <string name="iptal">İptal</string>
 
+    <!-- Sol üstteki hamburger ve açtığı yan menü -->
+    <string name="menu_ac">Menüyü aç</string>
+    <string name="menu_baslik">Menü</string>
+    <string name="menu_hakkinda">Hakkında</string>
+    <string name="menu_denemeler">Deneme sınavlarım</string>
+
+    <!-- Hakkında ekranı -->
+    <string name="hakkinda_baslik">Hakkında</string>
+    <string name="hakkinda_surum">Sürüm %1$s</string>
+    <string name="hakkinda_tanitim">Ödev Takip, okul ödevlerini ve deneme sınavlarını tek yerde toplayan basit bir takip uygulamasıdır.</string>
+    <string name="hakkinda_ozellikler_baslik">Ne yapar</string>
+    <string name="hakkinda_ozellik_1">Ödev ekle, teslim tarihine göre sırala, gecikenleri gör</string>
+    <string name="hakkinda_ozellik_2">Ders programını ve günlük ders saatlerini tut</string>
+    <string name="hakkinda_ozellik_3">Deneme sınavlarını kaydet, sonuçlarını karşılaştır</string>
+    <string name="hakkinda_ozellik_4">Ana ekran widget\'ları ve teslim öncesi hatırlatmalar</string>
+    <string name="hakkinda_tasarim_baslik">Tasarım atıfı</string>
+    <string name="hakkinda_tasarim_metin">Arayüzün düzeni ve hiyerarşisi şu referans tasarımdan esinlenilmiştir:</string>
+    <string name="hakkinda_tasarim_eser">Task management &amp; to-do list app</string>
+    <string name="hakkinda_tasarim_sahip">Neser U. (@neseru)</string>
+    <string name="hakkinda_tasarim_lisans">Lisans: CC BY 4.0 — Creative Commons Attribution 4.0</string>
+    <string name="hakkinda_tasarim_not">Referans yalnızca düzen için kullanılmıştır. Renk paleti mavi tonda tutulmuş; tüm ikon, çizim ve bileşenler Compose ile native olarak yazılmıştır. Tasarımdan hiçbir görsel varlık içe aktarılmamıştır.</string>
+    <string name="hakkinda_kunye_baslik">Künye</string>
+    <string name="hakkinda_kunye_uygulama">Uygulama</string>
+    <string name="hakkinda_kunye_paket">Paket adı</string>
+    <string name="hakkinda_kunye_min">En düşük Android</string>
+    <string name="hakkinda_kunye_min_deger">Android 7.0 (API 24)</string>
+    <string name="hakkinda_kunye_dil">Dil</string>
+    <string name="hakkinda_kunye_dil_deger">Türkçe</string>
+    <string name="hakkinda_kunye_teknoloji">Teknoloji</string>
+    <string name="hakkinda_kunye_teknoloji_deger">Jetpack Compose · Room · WorkManager</string>
+
+    <!-- Deneme sınavları: liste ekranı -->
+    <string name="deneme_baslik">Deneme Sınavlarım</string>
+    <string name="deneme_ekle">Deneme ekle</string>
+    <string name="deneme_bos">Henüz deneme sınavı yok.\nSağ alttaki düğmeyle ilk sonucunu ekle.</string>
+    <string name="deneme_sayisi">%1$d deneme</string>
+
     <!-- Genel -->
     <string name="geri">Geri</string>
     <string name="geri_al">Geri al</string>

@@ -49,6 +49,10 @@ android {
     }
     buildFeatures {
         compose = true
+        // Hakkında ekranı sürüm numarasını `BuildConfig.VERSION_NAME`den
+        // okur; bu sınıf varsayılan olarak üretilmez, açılmazsa derleme
+        // `Unresolved reference 'BuildConfig'` ile patlar.
+        buildConfig = true
     }
     // Baseline profile eklentisi release varyantının dışa aktarılmasını ister;
     // verilmazse profil APK'ya gömülemez.

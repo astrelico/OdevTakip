@@ -91,6 +91,7 @@ import com.odevtakip.app.ui.kartElevasyonu
 fun ProgramEkrani(
     viewModel: OdevViewModel,
     onAyarlar: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     val gunSira by viewModel.seciliHaftaGunu.collectAsStateWithLifecycle()
     val program by viewModel.program.collectAsStateWithLifecycle()
@@ -171,6 +172,7 @@ fun ProgramEkrani(
         topBar = {
             UstBar(
                 baslik = { Text(stringResource(R.string.program_baslik)) },
+                menuAc = onMenu,
                 eylemler = {
                     IconButton(onClick = onAyarlar) {
                         Icon(

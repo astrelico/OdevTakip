@@ -89,6 +89,7 @@ fun TakvimEkrani(
     viewModel: OdevViewModel,
     onOdevSec: (Long) -> Unit,
     onAyarlar: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     val seciliGun by viewModel.seciliGun.collectAsStateWithLifecycle()
     val seciliAy by viewModel.seciliAy.collectAsStateWithLifecycle()
@@ -105,6 +106,7 @@ fun TakvimEkrani(
         topBar = {
             UstBar(
                 baslik = { Text(stringResource(R.string.takvim_baslik)) },
+                menuAc = onMenu,
                 eylemler = {
                     // Biçim anahtarı: etiket her zaman HEDEFİ söyler.
                     TextButton(

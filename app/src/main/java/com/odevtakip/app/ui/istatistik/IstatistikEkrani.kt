@@ -104,6 +104,7 @@ import kotlin.math.roundToInt
 fun IstatistikEkrani(
     viewModel: OdevViewModel,
     onAyarlar: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     val odevler by viewModel.tumOdevler.collectAsStateWithLifecycle()
 
@@ -122,6 +123,7 @@ fun IstatistikEkrani(
         topBar = {
             UstBar(
                 baslik = { Text(stringResource(R.string.istatistik_baslik)) },
+                menuAc = onMenu,
                 eylemler = {
                     IconButton(onClick = onAyarlar) {
                         Icon(

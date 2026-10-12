@@ -3,19 +3,30 @@
 package com.odevtakip.app.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.odevtakip.app.R
 
 /**
  * Uygulama genelinde **bir kez** verilmiş görsel kararlar.
@@ -47,8 +58,13 @@ import androidx.compose.ui.unit.dp
  * budur.
  *
  * @param baslik Başlık içeriği; ekranlar kendi [androidx.compose.material3.Text]ini verir.
- * @param gezinmeIkonu Soldaki geri düğmesi; yoksa boş bırakılır.
+ * @param gezinmeIkonu Soldaki düğme; yoksa boş bırakılır. Geri oku ya da
+ *   hamburger olarak kullanılır.
  * @param eylemler Sağdaki düğmeler.
+ * @param menuAc **Sol üstteki hamburger** düğmesi. Verilirse [gezinmeIkonu]
+ *   yerine bu çizilir — iki sol düğmenin aynı anda görünmesi anlamsızdır.
+ *   Yan menüyü açan ana ekranlar bunu verir; geri dönüş gereken ekranlar
+ *   yalnızca [gezinmeIkonu]u verir.
  */
 @Composable
 fun UstBar(
@@ -56,6 +72,7 @@ fun UstBar(
     modifier: Modifier = Modifier,
     gezinmeIkonu: @Composable () -> Unit = {},
     eylemler: @Composable RowScope.() -> Unit = {},
+    menuAc: (() -> Unit)? = null,
 ) {
     val renkler = MaterialTheme.colorScheme
 
@@ -67,7 +84,18 @@ fun UstBar(
         Column {
             TopAppBar(
                 title = baslik,
-                navigationIcon = gezinmeIkonu,
+                navigationIcon = {
+                    if (menuAc != null) {
+                        IconButton(onClick = menuAc) {
+                            Icon(
+                                imageVector = Icons.Rounded.Menu,
+                                contentDescription = stringResource(R.string.menu_ac),
+                            )
+                        }
+                    } else {
+                        gezinmeIkonu()
+                    }
+                },
                 actions = eylemler,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
@@ -79,6 +107,51 @@ fun UstBar(
                 color = renkler.outlineVariant.copy(alpha = 0.5f),
             )
         }
+    }
+}
+
+// ---- Uygulama simgesi ----
+
+/**
+ * Uygulamanın kendi simgesi: zemin + üstündeki ödev kartı katmanı.
+ *
+ * `mipmap/ic_launcher` **burada kullanılamaz** — API 26+ yükleyicisi
+ * `adaptive-icon` XML'i döndürür ve Compose'un `painterResource`ı yalnızca
+ * düz vektörleri ve raster dosyaları kabul eder:
+ * `Only VectorDrawables and rasterized asset types are supported`.
+ * Uygulama bu yüzden **açılışta** çöküyordu (drawer içeriği kapalıyken de
+ * çizildiği için hata ilk karede fırlıyordu).
+ *
+ * Çözüm, adaptive icon'un **içindeki iki düz vektörü** katmanlamaktır:
+ * [com.odevtakip.app.R.drawable.ic_launcher_background] ile
+ * [com.odevtakip.app.R.drawable.ic_launcher_foreground]. İkisi de aynı
+ * 108 × 108 viewport'u paylaştığı için üst üste bindirmek simgeyi birebir
+ * yeniden üretir; launcher'da gördüğünüz görüntüyle hiçbir farkı yoktur.
+ *
+ * Köşe maskesi verilmez: başlatıcının kendi maskesi (yvarlak/kare/daire)
+ * cihaz görevidir, uygulama içi çizimdeyse tema şekilleri belirleyicidir.
+ *
+ * @param boyut Kenar uzunluğu.
+ */
+@Composable
+fun UygulamaSimgesi(
+    boyut: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.size(boyut),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_background),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+        )
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+        )
     }
 }
 

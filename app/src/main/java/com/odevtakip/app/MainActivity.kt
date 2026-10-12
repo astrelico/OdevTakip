@@ -29,14 +29,18 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -57,14 +61,17 @@ import com.odevtakip.app.ui.ayarlar.AyarlarViewModel
 import com.odevtakip.app.ui.dersler.DersEkrani
 import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
+import com.odevtakip.app.ui.hakkinda.HakkindaEkrani
 import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
+import com.odevtakip.app.ui.menu.YanMenu
 import com.odevtakip.app.ui.program.ProgramEkrani
 import com.odevtakip.app.ui.takvim.TakvimEkrani
 import com.odevtakip.app.ui.theme.OdevTakipTheme
 import com.odevtakip.app.ui.theme.vurguGradyani
 import com.odevtakip.app.ui.theme.vurguMetni
 import com.odevtakip.app.util.turkceyeSabitle
+import kotlinx.coroutines.launch
 
 /**
  * Ekran geçişinin süresi (ms).
@@ -85,6 +92,7 @@ private object Rotalar {
     const val DERSLER = "dersler"
     const val PROGRAM = "program"
     const val ISTATISTIK = "istatistik"
+    const val HAKKINDA = "hakkinda"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -221,6 +229,33 @@ private fun OdevUygulamasi(
         mevcutRota == Rotalar.PROGRAM ||
         mevcutRota == Rotalar.ISTATISTIK
 
+    // ---- Yan menü ----
+    //
+    // Menü yalnızca ana ekranlarda açılır: oradaki hamburger düğmesi
+    // menünün tek kapısıdır, alt menüde ya da geri düğmesi olan
+    // ekranlarda karşılığı yoktur. Sürükleme jesti de bu mantığa bağlanır —
+    // form ve detay ekranında soldan çekmek geri hareketi çağırıyordu.
+    val menuDurumu = rememberDrawerState(DrawerValue.Closed)
+    val menuKapsi = rememberCoroutineScope()
+
+    /**
+     * Menü öğesine basıldığında: önce menüyü kapatır, sonra hedefe gider.
+     *
+     * [kapatSonraGit] biçiminde tek yerde toplanmasının nedeni, öğe
+     * sayısının artacak olması: her öğe için ayrı bir `launch` yazılsaydı
+     * "önce menü mü kapanır, sayfa mı açılır" sırası her seferinde elle
+     * korunmak zorunda kalırdı.
+     */
+    fun menuKapatSonraGit(rota: String) {
+        menuKapsi.launch {
+            menuDurumu.close()
+            // `git` içindeki `popUpTo` LISTE'yi kök alır; menüden gidilen
+            // ekran ise geri tuşuyla dönülebilecek **ikinci kat**dadır.
+            // Bu yüzden menü hedefleri doğrudan navigate edilir.
+            navController.navigate(rota) { launchSingleTop = true }
+        }
+    }
+
     fun git(rota: String) {
         // Yerel fonksiyon bileşimler arasında yeniden kurulmadığı için
         // `mevcutRota`'yı yakaladığımızda eski bir değerde kalabiliyoruz.
@@ -245,151 +280,175 @@ private fun OdevUygulamasi(
         onHedefTukendi()
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
-        bottomBar = {
-            if (anaEkran) {
-                AltMenu(
-                    seciliRota = mevcutRota,
-                    onSecim = ::git,
-                )
-            }
+    ModalNavigationDrawer(
+        drawerState = menuDurumu,
+        // Jest yalnızca hamburger'in bulunduğu ekranlarda çalışır; form ve
+        // detayda soldan çekmek geri hareketi çağırıyordu.
+        gesturesEnabled = anaEkran,
+        drawerContent = {
+            YanMenu(
+                hakkindaHedefi = { menuKapatSonraGit(Rotalar.HAKKINDA) },
+            )
         },
-        // "Yeni ödev" düğmesi alt menünün **üzerinde**, sağ uçta durur;
-        // `FabPosition.End` bunu kurar, `EndOverlay` barın üstüne bindirirdi.
-        floatingActionButton = {
-            if (mevcutRota == Rotalar.LISTE || mevcutRota == Rotalar.TAKVIM) {
-                YeniOdevDugmesi(
-                    onClick = {
-                        navController.navigate(Rotalar.form()) { launchSingleTop = true }
-                    },
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.End,
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Rotalar.LISTE,
-            // Geçiş kısa bir soldur. Varsayılan hareketli geçişte iki ekran
-            // bir süre **aynı anda** çizilir; hem kompozisyon iki kez ödenir
-            // hem de karede bindirim (overdraw) ikiye katlanır. Cihaz
-            // ölçümünde sekme değişimi en ağır etkileşim buydu (p90 80 ms);
-            // 110 ms'lik solda çift çizimli pencere 4-5 kareye iner ve geçiş
-            // "ani" hissedilir.
-            enterTransition = { fadeIn(tween(GECIS_MS)) },
-            exitTransition = { fadeOut(tween(GECIS_MS)) },
-            popEnterTransition = { fadeIn(tween(GECIS_MS)) },
-            popExitTransition = { fadeOut(tween(GECIS_MS)) },
-            modifier = Modifier
-                .padding(innerPadding)
-                // Alt menü zeden ödedi; iç ekranların kendi Scaffold'ları
-                // aynı ücreti ikinci kez almasın.
-                .consumeWindowInsets(innerPadding),
-        ) {
-            composable(Rotalar.LISTE) {
-                OdevListeEkrani(
-                    viewModel = viewModel,
-                    onOdevSec = { navController.navigate(Rotalar.detay(it)) },
-                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
-                )
-            }
+    ) {
+        Scaffold(
+            contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+            bottomBar = {
+                if (anaEkran) {
+                    AltMenu(
+                        seciliRota = mevcutRota,
+                        onSecim = ::git,
+                    )
+                }
+            },
+            // "Yeni ödev" düğmesi alt menünün **üzerinde**, sağ uçta durur;
+            // `FabPosition.End` bunu kurar, `EndOverlay` barın üstüne bindirirdi.
+            floatingActionButton = {
+                if (mevcutRota == Rotalar.LISTE || mevcutRota == Rotalar.TAKVIM) {
+                    YeniOdevDugmesi(
+                        onClick = {
+                            navController.navigate(Rotalar.form()) { launchSingleTop = true }
+                        },
+                    )
+                }
+            },
+            floatingActionButtonPosition = FabPosition.End,
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = Rotalar.LISTE,
+                // Geçiş kısa bir soldur. Varsayılan hareketli geçişte iki ekran
+                // bir süre **aynı anda** çizilir; hem kompozisyon iki kez ödenir
+                // hem de karede bindirim (overdraw) ikiye katlanır. Cihaz
+                // ölçümünde sekme değişimi en ağır etkileşim buydu (p90 80 ms);
+                // 110 ms'lik solda çift çizimli pencere 4-5 kareye iner ve geçiş
+                // "ani" hissedilir.
+                enterTransition = { fadeIn(tween(GECIS_MS)) },
+                exitTransition = { fadeOut(tween(GECIS_MS)) },
+                popEnterTransition = { fadeIn(tween(GECIS_MS)) },
+                popExitTransition = { fadeOut(tween(GECIS_MS)) },
+                modifier = Modifier
+                    .padding(innerPadding)
+                    // Alt menü zeden ödedi; iç ekranların kendi Scaffold'ları
+                    // aynı ücreti ikinci kez almasın.
+                    .consumeWindowInsets(innerPadding),
+            ) {
+                composable(Rotalar.LISTE) {
+                    OdevListeEkrani(
+                        viewModel = viewModel,
+                        onOdevSec = { navController.navigate(Rotalar.detay(it)) },
+                        onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                        onMenu = { menuKapsi.launch { menuDurumu.open() } },
+                    )
+                }
 
-            composable(Rotalar.TAKVIM) {
-                TakvimEkrani(
-                    viewModel = viewModel,
-                    onOdevSec = { navController.navigate(Rotalar.detay(it)) },
-                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
-                )
-            }
+                composable(Rotalar.TAKVIM) {
+                    TakvimEkrani(
+                        viewModel = viewModel,
+                        onOdevSec = { navController.navigate(Rotalar.detay(it)) },
+                        onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                        onMenu = { menuKapsi.launch { menuDurumu.open() } },
+                    )
+                }
 
-            // Ders programı üçüncü ana sekmedir; alt menüde görünür.
-            composable(Rotalar.PROGRAM) {
-                ProgramEkrani(
-                    viewModel = viewModel,
-                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
-                )
-            }
+                // Ders programı üçüncü ana sekmedir; alt menüde görünür.
+                composable(Rotalar.PROGRAM) {
+                    ProgramEkrani(
+                        viewModel = viewModel,
+                        onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                        onMenu = { menuKapsi.launch { menuDurumu.open() } },
+                    )
+                }
 
-            // İstatistik dördüncü ana sekmedir; salt okunur, yazma eylemi yok.
-            composable(Rotalar.ISTATISTIK) {
-                IstatistikEkrani(
-                    viewModel = viewModel,
-                    onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
-                )
-            }
+                // İstatistik dördüncü ana sekmedir; salt okunur, yazma eylemi yok.
+                composable(Rotalar.ISTATISTIK) {
+                    IstatistikEkrani(
+                        viewModel = viewModel,
+                        onAyarlar = { navController.navigate(Rotalar.AYARLAR) },
+                        onMenu = { menuKapsi.launch { menuDurumu.open() } },
+                    )
+                }
 
-            composable(
-                route = Rotalar.FORM,
-                arguments = listOf(
-                    navArgument("odevId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                ),
-            ) { entry ->
-                OdevFormEkrani(
-                    odevId = entry.arguments?.getLong("odevId") ?: -1L,
-                    viewModel = viewModel,
-                    onGeri = { navController.popBackStack() },
-                )
-            }
-
-            composable(
-                route = Rotalar.KOPYA,
-                arguments = listOf(navArgument("kaynakId") { type = NavType.LongType }),
-            ) { entry ->
-                OdevFormEkrani(
-                    odevId = -1L,
-                    kopyaKaynakId = entry.arguments?.getLong("kaynakId") ?: -1L,
-                    viewModel = viewModel,
-                    onGeri = { navController.popBackStack() },
-                    // Kopya kaydedildikten sonra dönülecek yer **listektir**:
-                    // kullanıcının görmek istediği tek şey yeni karttır.
-                    // `popUpTo` detayı ve formu yığından alır ama listeyi
-                    // tutar — filtreler ve kaydırma konumu kaybolmaz.
-                    // `launchSingleTop` aynı kaydı ikinci kez eklemesin.
-                    onKopyaBasarili = {
-                        navController.navigate(Rotalar.LISTE) {
-                            popUpTo(Rotalar.LISTE) { inclusive = false }
-                            launchSingleTop = true
+                composable(
+                    route = Rotalar.FORM,
+                    arguments = listOf(
+                        navArgument("odevId") {
+                            type = NavType.LongType
+                            defaultValue = -1L
                         }
-                    },
-                )
-            }
+                    ),
+                ) { entry ->
+                    OdevFormEkrani(
+                        odevId = entry.arguments?.getLong("odevId") ?: -1L,
+                        viewModel = viewModel,
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
 
-            composable(
-                route = Rotalar.DETAY,
-                arguments = listOf(navArgument("odevId") { type = NavType.LongType }),
-            ) { entry ->
-                OdevDetayEkrani(
-                    odevId = entry.arguments?.getLong("odevId") ?: -1L,
-                    viewModel = viewModel,
-                    onGeri = { navController.popBackStack() },
-                    onDuzenle = { navController.navigate(Rotalar.form(it)) },
-                    onKopyala = { navController.navigate(Rotalar.kopya(it)) },
-                )
-            }
+                composable(
+                    route = Rotalar.KOPYA,
+                    arguments = listOf(navArgument("kaynakId") { type = NavType.LongType }),
+                ) { entry ->
+                    OdevFormEkrani(
+                        odevId = -1L,
+                        kopyaKaynakId = entry.arguments?.getLong("kaynakId") ?: -1L,
+                        viewModel = viewModel,
+                        onGeri = { navController.popBackStack() },
+                        // Kopya kaydedildikten sonra dönülecek yer **listektir**:
+                        // kullanıcının görmek istediği tek şey yeni karttır.
+                        // `popUpTo` detayı ve formu yığından alır ama listeyi
+                        // tutar — filtreler ve kaydırma konumu kaybolmaz.
+                        // `launchSingleTop` aynı kaydı ikinci kez eklemesin.
+                        onKopyaBasarili = {
+                            navController.navigate(Rotalar.LISTE) {
+                                popUpTo(Rotalar.LISTE) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
 
-            // Ayarlar tam ekran bir rota: alt menü gizlenir, geri düğmesi döner.
-            composable(Rotalar.AYARLAR) {
-                AyarlarEkrani(
-                    viewModel = viewModel(factory = AyarlarViewModel.Factory),
-                    onGeri = { navController.popBackStack() },
-                    onDersler = {
-                        navController.navigate(Rotalar.DERSLER) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
+                composable(
+                    route = Rotalar.DETAY,
+                    arguments = listOf(navArgument("odevId") { type = NavType.LongType }),
+                ) { entry ->
+                    OdevDetayEkrani(
+                        odevId = entry.arguments?.getLong("odevId") ?: -1L,
+                        viewModel = viewModel,
+                        onGeri = { navController.popBackStack() },
+                        onDuzenle = { navController.navigate(Rotalar.form(it)) },
+                        onKopyala = { navController.navigate(Rotalar.kopya(it)) },
+                    )
+                }
 
-            // Ders listesi de ayarların altındaki tam ekran bir rotadır.
-            composable(Rotalar.DERSLER) {
-                DersEkrani(
-                    viewModel = viewModel,
-                    onGeri = { navController.popBackStack() },
-                )
+                // Ayarlar tam ekran bir rota: alt menü gizlenir, geri düğmesi döner.
+                composable(Rotalar.AYARLAR) {
+                    AyarlarEkrani(
+                        viewModel = viewModel(factory = AyarlarViewModel.Factory),
+                        onGeri = { navController.popBackStack() },
+                        onDersler = {
+                            navController.navigate(Rotalar.DERSLER) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+
+                // Ders listesi de ayarların altındaki tam ekran bir rotadır.
+                composable(Rotalar.DERSLER) {
+                    DersEkrani(
+                        viewModel = viewModel,
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
+
+                // Hakkında, yan menüden girilen salt okunur bir rotadır.
+                // Alt menü görünmez — orası yalnızca dört ana sekmede çizer.
+                composable(Rotalar.HAKKINDA) {
+                    HakkindaEkrani(
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
             }
         }
     }
