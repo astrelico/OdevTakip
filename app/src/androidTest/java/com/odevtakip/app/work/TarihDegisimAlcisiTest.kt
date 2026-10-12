@@ -63,15 +63,26 @@ class TarihDegisimAlcisiTest {
     }
 
     @Test
-    fun onReceive_bilinmeyenAksiyondaDurumDegismez() {
-        val once = durumlariAl()
+    fun onReceive_bilinmeyenAksiyondaYeniIsEklenmez() {
+        // Ölçüt **kimliktir, durum değildir.**
+        //
+        // Testin derdi "yeni iş kuyruklanmasın". `DurumZamanlayici`
+        // `ExistingWorkPolicy.REPLACE` kullandığı için tetiklenseydi eldeki
+        // iş **yeni bir UUID** ile değiştirilirdi — kimlik değişimi bunu
+        // tam da yakalar.
+        //
+        // Durumu karşılaştırmak yanlış ölçüt: var olan iş
+        // `ENQUEUED → RUNNING` geçişi yaparken iki okuma arasına girer ve
+        // test, hiç dokunulmamış hâlde "durum değişti" diye düşer. İşin
+        // kendisi ilerliyor olması alıcının suçudur değil.
+        val once = kimlikleriAl()
 
         TarihDegisimAlcisi().onReceive(context, Intent("com.odevtakip.app.OLMAYAN_AKSIYON"))
 
         assertEquals(
             "Bilinmeyen bir aksiyon işi tetiklememeli",
             once,
-            durumlariAl()
+            kimlikleriAl(),
         )
     }
 
@@ -94,4 +105,18 @@ class TarihDegisimAlcisiTest {
             .getWorkInfosForUniqueWork(DurumZamanlayici.ANLIK_IS_AD)
             .get()
             .map { it.state }
+
+    /**
+     * Benzersiz işin **kimliklerini** okur.
+     *
+     * Durum, işin kendi ilerlemesine bağlıdır ve iki okuma arasına
+     * girerse testi bozar. Kimlik ise yalnızca planlama değiştiğinde
+     * değişir — `ExistingWorkPolicy.REPLACE` yeni bir UUID ürettiği için
+     * "iş tekrar kuyruklanmış mı?" sorusunun tek güvenilir göstergesidir.
+     */
+    private fun kimlikleriAl(): List<java.util.UUID> =
+        workManager
+            .getWorkInfosForUniqueWork(DurumZamanlayici.ANLIK_IS_AD)
+            .get()
+            .map { it.id }
 }

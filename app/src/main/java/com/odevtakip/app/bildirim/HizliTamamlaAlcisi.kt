@@ -87,7 +87,11 @@ class HizliTamamlaAlcisi : BroadcastReceiver() {
                 // yeniden basabilsin, sessiz bir kayıp yaşanmasın.
                 Log.e(TAG, "Tamamlanamadı: $odevId", e)
             } finally {
-                sonuc.finish()
+                // `?.`: bkz. [TarihDegisimAlcisi.widgetiYenile]. Burada
+                // `finish()` NPE'i bildirimin asla kaldırılmamasına yol
+                // açabilirdi (ödül işi yarım kalır, kullanıcı düğmeye yeniden
+                // basamazdı).
+                sonuc?.finish()
             }
         }
     }

@@ -59,6 +59,15 @@ class TarihDegisimAlcisi : BroadcastReceiver() {
      * yaşamasını sağlar — çağırmadan yapmak, gece yarısı gelen yayının
      * hemen ardından sürecin dondurulmasıyla çizimin yarım kalmasına yol
      * açabilirdi.
+     *
+     * [goAsync] **null dönebilir**: `PendingResult`, alıcı sistem
+     * tarafından başlatıldığında atanır. Üretimde manifest kayıtlı alıcıya
+     * sistem yayını geldiği için neredeyse hiç null olmaz; ama süreç zaten
+     * yaşıyorsa (`finish()` gereksiz) ya da alıcı doğrudan
+     * oluşturulup çağrıldığında — testlerin yaptığı gibi — null gelir.
+     * `finally` içinde `sonuc?.finish()` bu yüzden `?.` ister: null iken
+     * `finish()` çağırmak NPE, o da çizim coroutine'inin **sessizce**
+     * düşmesine yol açardı.
      */
     private fun widgetiYenile(context: Context) {
         val sonuc = goAsync()
@@ -70,7 +79,7 @@ class TarihDegisimAlcisi : BroadcastReceiver() {
             } catch (e: Exception) {
                 Log.e(TAG, "Widget yenilenemedi", e)
             } finally {
-                sonuc.finish()
+                sonuc?.finish()
             }
         }
     }

@@ -72,7 +72,10 @@ abstract class WidgetAlcisi : AppWidgetProvider() {
             } catch (e: Exception) {
                 Log.e(TAG, "Widget çizilemedi: ${sinif.simpleName}", e)
             } finally {
-                sonuc.finish()
+                // `?.`: bkz. [TarihDegisimAlcisi.widgetiYenile]. `goAsync()`
+                // yalnızca sistem alıcıyı başlattığında dolu döner; null iken
+                // `finish()` çağırmak NPE ile çizimi yarım bırakırdı.
+                sonuc?.finish()
             }
         }
     }
