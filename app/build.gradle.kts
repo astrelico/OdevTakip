@@ -59,6 +59,15 @@ android {
     publishing {
         singleVariant("release")
     }
+
+    // MigrationTestHelper, şema JSON'larını androidTest'in asset'lerinden okur.
+    // Dosyalar `schemas/` altında üretilir; testin erişebilmesi için oraya
+    // kaynak olarak eklenmeleri gerekir.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
 }
 
 // Room şemasını sürüm kontrolü için kaydet (migration stratejisi Faz 1.5'te kullanılacak).
@@ -66,7 +75,28 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// kotlinx-serialization sürümlerini aynıda tut: 1.8.1.
+//
+// `androidx.savedstate:1.5.0` serialization **core 1.7.3** çekerken, Room
+// 2.8.5 **json 1.8.1** istiyor. `json` 1.8.1 zaten sınıf yolunda duruyor,
+// `core` ise 1.7.3'e düşürülüyordu — yani uygulama **karışık** bir çiftle
+// çıkıyordu. Etkisi şimdilik gizli, çünkü üretimde şema JSON'u okunmaz;
+// ama `MigrationTestHelper` tam da onu okur ve Room'un üretilmiş
+// serializer'ları `core`'un eski `GeneratedSerializer` arayüzüyle
+// uyuşmadığı için `AbstractMethodError` ile çöker.
+//
+// `core`'u yukarı çekmek `json`'un zaten istediği sürümdür; 1.7.3 → 1.8.1
+// 1.x içinde uyumlu bir sürüm. Gradle'ın **tutarlı çözümü** ana yoldaki
+// kararı test yoluna `strictly` olarak aktardığı için kısıt yalnızca test
+// sınıfına konamaz — ana yol düzeldiğinde test de düzeldiği için gerek de
+// kalmaz. Bölüm sonu (Faz 18+): bağımlılık sürüm düzeltmesi, davranış
+// değişikliği değil.
 dependencies {
+    constraints {
+        implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
+        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    }
+
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
@@ -104,4 +134,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.work.testing)
+    // Migration testleri: şema JSON'larını okuyup eski sürüm bir veritabanı
+    // açar ve migration'ın beklenen şemayla uyuştuğunu doğrular.
+    androidTestImplementation(libs.room.testing)
 }

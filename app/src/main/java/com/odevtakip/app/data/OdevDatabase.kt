@@ -35,10 +35,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    kendisi veritabanında değil, uygulamanın özel dosya deposunda durur
  *    ([EkDeposu]); tabloda yalnızca adı tutulur. Eski kayıtlar bu kolonu
  *    `NULL` olarak alır, yani "ek yok" — taşma ya da dönüşüm yok.
+ *
+ * ### Sürüm 5 (Deneme sınavları)
+ *
+ *  - `denemeler` tablosu açıldı: ad, tarih, ders, doğru/yanlış, puan ve not.
+ *    Yeni tablo boş gelir, doldurması kullanıcının işidir. Mevcut ödev,
+ *    ders ve program kayıtları bu geçişte hiç okunmaz/yazılmaz — yalnızca
+ *    yeni bir `CREATE TABLE` çalışır.
  */
 @Database(
-    entities = [Odev::class, Ders::class, ProgramSatiri::class],
-    version = 4,
+    entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class],
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -49,6 +56,8 @@ abstract class OdevDatabase : RoomDatabase() {
     abstract fun dersDao(): DersDao
 
     abstract fun programDao(): ProgramDao
+
+    abstract fun denemeDao(): DenemeDao
 
     companion object {
 
@@ -137,6 +146,49 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 4 → 5: deneme sınavları tablosu.
+         *
+         * **Neden `internal`:** migration testi bunu doğrudan okuyup
+         * `MigrationTestHelper`a verir. `private` olsaydı test ya da XML'e
+         * gömülü bir kopya üretmek zorunda kalırdı — ikisi de testin
+         * **gerçekten yürüttüğü kodu** ölçme garantisini zayıflatırdı.
+         * `internal` yalnızca modül içinden erişilebilir, yani çalışma
+         * zamanında dışarı açılmaz.
+         *
+         * Yeni tablo **boş açılır**; mevcut hiçbir satır okunmaz/yazılmaz.
+         * Bu bilerek en ucuz yoldur: taşıma gereken bir şey yok, dolayısıyla
+         * taşımada hata yapılabilecek bir yer de yok.
+         *
+         * Sütun tanımları Room'un üreteceği şema ile **birebir** aynı olmak
+         * zorundadır — migration'da tek bir ekstra `DEFAULT` ya da eksik
+         * `NOT NULL` bile açılışta `Migration didn't properly handle` ile
+         * çöküşe yol açar:
+         *
+         *  - `puan` tek nullable alandır (`Double?` → `REAL`, `NOT NULL`
+         *    yok): kullanıcı puanı girmediyse hücre `NULL` kalır.
+         *  - `ad`, `tarih` gibi alanlar `NOT NULL`; entity'de de varsayılanı
+         *    yok ya da zorunlu.
+         *  - `net` **kolon değildir** — [Deneme.net] hesaplanmış bir özellik
+         *    olduğu için Room onu şemaya dahil etmez.
+         */
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `denemeler` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`ad` TEXT NOT NULL, " +
+                        "`tarih` INTEGER NOT NULL, " +
+                        "`ders` TEXT NOT NULL, " +
+                        "`dogru` INTEGER NOT NULL, " +
+                        "`yanlis` INTEGER NOT NULL, " +
+                        "`puan` REAL, " +
+                        "`aciklama` TEXT NOT NULL, " +
+                        "`olusturmaTarihi` INTEGER NOT NULL)"
+                )
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -159,7 +211,12 @@ abstract class OdevDatabase : RoomDatabase() {
                     OdevDatabase::class.java,
                     "odev-takip.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                    )
                     .addCallback(ILK_OLUSTURMA)
                     .build()
                     .also { INSTANCE = it }

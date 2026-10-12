@@ -35,6 +35,7 @@ class OdevTakipApplication : Application() {
             dao = veritabani.odevDao(),
             dersDao = veritabani.dersDao(),
             programDao = veritabani.programDao(),
+            denemeDao = veritabani.denemeDao(),
             ekDeposu = EkDeposu(this),
         )
     }

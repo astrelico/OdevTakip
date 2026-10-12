@@ -1,6 +1,8 @@
 package com.odevtakip.app.data
 
 import android.net.Uri
+import com.odevtakip.app.util.gunBaslangici
+import com.odevtakip.app.util.yerelTarih
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +23,7 @@ class OdevRepository(
     private val dao: OdevDao,
     private val dersDao: DersDao,
     private val programDao: ProgramDao,
+    private val denemeDao: DenemeDao,
     private val ekDeposu: EkDeposu,
 ) {
 
@@ -151,6 +154,39 @@ class OdevRepository(
     suspend fun dersSil(id: Long) {
         dersDao.sil(id)
     }
+
+    // ---- Deneme sınavları ----
+
+    /** Denemeleri tarih azalan sırayla yayınlar (en yeni en üstte). */
+    fun tumDenemeleri(): Flow<List<Deneme>> = denemeDao.tumunuIzle()
+
+    /** Tek denemeyi yayınlar; kayıt silinince `null` akar. */
+    fun denemeyi(id: Long): Flow<Deneme?> = denemeDao.izle(id)
+
+    /** Tek denemeyi bir kez okur. */
+    suspend fun denemeyiAl(id: Long): Deneme? = denemeDao.al(id)
+
+    /**
+     * Deneme ekler veya var olanı günceller.
+     *
+     * Başlık kırpılır; boş bırakılamaz (zorunlu alan). Tarih **gün başına**
+     * indirgenir — denemenin saati olmadığı için öğlen kurulan değer, günün
+     * başındaki değerle aynı sırada durur. Aksi hâlde iki deneme aynı gün
+     * yapılsa bile farklı saatler yüzünden sıralama şaşardı.
+     *
+     * @return Kaydedilen kaydın kimliği.
+     */
+    suspend fun denemeKaydet(deneme: Deneme): Long =
+        denemeDao.kaydet(
+            // `yerelTarih` + `gunBaslangici` çifti, tarihi **cihazın saat
+            // diliminde** günün başına indirger; `Instant` üzerinden yapılacak
+            // tek bir yuvarlama yaz saatinde iki güne dağılan kayıtlar
+            // üretebilirdi.
+            deneme.copy(tarih = deneme.tarih.yerelTarih().gunBaslangici()),
+        )
+
+    /** Denemeyi kimliğiyle siler. */
+    suspend fun denemeSil(id: Long): Int = denemeDao.kimlikleSil(id)
 
     // ---- Okuma ----
 
