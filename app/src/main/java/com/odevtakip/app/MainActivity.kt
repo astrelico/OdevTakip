@@ -63,6 +63,7 @@ import com.odevtakip.app.ui.detay.OdevDetayEkrani
 import com.odevtakip.app.ui.form.OdevFormEkrani
 import com.odevtakip.app.ui.hakkinda.HakkindaEkrani
 import com.odevtakip.app.ui.deneme.DenemeListeEkrani
+import com.odevtakip.app.ui.deneme.DenemeDetayEkrani
 import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.menu.YanMenu
@@ -95,10 +96,14 @@ private object Rotalar {
     const val ISTATISTIK = "istatistik"
     const val HAKKINDA = "hakkinda"
     const val DENEMELER = "denemeler"
+    const val DENEME_DETAY = "deneme/{denemeId}"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
     fun detay(odevId: Long): String = "detay/$odevId"
+
+    /** Deneme detayı; liste kartından girilir. */
+    fun denemeDetay(denemeId: Long): String = "deneme/$denemeId"
 
     /**
      * `kaynakId`'yi okuyup **yeni** bir ödev üreten form.
@@ -458,6 +463,24 @@ private fun OdevUygulamasi(
                 // `popUpTo` ile dönülmez.
                 composable(Rotalar.DENEMELER) {
                     DenemeListeEkrani(
+                        viewModel = viewModel,
+                        onDenemeSec = {
+                            navController.navigate(Rotalar.denemeDetay(it)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
+
+                // Deneme detayı, ödev detayı gibi yığına itilen bir
+                // rotadır: listeden gelinir, geri tuşuyla listeye dönülür.
+                composable(
+                    route = Rotalar.DENEME_DETAY,
+                    arguments = listOf(navArgument("denemeId") { type = NavType.LongType }),
+                ) { entry ->
+                    DenemeDetayEkrani(
+                        denemeId = entry.arguments?.getLong("denemeId") ?: -1L,
                         viewModel = viewModel,
                         onGeri = { navController.popBackStack() },
                     )

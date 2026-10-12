@@ -44,17 +44,18 @@ import com.odevtakip.app.util.formatliTarih
  *  - **Durum/kaydırma yoktur**: deneme bitmiştir, "tamamlanamaz";
  *    bkz. [Deneme] sınıfı.
  *
- * Kart şu an **tıklanamazdır** — ayrıntı ekranı sonraki adımda gelir;
- * o adımda `onSec` eklenerek buraya bağlanır.
+ * Karta dokunmak [onSec] çağırır; ekran ayrı sayfadaki detaya gider.
  *
  * @param deneme Gösterilecek kayıt; sıralama DAO'da tarih azalandır.
  */
 @Composable
 fun DenemeKarti(
     deneme: Deneme,
+    onSec: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
+        onClick = onSec,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(

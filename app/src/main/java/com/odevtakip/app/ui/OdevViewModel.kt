@@ -418,6 +418,50 @@ class OdevViewModel(
     /** Düzenleme formu için ödevi bir kez okur. */
     suspend fun odeviGet(id: Long): Odev? = repository.odeviAl(id)
 
+    // ---- Seçili deneme ----
+
+    /** Detay ekranının izlediği deneme kimliği; `null` = ekranda kimse yok. */
+    private val _seciliDenemeId = MutableStateFlow<Long?>(null)
+
+    /** İlk okumanın bittiği bayrağı; bkz. [seciliDenemeYuklendi]. */
+    private val _seciliDenemeYuklendi = MutableStateFlow(false)
+
+    /**
+     * Deneme detay ekranının izlediği kayıt; silinirse `null` akar.
+     *
+     * [seciliOdev] ile aynı kurulum: akış Room'dan geldiği için kaydın
+     * başka bir yerde silinmesi ya da düzenlenmesi ekrana anında yansır.
+     */
+    val seciliDeneme: StateFlow<Deneme?> = _seciliDenemeId
+        .flatMapLatest { id ->
+            if (id == null) flowOf(null) else repository.denemeyi(id)
+        }
+        .onEach { _seciliDenemeYuklendi.value = true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Detay ekranının ilk okuması tamamlandı mı?
+     *
+     * `seciliDeneme == null` hem "yükleniyor" hem "bulunamadı" demek
+     * olabilir; bayrak ikisini ayırır — [seciliOdevYuklendi] ile aynı.
+     */
+    val seciliDenemeYuklendi: StateFlow<Boolean> =
+        _seciliDenemeYuklendi.asStateFlow()
+
+    /** Detay ekranının izlediği denemeyi kurar; `null` bağı koparır. */
+    fun seciliDenemeyiAyarla(id: Long?) {
+        _seciliDenemeYuklendi.value = false
+        _seciliDenemeId.value = id
+    }
+
+    /** Denemeyi siler ve [onBasarili] çağırır — ekran geri döner. */
+    fun denemeSil(id: Long, onBasarili: () -> Unit) {
+        viewModelScope.launch {
+            repository.denemeSil(id)
+            onBasarili()
+        }
+    }
+
     // ---- Dosya / fotoğraf eki ----
 
     /**

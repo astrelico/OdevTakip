@@ -121,6 +121,15 @@
     <string name="deneme_net_etiket">Net</string>
     <string name="deneme_puan">Puan %1$s</string>
 
+    <!-- Deneme sınavları: detay ekranı -->
+    <string name="deneme_detay">Deneme Detayı</string>
+    <string name="deneme_bulunamadi">Bu deneme bulunamadı.</string>
+    <string name="deneme_etiket_tarih">Sınav tarihi</string>
+    <string name="deneme_etiket_dogru">Doğru</string>
+    <string name="deneme_etiket_yanlis">Yanlış</string>
+    <string name="deneme_puan_etiket">Puan</string>
+    <string name="deneme_sil_onay_baslik">Deneme silinsin mi?</string>
+
     <!-- Genel -->
     <string name="geri">Geri</string>
     <string name="geri_al">Geri al</string>

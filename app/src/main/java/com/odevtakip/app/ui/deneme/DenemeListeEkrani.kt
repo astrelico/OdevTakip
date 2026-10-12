@@ -52,11 +52,13 @@ import com.odevtakip.app.ui.UstBar
  * olur.
  *
  * @param viewModel Denemeleri [OdevViewModel.denemeler] akışından alır.
+ * @param onDenemeSec Karta dokununca açılacak detay sayfası.
  * @param onGeri Üst bardaki geri düğmesi; menüye döner.
  */
 @Composable
 fun DenemeListeEkrani(
     viewModel: OdevViewModel,
+    onDenemeSec: (Long) -> Unit,
     onGeri: () -> Unit,
 ) {
     val denemeler by viewModel.denemeler.collectAsStateWithLifecycle()
@@ -111,6 +113,7 @@ fun DenemeListeEkrani(
                     items(denemeler, key = { it.id }) { deneme ->
                         DenemeKarti(
                             deneme = deneme,
+                            onSec = { onDenemeSec(deneme.id) },
                             // Kayıt silinince kart yeni sırasına kayarak
                             // animasyonla çıkar; liste "ani" kesilmez.
                             modifier = Modifier.animateItem(),
