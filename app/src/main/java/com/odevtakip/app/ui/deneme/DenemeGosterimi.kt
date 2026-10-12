@@ -1,5 +1,9 @@
 package com.odevtakip.app.ui.deneme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.odevtakip.app.R
+import com.odevtakip.app.data.DenemeTuru
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -63,3 +67,18 @@ fun ondalikCoz(metin: String): Double? {
 /** Metni kırpıp boşsa `null` verir; çözümleyicilerin ortak ön adımı. */
 private fun kirpilmis(metin: String): String? =
     metin.trim().takeIf { it.isNotEmpty() }
+
+// ---- Tür etiketi ----
+
+/**
+ * Denemenin türünü kısa etiketine çevirir: `"TYT"` / `"AYT"`.
+ *
+ * Metinler kaynaktan değil kaynak dosyadan gelir; [DenemeTuru]'nun adı
+ * ise yalnızca veritabanındaki anahtardır. Kart, detay ve form aynı
+ * işlevi paylaştığı için iki ekranda aynı söz asla yazılmaz.
+ */
+@Composable
+fun turEtiketi(tur: DenemeTuru): String = when (tur) {
+    DenemeTuru.TYT -> stringResource(R.string.deneme_tur_tyt)
+    DenemeTuru.AYT -> stringResource(R.string.deneme_tur_ayt)
+}

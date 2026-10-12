@@ -6,6 +6,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -17,9 +18,11 @@ import org.junit.runner.RunWith
  * **Neden var:** migration yanlış yazıldığında hata hemen fırlamaz. Room
  * migration sonrası şemayı karşılaştırır ve uyuşmazsa açılışta patlar; ama
  * uyuşsa bile **yanlış tablo** kurulmuş olabilir (ör. `NOT NULL` eksik
- * kolon → kullanıcı ilk kaydı atınca çökme). Bu test, gerçek bir v4
- * veritabanı açıp 5'e taşıyıp **içeriği de** okuyarak ikisini birden
- * kapatır.
+ * kolon → kullanıcı ilk kaydı atınca çökme). Bu test, gerçek bir v4 ya da
+ * v5 veritabanı açıp güncel sürüme taşıyıp **içeriği de** okuyarak ikisini
+ * birden kapatır. İki geçiş de ayrıca sıralanmıştır: 4 → 5 tabloyu
+ * açar, 5 → 6 onu TYT/AYT biçimine geçirir (ve eski deneme satırlarını
+ * bilerek siler).
  *
  * Şema JSON'ları `app/schemas/` altındadır ve androidTest asset'ine
  * kaynak olarak eklenmiştir (bkz. `app/build.gradle.kts`).
@@ -151,6 +154,112 @@ class MigrationTest {
             ).use { imlec ->
                 assertTrue(imlec.moveToFirst())
                 assertEquals(3, imlec.getInt(0))
+            }
+        }
+    }
+
+    // ---- Sürüm 5 → 6: TYT / AYT denemeleri ----
+
+    /**
+     * v5 tablolarını kurar ve **eski biçimde** bir deneme yazar.
+     *
+     * Yazılan satır bilerek eski şemanın bütün alanlarını kullanır
+     * (`ders`, `dogru`, `yanlis`): migration bu kaydı **silmesi**
+     * gerektiğinin kanıtı, silinen şeyin ne olduğunun da.
+     */
+    private fun v5VeritabaniOlustur(): SupportSQLiteDatabase =
+        yardimci.createDatabase(TEST_DOSYA, 5).also { db ->
+            db.execSQL(
+                "INSERT INTO odevler (baslik, aciklama, ders, sonTarih, durum, olusturmaTarihi) " +
+                    "VALUES ('Matematik 1. ünite', 'sayfa 12', 'Matematik', ?, 'BEKLIYOR', ?)",
+                arrayOf(2_000_000_000_000L, 1_700_000_000_000L),
+            )
+            db.execSQL(
+                "INSERT INTO denemeler (ad, tarih, ders, dogru, yanlis, aciklama, olusturmaTarihi) " +
+                    "VALUES ('Eski Deneme', 0, 'Matematik', 20, 4, '', 1)",
+            )
+        }
+
+    /** v5'ten 6'ya taşıyıp sonucu açık döndürür. */
+    private fun tasiVeAc6(): SupportSQLiteDatabase {
+        v5VeritabaniOlustur().close()
+        return yardimci.runMigrationsAndValidate(TEST_DOSYA, 6, true, OdevDatabase.MIGRATION_5_6)
+    }
+
+    /**
+     * Eski deneme kayıtları **silinir**.
+     *
+     * Bu, migration'ın bilerek verdiği bir kayıptır (bkz.
+     * [OdevDatabase] sürüm 6 notları): deneme tablosu hiçbir yayımlanmış
+     * sürümde yer almadı, yani gerçek kullanıcı verisi yoktur. Yeni
+     * biçimde eski kaydı "taşımak" anlamsızdı — tek ders + toplam doğru,
+     * ders bazlı bir sonuca geri dönülemez.
+     */
+    @Test
+    fun eskiDenemeKayitlariSilinir() {
+        tasiVeAc6().use { db ->
+            db.query("SELECT COUNT(*) FROM denemeler").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals(0, imlec.getInt(0))
+            }
+        }
+    }
+
+    /** Yeni kolonlar vardır, kaldırılanlar yoktur. */
+    @Test
+    fun sutunlarYeniBicimeGecer() {
+        tasiVeAc6().use { db ->
+            db.query("PRAGMA table_info(denemeler)").use { imlec ->
+                val sutunlar = mutableListOf<String>()
+                while (imlec.moveToNext()) sutunlar.add(imlec.getString(1))
+
+                assertTrue("tur kolonu eklenmeli", "tur" in sutunlar)
+                assertTrue("sonuclar kolonu eklenmeli", "sonuclar" in sutunlar)
+                assertFalse("ders kolonu kaldırılmalı", "ders" in sutunlar)
+                assertFalse("dogru kolonu kaldırılmalı", "dogru" in sutunlar)
+                assertFalse("yanlis kolonu kaldırılmalı", "yanlis" in sutunlar)
+            }
+        }
+    }
+
+    /**
+     * Denemeler dışında hiçbir tablo **okunmaz/yazılmaz**.
+     *
+     * Migration'ın `DROP` + `CREATE` yolu yalnızca `denemeler` içindir;
+     * ödev kaydı aynen kalmalıdır.
+     */
+    @Test
+    fun digerTablolarEtkilenmez() {
+        tasiVeAc6().use { db ->
+            db.query("SELECT baslik, ders FROM odevler").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals("Matematik 1. ünite", imlec.getString(0))
+                assertEquals("Matematik", imlec.getString(1))
+            }
+        }
+    }
+
+    /**
+     * Yeni şema **kullanılabilir** olmalıdır: `tur` ve `sonuclar`
+     * yazılabilir, `puan` yine isteğe bağlıdır.
+     *
+     * `sonuclar` metni [sonuclariYaz] biçimindedir — ham hâliyle
+     * yazılır ve okunur, çünkü migration testi Room'un Java katmanını
+     * değil, **tablonun kendisini** sınamaktadır.
+     */
+    @Test
+    fun yeniSemaUzerindeKayitYazilabilir() {
+        tasiVeAc6().use { db ->
+            db.execSQL(
+                "INSERT INTO denemeler (ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi) " +
+                    "VALUES ('3. TYT', 0, 'TYT', 'Türkçe=35/4;Sosyal=12/3', '', 1)",
+            )
+
+            db.query("SELECT tur, sonuclar, puan FROM denemeler").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals("TYT", imlec.getString(0))
+                assertEquals("Türkçe=35/4;Sosyal=12/3", imlec.getString(1))
+                assertTrue("puan yine NULL olabilmeli", imlec.isNull(2))
             }
         }
     }

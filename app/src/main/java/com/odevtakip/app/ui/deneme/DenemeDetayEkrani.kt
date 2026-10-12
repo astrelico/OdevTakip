@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.data.Deneme
+import com.odevtakip.app.data.DenemeTuru
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.kartCizgisi
@@ -61,25 +62,31 @@ import com.odevtakip.app.util.formatliTarih
  *
  *  - **Üst kart sonuçtur**: net ve puan yan yana. Ödev detayındaki
  *    "durum + teslim" kartının yerini denemenin tek gerçeği, net, alır.
+ *  - **Ders dağılımı kartı** durur: her ders için doğru/yanlış/boş ve
+ *    en altta "Toplam 92 / 120 soru". Formdaki satırların kayda
+ *    dönüşmüş hâlidir — hangi derste ne kaldığını tek yerde okumak,
+ *    yeniden formu açmaktan kısadır.
  *  - **Tamamlama düğmesi yoktur**: deneme bitmiştir; geri alınacak bir
  *    işaret yoktur (bkz. [Deneme]).
  *
  * Üst barda üç düğme durur: geri, **Düzenle** (formu açar) ve **Sil**
  * (onay diyaloğuyla). Sıralama bilinçlidir: geri solda, eylemler sağda;
  * sil kırmızıdır çünkü geri alınamazdır — düzenlemek ise günlük iştir.
+ * Düzenleme asla **türü değiştirmez**: form, kaydın türüyle açılır.
  *
  * Ekran [OdevViewModel.seciliDeneme] akışını izler; kayıt başka bir yerde
  * silinirse kendiliğinden "bulunamadı" durumuna düşer.
  *
  * @param denemeId Gösterilecek kaydın kimliği.
- * @param onDuzenle Üst bardaki Düzenle; form sayfasını açar.
+ * @param onDuzenle Üst bardaki Düzenle; form sayfasını açar. Tür de
+ *   birlikte verilir çünkü formun kapağı o türle açılır.
  * @param onGeri Üst bardaki geri düğmesi; listeye döner.
  */
 @Composable
 fun DenemeDetayEkrani(
     denemeId: Long,
     viewModel: OdevViewModel,
-    onDuzenle: (Long) -> Unit,
+    onDuzenle: (Long, DenemeTuru) -> Unit,
     onGeri: () -> Unit,
 ) {
     val deneme by viewModel.seciliDeneme.collectAsStateWithLifecycle()
@@ -116,7 +123,7 @@ fun DenemeDetayEkrani(
                 },
                 eylemler = {
                     if (deneme != null) {
-                        IconButton(onClick = { onDuzenle(denemeId) }) {
+                        IconButton(onClick = { onDuzenle(denemeId, deneme!!.tur) }) {
                             Icon(
                                 imageVector = Icons.Rounded.Edit,
                                 contentDescription = stringResource(R.string.duzenle),
@@ -191,9 +198,9 @@ private fun Bulunamadi(modifier: Modifier = Modifier) {
  * Detayın gövdesi.
  *
  * Sıra bilinçlidir: kullanıcı önce **sonuca** bakar (net/puan kartı),
- * sonra **kime ait** olduğuna (ad, ders), en sonda künyeye (tarih,
- * eklenme) iner. Açıklama arada durur — not, sayının hemen altında
- * okunmak ister.
+ * sonra **kime ait** olduğuna (ad, tür, ders dağılımı), en sonda künyeye
+ * (tarih, eklenme) iner. Açıklama arada durur — not, sayının hemen
+ * altında okunmak ister.
  */
 @Composable
 private fun DenemeIcerik(
@@ -214,14 +221,19 @@ private fun DenemeIcerik(
             style = MaterialTheme.typography.headlineSmall,
         )
 
-        // Ders; genel denemede etiket yoktur.
-        if (deneme.ders.isNotBlank()) {
-            Text(
-                text = deneme.ders,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+        // Tür: "TYT · 120 soru" — denemenin kaderi, formun kapağı.
+        Text(
+            text = stringResource(
+                R.string.deneme_tur_ozet,
+                turEtiketi(deneme.tur),
+                deneme.tur.toplamSoru,
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+
+        // Formdaki satırların kayda dönüşmüş hâli.
+        DagilimKarti(deneme = deneme)
 
         HorizontalDivider()
 
@@ -366,6 +378,104 @@ private fun SonucKarti(deneme: Deneme) {
                 )
             }
         }
+    }
+}
+
+// ---- Ders dağılımı ----
+
+/**
+ * Ders bazlı sonuç kartı: her satır bir ders, en altta toplam.
+ *
+ * Satırlar [Deneme.tur]'un **kendi sırasıyla** çizilir; kaydın o derste
+ * sonucu yoksa `0` görünür. "Bu derste soru çözülmemiş" ile "sonuç
+ * kaybolmuş" aynı şey değildir — birincisi sayıyla yazılır, ikincisi
+ * satır hiç çizilmezdi.
+ *
+ * "Boş", kota ile (doğru + yanlış) arasındaki farktır: kullanıcıya
+ * sınavdan ne kadar geride kaldığını söyler ve formdaki kilit ile aynı
+ * aritmetikten gelir. Elle düzenlenmiş bir kayıt kotaları aşabildiği
+ * için sayı `0`da da düşmez.
+ */
+@Composable
+private fun DagilimKarti(deneme: Deneme) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
+    ) {
+        Column {
+            Text(
+                text = stringResource(R.string.deneme_dagilim_baslik),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp),
+            )
+
+            deneme.tur.dersleri.forEach { kota ->
+                val sonuc = deneme.sonuclar.firstOrNull { it.ders == kota.ders }
+                val dogru = sonuc?.dogru ?: 0
+                val yanlis = sonuc?.yanlis ?: 0
+                DagilimSatiri(
+                    etiket = kota.ders,
+                    deger = stringResource(
+                        R.string.deneme_sonuc_bos,
+                        dogru,
+                        yanlis,
+                        (kota.soru - dogru - yanlis).coerceAtLeast(0),
+                    ),
+                )
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+            )
+
+            DagilimSatiri(
+                etiket = stringResource(R.string.deneme_toplam),
+                deger = stringResource(
+                    R.string.deneme_soru_dogrulugu,
+                    deneme.dogru + deneme.yanlis,
+                    deneme.tur.toplamSoru,
+                ),
+                vurgu = true,
+            )
+        }
+    }
+}
+
+/** Dağılım satırı: solda ders adı, sağda sayılar. */
+@Composable
+private fun DagilimSatiri(
+    etiket: String,
+    deger: String,
+    vurgu: Boolean = false,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = etiket,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (vurgu) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontWeight = if (vurgu) FontWeight.SemiBold else null,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = deger,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (vurgu) FontWeight.SemiBold else null,
+        )
     }
 }
 

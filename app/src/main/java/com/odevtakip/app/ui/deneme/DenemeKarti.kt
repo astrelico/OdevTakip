@@ -40,6 +40,10 @@ import com.odevtakip.app.util.formatliTarih
  *    ödev kartındaki durum rozetinin yerini o alır. Puan, girilmişse
  *    netin altında küçük satırda durur — ikisi aynı ağırlıkta olsaydı
  *    hangisinin asıl olduğu belirsizleşirdi.
+ *  - **Sol üstte tür etiketi durur** ("TYT" / "AYT"): denemenin hangi
+ *    formatta yapıldığı, kartın kategorisidir. Her kayıt bir tür taşır
+ *    (bkz. [Deneme.tur]) — bu yüzden etiket hiç boş kalmaz, eski
+ *    "ders seçilmedi" gizlemesinin yerini alır.
  *  - **Alt satır sonuçtur** (`45 doğru · 5 yanlış`), tarihin altındadır.
  *  - **Durum/kaydırma yoktur**: deneme bitmiştir, "tamamlanamaz";
  *    bkz. [Deneme] sınıfı.
@@ -74,19 +78,17 @@ fun DenemeKarti(
                     .weight(1f)
                     .padding(end = 8.dp),
             ) {
-                // Ders adı, ödev kartında olduğu gibi kategori etiketi
-                // olarak başlığın üstünde durur. Boşsa ("seçilmedi")
-                // çizilmez — genel denemede etiket olmaması daha doğaldır.
-                if (deneme.ders.isNotBlank()) {
-                    Text(
-                        text = deneme.ders,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    )
-                }
+                // Tür, ödev kartındaki kategori etiketi gibi başlığın
+                // üstünde durur: kartın hangi formatta olduğu tek
+                // bakışta okunur.
+                Text(
+                    text = turEtiketi(deneme.tur),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
 
                 Text(
                     text = deneme.ad,

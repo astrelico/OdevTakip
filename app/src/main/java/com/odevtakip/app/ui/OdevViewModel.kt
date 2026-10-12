@@ -9,7 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.odevtakip.app.OdevTakipApplication
 import com.odevtakip.app.data.Ders
+import com.odevtakip.app.data.DersSonucu
 import com.odevtakip.app.data.Deneme
+import com.odevtakip.app.data.DenemeTuru
 import com.odevtakip.app.data.Durum
 import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
@@ -470,18 +472,26 @@ class OdevViewModel(
     /**
      * Formu kaydeder: yeni (`denemeId <= 0`) ya da düzenlenen kayıt.
      *
+     * Doğru/yanlış **ders bazında** gelir; kaydın toplamları ve neti
+     * [Deneme] içinde bunlardan türetilir — iki ayrı alana ayrıca
+     * yazılan toplam yoktur, dolayısıyla çelişki de doğamaz.
+     *
      * `olusturmaTarihi` mevcut kayıttan korunur — düzenleme, kaydın
      * "eklenme" künyesini sıfırlamaz. `tarih` günün başına indirgenir
      * ([OdevRepository.denemeKaydet]); form öğlen kurabilir, bu yüzden
      * indirgeme burada da gereklidir.
+     *
+     * @param tur Denemenin türü; yeni kaydın ilk belirleyicisi,
+     *   düzenlemede kayıttaki değer.
+     * @param sonuclar Ders bazlı sonuçlar; sıra [DenemeTuru.dersleri] ile
+     *   aynı olmalıdır.
      */
     fun denemeFormunuKaydet(
         denemeId: Long,
+        tur: DenemeTuru,
         ad: String,
-        ders: String,
         tarih: Long,
-        dogru: Int,
-        yanlis: Int,
+        sonuclar: List<DersSonucu>,
         puan: Double?,
         aciklama: String,
         onBasarili: () -> Unit,
@@ -494,9 +504,8 @@ class OdevViewModel(
                     id = mevcut?.id ?: 0L,
                     ad = ad.trim(),
                     tarih = tarih,
-                    ders = ders.trim(),
-                    dogru = dogru,
-                    yanlis = yanlis,
+                    tur = tur,
+                    sonuclar = sonuclar,
                     puan = puan,
                     aciklama = aciklama.trim(),
                     olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),

@@ -54,6 +54,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.odevtakip.app.data.DenemeTuru
 import com.odevtakip.app.data.TemaSecenegi
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.ayarlar.AyarlarEkrani
@@ -98,7 +99,7 @@ private object Rotalar {
     const val HAKKINDA = "hakkinda"
     const val DENEMELER = "denemeler"
     const val DENEME_DETAY = "deneme/{denemeId}"
-    const val DENEME_FORM = "deneme-form/{denemeId}"
+    const val DENEME_FORM = "deneme-form/{denemeId}/{tur}"
 
     /** Yeni ödev için `odevId = -1`. */
     fun form(odevId: Long = -1L): String = "form/$odevId"
@@ -107,8 +108,16 @@ private object Rotalar {
     /** Deneme detayı; liste kartından girilir. */
     fun denemeDetay(denemeId: Long): String = "deneme/$denemeId"
 
-    /** Deneme formu; yeni kayıt için `denemeId = -1`. */
-    fun denemeForm(denemeId: Long = -1L): String = "deneme-form/$denemeId"
+    /**
+     * Deneme formu; yeni kayıt için `denemeId = -1`.
+     *
+     * **Tür yolda taşınır** çünkü formun kapağı — kaç soru, hangi dersler,
+     * hangi kotalar — o karara göredir. Düzenlemede de tür verilir (detay
+     * ekranı kayıttan okur); form rotadan alır, kaydı yükleyince
+     * kayıttakini esas alır.
+     */
+    fun denemeForm(denemeId: Long, tur: DenemeTuru): String =
+        "deneme-form/$denemeId/${tur.name}"
 
     /**
      * `kaynakId`'yi okuyup **yeni** bir ödev üreten form.
@@ -474,9 +483,9 @@ private fun OdevUygulamasi(
                                 launchSingleTop = true
                             }
                         },
-                        onEkle = {
+                        onEkle = { tur ->
                             // Çift dokunuşta form iki kez yığılmasın.
-                            navController.navigate(Rotalar.denemeForm()) {
+                            navController.navigate(Rotalar.denemeForm(-1L, tur)) {
                                 launchSingleTop = true
                             }
                         },
@@ -493,8 +502,8 @@ private fun OdevUygulamasi(
                     DenemeDetayEkrani(
                         denemeId = entry.arguments?.getLong("denemeId") ?: -1L,
                         viewModel = viewModel,
-                        onDuzenle = {
-                            navController.navigate(Rotalar.denemeForm(it)) {
+                        onDuzenle = { id, tur ->
+                            navController.navigate(Rotalar.denemeForm(id, tur)) {
                                 launchSingleTop = true
                             }
                         },
@@ -504,19 +513,24 @@ private fun OdevUygulamasi(
 
                 // Deneme formu; liste ile detayın ortak kapısıdır. Kaydet
                 // sonra ekran yığında ne varsa oraya döner (popBackStack):
-                // liste → forma → kaydet → liste, detay → düzenle → kaydet
-                // → detay. Ekranlar Flow izlediği için dönüşte veri tazedir.
+                // liste → tür seçimi → forma → kaydet → liste, detay →
+                // düzenle → kaydet → detay. Ekranlar Flow izlediği için
+                // dönüşte veri tazedir.
                 composable(
                     route = Rotalar.DENEME_FORM,
                     arguments = listOf(
                         navArgument("denemeId") {
                             type = NavType.LongType
                             defaultValue = -1L
-                        }
+                        },
+                        navArgument("tur") { type = NavType.StringType },
                     ),
                 ) { entry ->
                     DenemeFormEkrani(
                         denemeId = entry.arguments?.getLong("denemeId") ?: -1L,
+                        // Bilinmeyen bir tür değeri TYT'ye çevrilir; form
+                        // asla okunamaz bir kayıtla açılmaz.
+                        tur = DenemeTuru.guvenliDeger(entry.arguments?.getString("tur")),
                         viewModel = viewModel,
                         onGeri = { navController.popBackStack() },
                     )

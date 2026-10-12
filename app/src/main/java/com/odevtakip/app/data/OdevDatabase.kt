@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 4. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 6. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
  *
  * ### Sürüm 2 (Faz 12)
  *
@@ -42,10 +42,34 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    Yeni tablo boş gelir, doldurması kullanıcının işidir. Mevcut ödev,
  *    ders ve program kayıtları bu geçişte hiç okunmaz/yazılmaz — yalnızca
  *    yeni bir `CREATE TABLE` çalışır.
+ *
+ * ### Sürüm 6 (TYT / AYT denemeleri)
+ *
+ *  - `denemeler` **yeniden kuruldu**. Tek "ders" alanının yerini sınavın
+ *    **kendi formatı** aldı: `tur` (TYT/AYT) ve `sonuclar` (ders bazlı
+ *    doğru/yanlış). `ders` kolonu kaldırıldı — deneme artık bir dersin
+ *    değil, sınavın kaydıdır.
+ *
+ *  - `dogru` ve `yanlis` kolon olmaktan çıktı: artık [Deneme.sonuclar]'ın
+ *    toplamıdır. Tıpkı `net` gibi — iki yerdeki sayı asla çelişemesin.
+ *
+ *  - **Eski deneme kayıtları silinir.** Bu bilinçli bir karardır: deneme
+ *    tablosu hiçbir yayımlanmış sürümde yer almadı (v1.4 denemelerden önce
+ *    çıktı), yani silinen gerçek kullanıcı verisi yoktur.
+ *
+ *  - Tablo `DROP` + `CREATE` ile kurulur, `ALTER TABLE` ile değil. İki
+ *    neden: (1) eski satırlar silineceğinden taşınacak bir şey yoktur;
+ *    (2) `ALTER TABLE ... ADD COLUMN ... NOT NULL` eski satırlara `NULL`
+ *    yazamayacağı için her yeni kolona bir `DEFAULT` dayatır — yeniden
+ *    kurmak hem daha kısa hem de sonucu daha nettir. Sütun tanımları
+ *    [MIGRATION_5_6] içinde Room'un üreteceği şema ile **birebir** aynı
+ *    olmak zorundadır (bkz. [MIGRATION_4_5] notları).
+ *
+ *  - Ödev, ders ve program tabloları bu geçişte hiç okunmaz/yazılmaz.
  */
 @Database(
     entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -189,6 +213,38 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 5 → 6: denemeler TYT/AYT biçimine geçer.
+         *
+         * Tablo **düşürülüp yeniden kurulur** (bkz. sınıf açıklaması,
+         * Sürüm 6): `tur` ve `sonuclar` kolonları `NOT NULL` olduğu için
+         * `ALTER TABLE` eski satırlara yazacak bir şey bulamazdı.
+         *
+         * [MIGRATION_4_5]in `internal` olmasının nedeni (testin bunu
+         * doğrudan okuması) burada da geçerlidir: migration testi bu
+         * değeri okuyup `MigrationTestHelper`a verir.
+         *
+         * `ders`, `dogru` ve `yanlis` kolonları bilinçli olarak **yoktur**:
+         * birincisi anlamını yitirdi, ikincisi artık [Deneme.sonuclar]'ın
+         * toplamıdır.
+         */
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `denemeler`")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `denemeler` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`ad` TEXT NOT NULL, " +
+                        "`tarih` INTEGER NOT NULL, " +
+                        "`tur` TEXT NOT NULL, " +
+                        "`sonuclar` TEXT NOT NULL, " +
+                        "`puan` REAL, " +
+                        "`aciklama` TEXT NOT NULL, " +
+                        "`olusturmaTarihi` INTEGER NOT NULL)"
+                )
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -216,6 +272,7 @@ abstract class OdevDatabase : RoomDatabase() {
                         MIGRATION_2_3,
                         MIGRATION_3_4,
                         MIGRATION_4_5,
+                        MIGRATION_5_6,
                     )
                     .addCallback(ILK_OLUSTURMA)
                     .build()

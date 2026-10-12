@@ -1,16 +1,23 @@
 package com.odevtakip.app
 
 import com.odevtakip.app.data.Deneme
+import com.odevtakip.app.data.DenemeTuru
+import com.odevtakip.app.data.DersSonucu
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * [Deneme.net] hesabı ve deneme kaydının alan davranışı.
+ * [Deneme] toplamları ve alan davranışı.
  *
- * Yalnızca **saf işlevler** test edilir: `net` bir formül, kalan alanlar da
- * veri tutma davranışıdır. Ekran ve gezinme testleri yok — bkz. proje notu.
+ * Yalnızca **saf işlevler** test edilir: `dogru`, `yanlis` ve `net`
+ * formüldür, kalan alanlar veri tutma davranışıdır. Ekran ve gezinme
+ * testleri yok — bkz. proje notu.
  *
  * Dört seçenekli varsayım: `net = doğru − (yanlış ÷ 4)`.
+ *
+ * Kayıt artık ders bazlı sonuçlardan (`sonuclar`) kurulur; toplamlar
+ * ayrıca yazılmaz. Bu yüzden testlerin kurucusu, tek bir dersin
+ * sonucunu verip toplamın **ondan** türetilmesini bekler.
  */
 class DenemeTest {
 
@@ -19,7 +26,11 @@ class DenemeTest {
         yanlis: Int = 0,
         ad: String = "3. Deneme",
         tarih: Long = 0L,
-    ) = Deneme(ad = ad, tarih = tarih, dogru = dogru, yanlis = yanlis)
+    ) = Deneme(
+        ad = ad,
+        tarih = tarih,
+        sonuclar = listOf(DersSonucu(ders = "Türkçe", dogru = dogru, yanlis = yanlis)),
+    )
 
     // ---- Net hesabı ----
 
@@ -73,6 +84,35 @@ class DenemeTest {
         assertEquals(85.5, d.puan!!, 0.0)
     }
 
+    // ---- Toplamlar derslerden türetilir ----
+
+    @Test
+    fun toplamlarSonuclarinToplamidir() {
+        val d = Deneme(
+            ad = "TYT",
+            tarih = 0L,
+            sonuclar = listOf(
+                DersSonucu("Türkçe", dogru = 30, yanlis = 4),
+                DersSonucu("Sosyal", dogru = 12, yanlis = 3),
+                DersSonucu("Matematik", dogru = 28, yanlis = 6),
+                DersSonucu("Fen", dogru = 10, yanlis = 5),
+            ),
+        )
+
+        assertEquals(80, d.dogru)
+        assertEquals(18, d.yanlis)
+        assertEquals(80 - 18 / 4.0, d.net, 0.0)
+    }
+
+    @Test
+    fun sonucYoksaToplamlarSifirdir() {
+        // Boş kayıt (ör. elle oluşturulmuş) hata üretmez.
+        val d = Deneme(ad = "boş", tarih = 0L)
+        assertEquals(0, d.dogru)
+        assertEquals(0, d.yanlis)
+        assertEquals(0.0, d.net, 0.0)
+    }
+
     // ---- Varsayılan alanlar ----
 
     @Test
@@ -81,9 +121,9 @@ class DenemeTest {
     }
 
     @Test
-    fun dersBosOlabilir() {
-        // Genel denemeler tüm dersleri kapsar; boş string "seçilmedi"dir.
-        assertEquals("", deneme().ders)
+    fun turVarsayilanTytDir() {
+        // Formda tür hep seçilir; varsayılan yalnızca savunma amaçlıdır.
+        assertEquals(DenemeTuru.TYT, deneme().tur)
     }
 
     @Test

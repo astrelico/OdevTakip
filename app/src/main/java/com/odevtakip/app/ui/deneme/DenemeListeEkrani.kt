@@ -30,6 +30,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
+import com.odevtakip.app.data.DenemeTuru
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.theme.vurguGradyani
@@ -61,19 +65,29 @@ import com.odevtakip.app.ui.theme.vurguMetni
  * ödev FAB'ıyla **aynı görünümü** paylaşır — uzatılmış form, mavi degrade,
  * hap kesim: kullanıcı iki listede de aynı eylemi aynı yerde arar.
  *
+ * Düğmeye basınca önce [DenemeTurPaneli] açılır: deneme ekleme akışının
+ * ilk adımı sınavın **türünü** (TYT/AYT) seçmektir. Seçim burada
+ * alınırsa form, kilitli bir başlıkla açılır ve kullanıcı 120 soruluk bir
+ * kaydı 80 soruya taşıyamaz.
+ *
  * @param viewModel Denemeleri [OdevViewModel.denemeler] akışından alır.
  * @param onDenemeSec Karta dokununca açılacak detay sayfası.
- * @param onEkle Sağ alttaki düğme; formu açar.
+ * @param onEkle Sağ alttaki düğme; tür panelini açar, seçimle birlikte
+ *   form sayfasını çağırır.
  * @param onGeri Üst bardaki geri düğmesi; menüye döner.
  */
 @Composable
 fun DenemeListeEkrani(
     viewModel: OdevViewModel,
     onDenemeSec: (Long) -> Unit,
-    onEkle: () -> Unit,
+    onEkle: (DenemeTuru) -> Unit,
     onGeri: () -> Unit,
 ) {
     val denemeler by viewModel.denemeler.collectAsStateWithLifecycle()
+
+    // Tür seçimi, ekleme akışının ilk adımıdır: düğmeye basınca panel
+    // açılır, seçimle birlikte [onEkle] çağrılır ve panel kapanır.
+    var turSecimiGoster by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -90,7 +104,7 @@ fun DenemeListeEkrani(
             )
         },
         floatingActionButton = {
-            DenemeEkleDugmesi(onClick = onEkle)
+            DenemeEkleDugmesi(onClick = { turSecimiGoster = true })
         },
     ) { innerPadding ->
         Column(
@@ -138,6 +152,16 @@ fun DenemeListeEkrani(
                 }
             }
         }
+    }
+
+    if (turSecimiGoster) {
+        DenemeTurPaneli(
+            onSecim = { tur ->
+                turSecimiGoster = false
+                onEkle(tur)
+            },
+            onKapat = { turSecimiGoster = false },
+        )
     }
 }
 
