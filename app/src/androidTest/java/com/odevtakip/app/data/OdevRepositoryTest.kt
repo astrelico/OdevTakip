@@ -37,13 +37,14 @@ class OdevRepositoryTest {
         val baglam = ApplicationProvider.getApplicationContext<android.content.Context>()
         db = Room.inMemoryDatabaseBuilder(baglam, OdevDatabase::class.java).build()
         // `programDao` Faz 14'te, `ekDeposu` dosya eki eklendiğinde, `denemeDao`
-        // ise deneme sınavları tablosuyla geldi; test de uygulamanın kurduğu
-        // düzenin aynısını kullanır.
+        // ise deneme sınavları tablosuyla geldi; `rutinDao` da ders rutiniyle.
+        // Test de uygulamanın kurduğu düzenin aynısını kullanır.
         repo = OdevRepository(
             db.odevDao(),
             db.dersDao(),
             db.programDao(),
             db.denemeDao(),
+            db.rutinDao(),
             EkDeposu(baglam),
         )
     }

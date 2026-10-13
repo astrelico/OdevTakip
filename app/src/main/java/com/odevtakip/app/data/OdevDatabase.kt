@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 7. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 8. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
  *
  * ### Sürüm 2 (Faz 12)
  *
@@ -83,10 +83,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *
  *  - Sütun tanımları [MIGRATION_6_7] içinde [Deneme] entity'siyle **birebir**
  *    aynı olmak zorundadır (bkz. [MIGRATION_4_5] notları).
+ *
+ * ### Sürüm 8 (Ders rutini)
+ *
+ *  - `rutin_kayitlari` tablosu açıldı: bir günde bir dersin çözülen
+ *    sorularının dökümü (`tarih`, `ders`, `soru`, `dogru`, `yanlis`).
+ *    Ekran haftalık ya da aylık bakar; kaydın özü "o gün bu dersten ne
+ *    çözüldü"dür.
+ *
+ *  - **Unique indeks `(tarih, ders)`** — tablonun tek gerçek kuralı. Bir
+ *    günde bir dersten yalnızca bir satır durur; ikinci kez girilen
+ *    değer satırı **değiştirir**, ikinci satır açmaz. Böylece gün
+ *    toplamı iki katma çıkmaz.
+ *
+ *  - Yalnızca **ekleme**: mevcut hiçbir tablo okunmaz ya da yazılmaz.
+ *    `DROP`+`CREATE` gibi bir yol gerekmedi (bkz. [MIGRATION_7_8]).
  */
 @Database(
-    entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class],
-    version = 7,
+    entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class, RutinKaydi::class],
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -99,6 +114,8 @@ abstract class OdevDatabase : RoomDatabase() {
     abstract fun programDao(): ProgramDao
 
     abstract fun denemeDao(): DenemeDao
+
+    abstract fun rutinDao(): RutinDao
 
     companion object {
 
@@ -303,6 +320,46 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 7 → 8: ders rutini tablosu açılır.
+         *
+         * Yeni tablo **yalnızca eklenir**; mevcut hiçbir tablo okunmaz,
+         * yazılmaz ya da yeniden kurulmaz. Bu, migration'ların en ucuz
+         * ve en güvenli türüdür — Room da açılışta yalnızca yeni
+         * tabloyu bekler.
+         *
+         * Unique indeks bilinçlidir ve tek gerçek karardır: `(tarih,
+         * ders)` çifti bir kez bulunur. Böylece kullanıcı aynı dersi aynı
+         * gün ikinci kez girerse ayrı bir satır değil, **mevcut satır
+         * değişir** ([MIGRATION_6_7]'deki tablo yeniden kurma işi gibi
+         * veri kaybı olmaz; yalnızca bir hücre güncellenir). Kartta iki
+         * "Matematik" satırı belmez ve gün toplamı iki katma çıkmaz.
+         *
+         * [MIGRATION_5_6] ile başlayan `internal` gerekçesi burada da
+         * geçerli: migration testi bunu doğrudan okur.
+         *
+         * Sütun tanımları [RutinKaydi] entity'siyle **birebir** aynı
+         * olmalıdır — Room açılışta ikisini karşılaştırır.
+         */
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `rutin_kayitlari` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`tarih` INTEGER NOT NULL, " +
+                        "`ders` TEXT NOT NULL, " +
+                        "`soru` INTEGER NOT NULL, " +
+                        "`dogru` INTEGER NOT NULL, " +
+                        "`yanlis` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_rutin_kayitlari_tarih_ders` " +
+                        "ON `rutin_kayitlari` (`tarih`, `ders`)"
+                )
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -332,6 +389,7 @@ abstract class OdevDatabase : RoomDatabase() {
                         MIGRATION_4_5,
                         MIGRATION_5_6,
                         MIGRATION_6_7,
+                        MIGRATION_7_8,
                     )
                     .addCallback(ILK_OLUSTURMA)
                     .build()

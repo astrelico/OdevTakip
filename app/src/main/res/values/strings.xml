@@ -86,6 +86,7 @@
     <string name="menu_baslik">Menü</string>
     <string name="menu_hakkinda">Hakkında</string>
     <string name="menu_denemeler">Deneme sınavlarım</string>
+    <string name="menu_rutin">Ders Rutinim</string>
 
     <!-- Hakkında ekranı -->
     <string name="hakkinda_baslik">Hakkında</string>
@@ -151,6 +152,40 @@
     <string name="deneme_dagilim_baslik">Ders dağılımı</string>
     <string name="deneme_toplam">Toplam</string>
     <string name="deneme_soru_dogrulugu">%1$d / %2$d soru</string>
+
+    <!-- Ders rutini: ekran, gün kartı ve girdi paneli.
+         Rutin denemeden farklı olarak **sınav değildir**: her günün kendi
+         dökümü vardır, kota ya da net yoktur. Yalnızca "o gün bu dersten
+         ne çözüldü" tutulur. -->
+    <string name="rutin_baslik">Ders Rutinim</string>
+    <string name="rutin_gorunum_hafta">Haftalık</string>
+    <string name="rutin_gorunum_ay">Aylık</string>
+    <string name="rutin_onceki_donem">Önceki dönem</string>
+    <string name="rutin_sonraki_donem">Sonraki dönem</string>
+    <string name="rutin_donem_ozet">%1$d gün · %2$d soru</string>
+    <string name="rutin_donem_ozet_bos">Bu dönemde kayıt yok</string>
+    <string name="rutin_bos">Henüz çalışma kaydı yok.\nBir gün kartındaki + düğmesiyle ilk çalışmanı ekle.</string>
+    <string name="rutin_ders_yok">Kaydedilmiş dersin yok.\nAyarlar → Dersler ekranından ekleyebilirsin.</string>
+    <string name="rutin_gun_bos">Bu gün için kayıt yok</string>
+
+    <!-- Ders rutini: gün kartı -->
+    <string name="rutin_gun_etiketi">%1$s · %2$s</string>
+    <string name="rutin_soru">%1$d soru</string>
+    <string name="rutin_dogru_yanlis">%1$d doğru · %2$d yanlış</string>
+    <string name="rutin_kayit_ekle">Bu güne ders ekle</string>
+
+    <!-- Ders rutini: girdi paneli (alttan açılır) -->
+    <string name="rutin_panel_baslik">Çalışma ekle</string>
+    <string name="rutin_panel_duzenle">Çalışmayı düzenle</string>
+    <string name="rutin_etiket_ders">Ders</string>
+    <string name="rutin_etiket_soru">Toplam soru</string>
+    <string name="rutin_etiket_dogru">Doğru</string>
+    <string name="rutin_etiket_yanlis">Yanlış</string>
+    <string name="rutin_sayi_hata">0 veya daha büyük bir sayı gir</string>
+    <string name="rutin_ders_zorunlu">Önce bir ders seç</string>
+    <string name="rutin_toplam_hata">Doğru + yanlış, toplam soruyu geçemez</string>
+    <string name="rutin_kaydet">Kaydet</string>
+    <string name="rutin_sil">Bu kaydı sil</string>
 
     <!-- Genel -->
     <string name="geri">Geri</string>

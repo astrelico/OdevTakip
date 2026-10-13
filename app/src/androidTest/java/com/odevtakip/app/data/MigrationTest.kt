@@ -1,5 +1,6 @@
 package com.odevtakip.app.data
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -362,6 +363,136 @@ class MigrationTest {
                 assertTrue(imlec.moveToFirst())
                 assertEquals("Matematik 1. ünite", imlec.getString(0))
                 assertEquals("Matematik", imlec.getString(1))
+            }
+        }
+    }
+
+    // ---- Sürüm 7 → 8: ders rutini tablosu açılır ----
+
+    /**
+     * v7 tablolarını kurar ve **bir deneme** yazar.
+     *
+     * Denemenin taşınması bu geçişin asıl sözüdür: `MIGRATION_7_8`
+     * yalnızca **ekleme** yapar, mevcut hiçbir tabloya dokunmaz. Yazılan
+     * satır, geçişten sonra **aynen** durmalıdır.
+     */
+    private fun v7VeritabaniOlustur(): SupportSQLiteDatabase =
+        yardimci.createDatabase(TEST_DOSYA, 7).also { db ->
+            db.execSQL(
+                "INSERT INTO denemeler (ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi) " +
+                    "VALUES ('2. TYT', 1700000000000, 'TYT', 'Türkçe=36/3', 'iyi gitti', 77)",
+            )
+        }
+
+    /** v7'den 8'e taşıyıp sonucu açık döndürür. */
+    private fun tasiVeAc8(): SupportSQLiteDatabase {
+        v7VeritabaniOlustur().close()
+        return yardimci.runMigrationsAndValidate(TEST_DOSYA, 8, true, OdevDatabase.MIGRATION_7_8)
+    }
+
+    /**
+     * Tablo, entity'deki **sırayla** aynı sütunlarla açılır.
+     *
+     * Sıra bilerek kontrol edilir: Room açılışta şemayı karşılaştırırken
+     * sütun adlarını değil, tanımı okur. Bir sütunun yer değiştirmesi
+     * migration'ın geçerli kalmasına rağmen açılışta "şema eşleşmiyor"
+     * hatasına yol açabilirdi.
+     */
+    @Test
+    fun rutinTablosuSutunlariylaAcilir() {
+        tasiVeAc8().use { db ->
+            db.query("PRAGMA table_info(rutin_kayitlari)").use { imlec ->
+                val sutunlar = mutableListOf<String>()
+                while (imlec.moveToNext()) sutunlar.add(imlec.getString(1))
+
+                assertEquals(
+                    listOf("id", "tarih", "ders", "soru", "dogru", "yanlis"),
+                    sutunlar,
+                )
+            }
+        }
+    }
+
+    /**
+     * `(tarih, ders)` çifti **bir kez** bulunur — tablonun tek kuralı.
+     *
+     * Bu indeks olmasaydı kullanıcı aynı dersi ikinci kez girdiğinde iki
+     * satır belirir ve gün toplamı iki katma çıkardı. Kuralın
+     * veritabanında durduğu, uygulama koduna güvenilmeden burada
+     * sınanır.
+     */
+    @Test
+    fun ayniGununAyniDersiIkinciKezYazilamaz() {
+        tasiVeAc8().use { db ->
+            db.execSQL(
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) " +
+                    "VALUES (100, 'Matematik', 40, 35, 5)",
+            )
+
+            var kuralIhlali = false
+            try {
+                db.execSQL(
+                    "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) " +
+                        "VALUES (100, 'Matematik', 20, 15, 5)",
+                )
+            } catch (e: SQLiteConstraintException) {
+                kuralIhlali = true
+            }
+
+            assertTrue("aynı (gün, ders) ikinci kez yazılamaz", kuralIhlali)
+            db.query("SELECT COUNT(*) FROM rutin_kayitlari").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals(1, imlec.getInt(0))
+            }
+        }
+    }
+
+    /**
+     * Kural **yalnızca** aynı çift içindir: aynı günün farklı dersi ve
+     * aynı dersten farklı gün serbestçe yazılır.
+     *
+     * Birinci testin sınırını çizer — indeks, "bir günde tek satır"
+     * değil "bir günde bir dersten tek satır" demektir.
+     */
+    @Test
+    fun farkliDersVeFarkliGunSerbesttir() {
+        tasiVeAc8().use { db ->
+            listOf(
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) VALUES (100, 'Matematik', 40, 35, 5)",
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) VALUES (100, 'Fizik', 20, 15, 3)",
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) VALUES (200, 'Matematik', 10, 8, 2)",
+            ).forEach(db::execSQL)
+
+            db.query("SELECT COUNT(*) FROM rutin_kayitlari").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals(3, imlec.getInt(0))
+            }
+        }
+    }
+
+    /**
+     * Mevcut tablolar bu geçişte **okunmaz, yazılmaz, yeniden kurulmaz**.
+     *
+     * 5 → 6'nın satırları bilerek silmesiyle farkı tam olarak budur: burada
+     * kayıp yoktur. Yazılan deneme aynen durur ve yeni tablo baştan boştur.
+     */
+    @Test
+    fun mevcutTablolar7den8deEtkilenmez() {
+        tasiVeAc8().use { db ->
+            db.query("SELECT ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi FROM denemeler")
+                .use { imlec ->
+                    assertTrue("deneme taşınmalı", imlec.moveToFirst())
+                    assertEquals("2. TYT", imlec.getString(0))
+                    assertEquals(1700000000000L, imlec.getLong(1))
+                    assertEquals("TYT", imlec.getString(2))
+                    assertEquals("Türkçe=36/3", imlec.getString(3))
+                    assertEquals("iyi gitti", imlec.getString(4))
+                    assertEquals(77L, imlec.getLong(5))
+                }
+
+            db.query("SELECT COUNT(*) FROM rutin_kayitlari").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals("yeni tablo baştan boştur", 0, imlec.getInt(0))
             }
         }
     }

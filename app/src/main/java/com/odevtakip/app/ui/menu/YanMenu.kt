@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,11 +56,13 @@ private class MenuOgesi(
  * her açılışta yanlış bir durum söylemiş olurdu.
  *
  * @param denemelerHedefi Deneme sınavları listesini açar; menü kapanır.
+ * @param rutinHedefi Ders rutini ekranını açar; menü kapanır.
  * @param hakkindaHedefi Hakkında sayfasını açar; menü kapanır.
  */
 @Composable
 fun YanMenu(
     denemelerHedefi: () -> Unit,
+    rutinHedefi: () -> Unit,
     hakkindaHedefi: () -> Unit,
 ) {
     val renkler = MaterialTheme.colorScheme
@@ -117,6 +120,19 @@ fun YanMenu(
                         )
                     },
                     tik = denemelerHedefi,
+                ),
+                MenuOgesi(
+                    etiket = stringResource(R.string.menu_rutin),
+                    ikon = {
+                        Icon(
+                            // Yineleyen bir takvim: "rutin" sözcüğünün
+                            // görsel karşılığı tekrardır, tek seferlik bir
+                            // kayıt değil.
+                            imageVector = Icons.Outlined.EventRepeat,
+                            contentDescription = null,
+                        )
+                    },
+                    tik = rutinHedefi,
                 ),
                 MenuOgesi(
                     etiket = stringResource(R.string.menu_hakkinda),

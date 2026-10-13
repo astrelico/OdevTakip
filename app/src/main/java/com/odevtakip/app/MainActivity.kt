@@ -66,6 +66,7 @@ import com.odevtakip.app.ui.hakkinda.HakkindaEkrani
 import com.odevtakip.app.ui.deneme.DenemeListeEkrani
 import com.odevtakip.app.ui.deneme.DenemeDetayEkrani
 import com.odevtakip.app.ui.deneme.DenemeFormEkrani
+import com.odevtakip.app.ui.rutin.RutinEkrani
 import com.odevtakip.app.ui.istatistik.IstatistikEkrani
 import com.odevtakip.app.ui.liste.OdevListeEkrani
 import com.odevtakip.app.ui.menu.YanMenu
@@ -98,6 +99,7 @@ private object Rotalar {
     const val ISTATISTIK = "istatistik"
     const val HAKKINDA = "hakkinda"
     const val DENEMELER = "denemeler"
+    const val RUTIN = "rutin"
     const val DENEME_DETAY = "deneme/{denemeId}"
     const val DENEME_FORM = "deneme-form/{denemeId}/{tur}"
 
@@ -309,6 +311,7 @@ private fun OdevUygulamasi(
         drawerContent = {
             YanMenu(
                 denemelerHedefi = { menuKapatSonraGit(Rotalar.DENEMELER) },
+                rutinHedefi = { menuKapatSonraGit(Rotalar.RUTIN) },
                 hakkindaHedefi = { menuKapatSonraGit(Rotalar.HAKKINDA) },
             )
         },
@@ -489,6 +492,17 @@ private fun OdevUygulamasi(
                                 launchSingleTop = true
                             }
                         },
+                        onGeri = { navController.popBackStack() },
+                    )
+                }
+
+                // Ders rutini de yan menüden girilen bir rotadır ve
+                // deneme listesiyle aynı davranır: yığına itilir, geri
+                // tuşu menüye döner. Formu yoktur — ekleme ve düzenleme
+                // ekranın içindeki alt panelde yapılır.
+                composable(Rotalar.RUTIN) {
+                    RutinEkrani(
+                        viewModel = viewModel,
                         onGeri = { navController.popBackStack() },
                     )
                 }

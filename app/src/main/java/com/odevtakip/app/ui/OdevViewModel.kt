@@ -17,13 +17,21 @@ import com.odevtakip.app.data.HaftaGunu
 import com.odevtakip.app.data.Odev
 import com.odevtakip.app.data.OdevRepository
 import com.odevtakip.app.data.ProgramSatiri
+import com.odevtakip.app.data.RutinDonemDurumu
+import com.odevtakip.app.data.RutinGorunumu
+import com.odevtakip.app.data.RutinKaydi
 import com.odevtakip.app.data.TakvimGorunumu
 import com.odevtakip.app.data.Tercihler
+import com.odevtakip.app.data.donemOzetiniHesapla
+import com.odevtakip.app.data.haftaninIlkGunu
+import com.odevtakip.app.data.haftaninSonGunu
+import com.odevtakip.app.util.gunBaslangici
 import com.odevtakip.app.util.yerelTarih
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -509,6 +517,146 @@ class OdevViewModel(
                     olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),
                 )
             )
+            onBasarili()
+        }
+    }
+
+    // ---- Ders rutini ----
+
+    /** Rutin ekranının biçimi; bkz. [RutinGorunumu]. */
+    private val _rutinGorunumu = MutableStateFlow(RutinGorunumu.HAFTA)
+    val rutinGorunumu: StateFlow<RutinGorunumu> = _rutinGorunumu.asStateFlow()
+
+    /**
+     * Rutin ekranının seçili günü — **çapa**.
+     *
+     * Hem haftanın hem ayın dayanağıdır: hafta onun haftası, ay onun
+     * ayıdır. [seciliGun] ile aynı tek-örnek gerekçe — kullanıcı biçimi
+     * değiştirip döndüğünde seçtiği gün kaybolmasın.
+     */
+    private val _rutinGunu = MutableStateFlow(LocalDate.now())
+    val rutinGunu: StateFlow<LocalDate> = _rutinGunu.asStateFlow()
+
+    /**
+     * Aylık biçimde **görünen** ay.
+     *
+     * [rutinGunu] ile ayrı tutulması [seciliAy] ile aynı sebepten: ayda
+     * gezerken seçili gün o ayda olmayabilir (Ekim'de 31 seçilir, sonraki
+     * aya geçilir). Ama ikisi hiçbir zaman kopmaz — bkz. [rutiniKaydir].
+     */
+    private val _rutinAyi = MutableStateFlow(YearMonth.from(LocalDate.now()))
+    val rutinAyi: StateFlow<YearMonth> = _rutinAyi.asStateFlow()
+
+    /**
+     * Ekranın izlediği **dönem**: biçimle birlikte belirlenen aralık.
+     *
+     * Üç akışın birleşimidir: biçim, hangi aralığın veritabanından
+     * isteneceğini söyler. Aylık biçim ayın tamamını, haftalık biçim
+     * haftanın yedi gününü ister — ikisi de seçili **günü** kapsar, bu
+     * yüzden biçim değişiminde seçili gün hiçbir zaman aralık dışında
+     * kalmaz.
+     */
+    private val rutinAraligi: Flow<Pair<LocalDate, LocalDate>> = combine(
+        _rutinGorunumu,
+        _rutinGunu,
+        _rutinAyi,
+    ) { gorunum, gun, ay ->
+        when (gorunum) {
+            RutinGorunumu.HAFTA -> haftaninIlkGunu(gun) to haftaninSonGunu(gun)
+            RutinGorunumu.AY -> ay.atDay(1) to ay.atEndOfMonth()
+        }
+    }
+
+    /**
+     * Dönemin rutin kayıtları **ve** özeti.
+     *
+     * Tek akıştır: [RutinDonemDurumu] ikisini birden taşıdığı için kart
+     * satırları ile baloncuklar hep aynı sorgudan beslenir. Sorgu yalnızca
+     * dönemin **aralığını** çeker — bütün geçmişi değil. Bu, kayıtlar
+     * arttıkça ekranı yavaşlatmaz ve ileride "en uzun seri" gibi bir
+     * özet eklenecekse arkasındaki veri zaten elde olur.
+     */
+    val rutinDonemi: StateFlow<RutinDonemDurumu> = rutinAraligi
+        .flatMapLatest { (ilk, son) ->
+            // Bitiş günü **dâhil** istenir: "ayın 30'u" kaydı ay
+            // özetinde görünmelidir. Yarı açık aralık DAO'nun imzası.
+            repository
+                .rutinAraligi(ilk.gunBaslangici(), son.plusDays(1).gunBaslangici())
+                .map { kayitlar ->
+                    RutinDonemDurumu(
+                        kayitlar = kayitlar,
+                        ozet = donemOzetiniHesapla(kayitlar, ilk, son),
+                    )
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RutinDonemDurumu.BOS)
+
+    /** Rutin ekranının biçimini değiştirir. */
+    fun rutinGorunumunuAyarla(gorunum: RutinGorunumu) {
+        _rutinGorunumu.value = gorunum
+    }
+
+    /**
+     * Rutin ekranının seçili gününü kurar.
+     *
+     * Ay da günle birlikte taşınır: seçilen gün başka bir aydaysa
+     * aylık biçim o aya geçer, yani vurgulanan gün ile çizilen ay
+     * hiçbir zaman birbirinden ayrılmaz.
+     */
+    fun rutinGununuAyarla(gun: LocalDate) {
+        _rutinGunu.value = gun
+        _rutinAyi.value = YearMonth.from(gun)
+    }
+
+    /**
+     * Gösterilen dönemi kaydırır — haftada ±1 hafta, ayda ±1 ay.
+     *
+     * Seçili gün de dönemle taşınır. Aksi hâlde vurgulanan gün
+     * görünen dönemin içinde kalmazdı (Ekim'de durup aya Kasım'a
+     * geçince liste Kasım'ı, vurgu Ekim'i gösterirdi).
+     *
+     * Ay sınırında seçili gün kırpılır: 31 Ocak'ta Şubat'a geçilince
+     * seçim 28 Şubat olur — [LocalDate.with] ayın son gününe
+     * kendiliğinden iner.
+     */
+    fun rutiniKaydir(adim: Int) {
+        when (_rutinGorunumu.value) {
+            RutinGorunumu.HAFTA ->
+                rutinGununuAyarla(_rutinGunu.value.plusDays(adim * 7L))
+
+            RutinGorunumu.AY -> {
+                val yeniAy = _rutinAyi.value.plusMonths(adim.toLong())
+                _rutinAyi.value = yeniAy
+                _rutinGunu.value = _rutinGunu.value.with(yeniAy)
+            }
+        }
+    }
+
+    /** Rutin ekranını bugüne döndürür. */
+    fun rutinBugununuAyarla() {
+        rutinGununuAyarla(LocalDate.now())
+    }
+
+    /**
+     * Rutin kaydını ekler ya da var olanı günceller.
+     *
+     * Aynı `(gün, ders)` çiftini tutan ikinci bir satır **açılmaz** —
+     * tablonun unique indeksi bunu engeller ve repo `REPLACE` ile
+     * mevcut satırı değiştirir. Bu yüzden bu işlev hem "ekle" hem
+     * "düzenle"dir; panel hangisi olduğunu bilmez, yalnızca kimliği
+     * verir (yeni kayıtta `0`).
+     */
+    fun rutinKaydiniYaz(kaydi: RutinKaydi, onBasarili: () -> Unit) {
+        viewModelScope.launch {
+            repository.rutinKaydiniYaz(kaydi)
+            onBasarili()
+        }
+    }
+
+    /** Rutin kaydını kimliğiyle siler. */
+    fun rutinKaydiniSil(id: Long, onBasarili: () -> Unit) {
+        viewModelScope.launch {
+            repository.rutinKaydiniSil(id)
             onBasarili()
         }
     }

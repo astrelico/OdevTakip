@@ -24,6 +24,7 @@ class OdevRepository(
     private val dersDao: DersDao,
     private val programDao: ProgramDao,
     private val denemeDao: DenemeDao,
+    private val rutinDao: RutinDao,
     private val ekDeposu: EkDeposu,
 ) {
 
@@ -187,6 +188,42 @@ class OdevRepository(
 
     /** Denemeyi kimliğiyle siler. */
     suspend fun denemeSil(id: Long): Int = denemeDao.kimlikleSil(id)
+
+    // ---- Ders rutini ----
+
+    /**
+     * Bir dönemden (hafta/ay) rutin kayıtlarını yayınlar.
+     *
+     * Aralık **gün başlangıcı** millisidir: `[baslangic, bitis)` yarı
+     * açık tutulur ki bitiş gününün kayıtları döneme **girmesin** —
+     * "ayın 30'u" ile "ayın 1'i" yan yana gelmesin.
+     */
+    fun rutinAraligi(baslangic: Long, bitis: Long): Flow<List<RutinKaydi>> =
+        rutinDao.araligiIzle(baslangic, bitis)
+
+    /** Bir günün bir dersini bir kez okur; yoksa `null`. */
+    suspend fun rutinDersiniAl(tarih: Long, ders: String): RutinKaydi? =
+        rutinDao.gununDersiniAl(tarih, ders)
+
+    /**
+     * Rutin kaydını ekler ya da var olanı günceller.
+     *
+     * Unique indeks `(tarih, ders)` olduğundan [rutinDao.kaydet]'teki
+     * `REPLACE` stratejisi aynı günün aynı dersini **sessizce değiştirir**
+     * — kartta iki "Matematik" satırı belmez, gün toplamı iki katma
+     * çıkmaz.
+     *
+     * Tarih [com.odevtakip.app.data.OdevRepository.denemeKaydet] ile aynı
+     * yoldan, cihazın saat diliminde günün başına indirgenir.
+     */
+    suspend fun rutinKaydiniYaz(kaydi: RutinKaydi): Long =
+        rutinDao.kaydet(kaydi.copy(tarih = kaydi.tarih.yerelTarih().gunBaslangici()))
+
+    /** Rutin kaydını kimliğiyle siler. */
+    suspend fun rutinKaydiniSil(id: Long): Int = rutinDao.kimlikleSil(id)
+
+    /** Bir günün bütün rutin kayıtlarını siler. */
+    suspend fun rutinGununuSil(tarih: Long): Int = rutinDao.gunuSil(tarih)
 
     // ---- Okuma ----
 
