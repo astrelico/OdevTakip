@@ -5,6 +5,54 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
+## [1.5] - 2026-10-13
+
+### Eklendi
+
+- **Deneme sınavları** — Alt menüden açılan yeni bir bölüm: TYT ve AYT
+  denemelerini ders ders kaydetmek için. Üç ekran taşır:
+  - **Liste** — her kayıt tür etiketi, ad, tarih, doğru/yanlış ve büyük
+    net rakamıyla bir kartta durur. Yeni ekleme sağ alttaki düğmeden.
+  - **Detay** — üstte net, altında her dersin doğru/yanlış/boş dökümü ve
+    en altta "Toplam N / N soru".
+  - **Form** — ekleme ve düzenleme tek ekranda; kaydet düğmesi formun
+    sonunda tam genişliktedir.
+- **Hamburger menü ve yan menü** — Sol üstte yeni bir çizim; "Deneme
+  sınavlarım" ve "Hakkında" burada durur. Ana gezinme alttaki dört
+  sekmeyle aynen sürer.
+- **Kilitli soru kotaları** — Deneme formunda her dersin soru sayısı
+  ÖSYM'nin kotasıyla kilitli: TYT 120 (Türkçe 40, Sosyal 20, Matematik
+  40, Fen 20), AYT sayısal 80 (Matematik 40, Fizik 14, Kimya 13,
+  Biyoloji 13). Girdi aşıldığında satır kırmızıya döner ve kayıt
+  engellenir. Kotalar tek kaynaktan gelir — ekranda elle yazılmış ikinci
+  bir kopya yoktur.
+- **TYT Sosyal ve Fen alt dal girişi** — Bu iki ders tek satır değil,
+  **başlıktır**: asıl girdi altlarındaki Tarih / Coğrafya / Felsefe /
+  Din Kültürü ve Fizik / Kimya / Biyoloji satırlarıdır. Ana dersin
+  toplamı bu satırlardan hesaplanır, iki yerde aynı sayı tutulmaz.
+  Detay ekranında ana dallar kalın ve öne çıkarken alt dallar
+  girintili ve sönüktür — hangisinin toplam olduğu bakışta anlaşılır.
+
+### Değişti
+
+- **Deneme kaydı yalnızca sorular ve netlerden oluşur.** Toplam doğru,
+  yanlış ve net ders sonuçlarından hesaplanır; ayrıca girilmez, dolayısıyla
+  iki yer arasındaki tutarsızlık doğamaz. Net dört seçenekli varsayımla
+  (doğru − yanlış ÷ 4) her okumada yeniden türetilir.
+
+### Düzeltildi
+
+- **Üç alıcıdaki `PendingResult.finish()` NPE'si giderildi** — Gün
+  değişimi, widget güncelleme ve bildirim/widget hızlı tamamla
+  alıcılarının üçünde de `finish()` artık null güvenli. Üretimde bu
+  null gelmezdi, ama aynı desen üç yerde tekrar ediyordu ve hepsi aynı
+  riski taşıyordu. Hızlı tamamla için NPE olsaydı ödül işi yarım kalır,
+  kullanıcı bildirim düğmesine yeniden basamazdı.
+- **Bir WorkManager testindeki durum yarışı** — Test, var olan bir işin
+  `ENQUEUED → RUNNING` geçişine yakalanıp "durum değişti" diye
+  düşüyordu. Ölçüt kimliğe çevrildi: iş tetiklense bile yeni bir UUID
+  alır, kimlik değişimi bunu tam yakalar.
+
 ## [1.4] - 2026-10-11
 
 ### Eklendi
@@ -201,6 +249,7 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 
 [keep-a-changelog]: https://keepachangelog.com/tr/1.1.0/
 [semver]: https://semver.org/lang/tr/
+[1.5]: https://github.com/astrelico/OdevTakip/releases/tag/v1.5
 [1.4]: https://github.com/astrelico/OdevTakip/releases/tag/v1.4
 [1.3]: https://github.com/astrelico/OdevTakip/releases/tag/v1.3
 [1.2]: https://github.com/astrelico/OdevTakip/releases/tag/v1.2

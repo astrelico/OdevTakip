@@ -121,6 +121,17 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   az 30 dakikada bir haber verir ve bu aralık geciken sayacını taze tutmaya
   yetmez. Widget'ı launcher şişirdiği için renkler XML'e kopyalanmış tema
   tonlarıdır ve sistem koyu temasını izler
+- **Deneme sınavları** — Yan menüden açılan ayrı bir bölüm: TYT ve AYT
+  denemelerini **ders ders** kaydedin. Liste, detay ve form ekranı taşır.
+  Her dersin soru sayısı **ÖSYM kotasıyla kilitlidir** (TYT 120: Türkçe
+  40, Sosyal 20, Matematik 40, Fen 20; AYT sayısal 80: Matematik 40,
+  Fizik 14, Kimya 13, Biyoloji 13); girdi aşıldığında satır kırmızıya
+  döner ve kayıt engellenir. Kotalar tek kaynaktan gelir, ekranda ikinci
+  bir kopya yoktur. TYT'nin **Sosyal** ve **Fen** satırları yalnızca
+  başlıktır — asıl girdi altlarındaki Tarih / Coğrafya / Felsefe /
+  Din Kültürü ve Fizik / Kimya / Biyoloji satırlarıdır, ana dersin toplamı
+  bunlardan hesaplanır. Kayıt yalnızca sorular ve netlerden oluşur: toplam
+  doğru / yanlış / net derslerden türetilir, ayrıca girilmez
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
   ve teslim öncesi hatırlatmalar
@@ -201,6 +212,7 @@ app/src/main/java/com/odevtakip/app/
     ├── OdevKarti.kt         # liste/takvim ekranlarının ortak kartı
     ├── liste/  takvim/  form/  detay/  ayarlar/
     ├── dersler/           # ders seçim paneli + ders ekle-değiştir ekranı
+    ├── deneme/            # deneme sınavları: liste / detay / form ekranları
     ├── program/           # haftalık ders programı: gün çipleri + ders saatleri
     └── theme/               # Odak Mavisi paleti (açık/koyu)
 ```
