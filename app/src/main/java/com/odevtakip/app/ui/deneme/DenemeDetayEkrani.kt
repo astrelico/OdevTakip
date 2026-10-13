@@ -47,6 +47,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.data.Deneme
 import com.odevtakip.app.data.DenemeTuru
+import com.odevtakip.app.data.kotaAltSonuclari
+import com.odevtakip.app.data.kotaSonucu
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.kartCizgisi
@@ -391,6 +393,17 @@ private fun SonucKarti(deneme: Deneme) {
  * kaybolmuş" aynı şey değildir — birincisi sayıyla yazılır, ikincisi
  * satır hiç çizilmezdi.
  *
+ * **Okuma hiyerarşisi** bilinçlidir, kullanıcı istediği budur: en belirgin
+ * satır **ana dallar**dır (Sosyal, Fen — toplamlarıyla), onların altında
+ * **alt testler** (Tarih, Fizik …) girintili, soluk ve küçük satırlarda
+ * durur. Kullanıcı önce "Sosyal 12/3"ü okur, ayrıntı isterse altındakilere
+ * iner; tersi olsaydı dört alt satır ana dalı gölgede bırakırdı.
+ *
+ * Ana dalın sonucu [kotaSonucu] ile bulunur: kayıt yaprak biçimindeyse alt
+ * testler toplanır, eski biçimdeyse Sosyal'ın kendisi okunur. Alt satırlar
+ * yalnızca yaprak kaydı **varken** çizilir ([kotaAltSonuclari]) — eski
+ * kayıtta alt testlerin sıfırla görünmesi, kaydın eski bütünlüğünü ezerdi.
+ *
  * "Boş", kota ile (doğru + yanlış) arasındaki farktır: kullanıcıya
  * sınavdan ne kadar geride kaldığını söyler ve formdaki kilit ile aynı
  * aritmetikten gelir. Elle düzenlenmiş bir kayıt kotaları aşabildiği
@@ -416,18 +429,32 @@ private fun DagilimKarti(deneme: Deneme) {
             )
 
             deneme.tur.dersleri.forEach { kota ->
-                val sonuc = deneme.sonuclar.firstOrNull { it.ders == kota.ders }
-                val dogru = sonuc?.dogru ?: 0
-                val yanlis = sonuc?.yanlis ?: 0
+                val sonuc = kotaSonucu(kota, deneme.sonuclar)
                 DagilimSatiri(
                     etiket = kota.ders,
                     deger = stringResource(
                         R.string.deneme_sonuc_bos,
-                        dogru,
-                        yanlis,
-                        (kota.soru - dogru - yanlis).coerceAtLeast(0),
+                        sonuc.dogru,
+                        sonuc.yanlis,
+                        (kota.soru - sonuc.dogru - sonuc.yanlis).coerceAtLeast(0),
                     ),
                 )
+
+                // Alt testler: ana dalın altında soluk satırlar. Sıra
+                // kota sırasıdır — formda girilen sırayla aynı okunur.
+                kotaAltSonuclari(kota, deneme.sonuclar)?.forEach { alt ->
+                    DagilimSatiri(
+                        etiket = alt.ders,
+                        deger = stringResource(
+                            R.string.deneme_sonuc_bos,
+                            alt.dogru,
+                            alt.yanlis,
+                            (kota.altlar.first { it.ders == alt.ders }.soru -
+                                alt.dogru - alt.yanlis).coerceAtLeast(0),
+                        ),
+                        altDal = true,
+                    )
+                }
             }
 
             HorizontalDivider(
@@ -447,33 +474,58 @@ private fun DagilimKarti(deneme: Deneme) {
     }
 }
 
-/** Dağılım satırı: solda ders adı, sağda sayılar. */
+/**
+ * Dağılım satırı: solda ders adı, sağda sayılar.
+ *
+ * Üç kademe — okuma sırası da bu: **toplam** (SemiBold, tam renk),
+ * **ana dal** (normal ağırlık, tam renk), **alt dal** (küçük, soluk,
+ * girintili). Alt dalın değeri de soluktur: ayrıntı, ana daldan daha
+ * sessiz olmalıdır.
+ */
 @Composable
 private fun DagilimSatiri(
     etiket: String,
     deger: String,
     vurgu: Boolean = false,
+    altDal: Boolean = false,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(
+                start = if (altDal) 32.dp else 16.dp,
+                end = 16.dp,
+                top = if (altDal) 4.dp else 10.dp,
+                bottom = if (altDal) 4.dp else 10.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = etiket,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (vurgu) {
-                MaterialTheme.colorScheme.onSurface
+            style = if (altDal) {
+                MaterialTheme.typography.bodySmall
             } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+                MaterialTheme.typography.bodyMedium
+            },
+            color = when {
+                vurgu || !altDal -> MaterialTheme.colorScheme.onSurface
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
             },
             fontWeight = if (vurgu) FontWeight.SemiBold else null,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = deger,
-            style = MaterialTheme.typography.bodyMedium,
+            style = if (altDal) {
+                MaterialTheme.typography.bodySmall
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+            color = if (altDal) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
             fontWeight = if (vurgu) FontWeight.SemiBold else null,
         )
     }

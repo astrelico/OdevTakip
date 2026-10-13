@@ -483,8 +483,8 @@ class OdevViewModel(
      *
      * @param tur Denemenin türü; yeni kaydın ilk belirleyicisi,
      *   düzenlemede kayıttaki değer.
-     * @param sonuclar Ders bazlı sonuçlar; sıra [DenemeTuru.dersleri] ile
-     *   aynı olmalıdır.
+     * @param sonuclar Ders bazlı sonuçlar; sıra [DenemeTuru.yapraklar] ile
+     *   aynı olmalıdır — bölünmüş dersler alt testleriyle girilir.
      */
     fun denemeFormunuKaydet(
         denemeId: Long,

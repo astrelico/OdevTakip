@@ -27,9 +27,11 @@ import androidx.room.PrimaryKey
  * @property tur Sınavın formatı (TYT/AYT); ders listesini ve soru
  *   kotalarını belirler. Ekleme anında seçilir ve **değiştirilemez** —
  *   120 soruluk bir formun kaydı, 80 soruya taşınamaz.
- * @property sonuclar Ders bazlı doğru/yanlış; sıra [DenemeTuru.dersleri]
- *   ile aynıdır. Veritabanında tek satırlık metin olarak saklanır
- *   (bkz. [sonuclariYaz]).
+ * @property sonuclar Ders bazlı doğru/yanlış; sıra
+ *   [DenemeTuru.yapraklar] ile aynıdır. Bölünmüş dersler (Sosyal, Fen)
+ *   **alt testleriyle** saklanır — Sosyal'un toplamı dört alt testin
+ *   toplamıdır, ayrıca yazılmaz (bkz. [kotaSonucu]). Veritabanında tek
+ *   satırlık metin olarak saklanır (bkz. [sonuclariYaz]).
  * @property puan Öğrencinin girdiği puan; girilmediyse `null`. Okul
  *   puanlarıyla standart puan farklı olduğundan **hesaplanmaz**, kullanıcının
  *   yazdığı değer olduğu gibi korunur.

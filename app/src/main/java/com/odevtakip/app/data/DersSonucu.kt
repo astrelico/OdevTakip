@@ -11,7 +11,7 @@ package com.odevtakip.app.data
  * Veritabanında [sonuclariYaz] ile tek satırlık bir metne, okunurken
  * [sonuclariCoz] ile geriye çevrilir (bkz. [Converters]).
  *
- * @property ders Dersin adı; [DenemeTuru.dersleri]deki adla **aynı**
+ * @property ders Dersin adı; [DenemeTuru.yapraklar]daki adla **aynı**
  *   yazımda olmalıdır — eşleşme ad üzerinden yapılır.
  */
 data class DersSonucu(
@@ -21,13 +21,18 @@ data class DersSonucu(
 )
 
 /**
- * Sonuçları tek metne yazar: `"Türkçe=35/4;Sosyal=12/3"`.
+ * Sonuçları tek metne yazar:
+ * `"Türkçe=35/4;Tarih=3/1;Coğrafya=4/1;…"` (sıra [DenemeTuru.yapraklar]).
  *
  * Biçim bilinçli olarak yalındır. Ders adları [DenemeTuru]daki kendi
  * sabitlerimizdir; hiçbirinde `;`, `=` ya da `/` bulunmaz — bu yüzden
  * kaçışlamaya, ayraç seçmeye ya da üçüncü bir kütüphaneye gerek yoktur.
  * Ayracın seçimi de okunabilir: kaydı ham metin hâlinde gören biri
  * (`sqlite3` ile bakarken bile) ne yazıldığını anında çözebilir.
+ *
+ * Biçim ayrıca **eski kayıtlarla uyumludur**: ana ders düzeyinde yazılmış
+ * eski satırlar (`Sosyal=12/3`) aynen çözülür; okuma çözümü ana dal
+ * düzeyinde de yapabilir (bkz. [kotaSonucu]).
  *
  * Sıra korunur: yazılan sıra, okunan sıradır ve bu, formdaki satır
  * sırasıyla kayıtların eşleşmesini sağlar.

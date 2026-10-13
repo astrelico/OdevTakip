@@ -87,6 +87,83 @@ class DenemeTuruTest {
         assertNull(DenemeTuru.TYT.dersleri.first { it.ders == "Türkçe" }.altDagilim)
     }
 
+    // ---- Yapraklar (girdi satırları) ----
+
+    @Test
+    fun tytYapraklariSiraIleDurur() {
+        // Form ve kayıt bu sırayı izler: bölünmemiş ders tek satır,
+        // bölünmüş dersler alt testleriyle.
+        assertEquals(
+            listOf(
+                "Türkçe",
+                "Tarih", "Coğrafya", "Felsefe", "Din Kültürü",
+                "Matematik",
+                "Fizik", "Kimya", "Biyoloji",
+            ),
+            DenemeTuru.TYT.yapraklar.map { it.ders },
+        )
+    }
+
+    @Test
+    fun aytYapraklariDersleriIleAynidir() {
+        // AYT'de bölünme yok: girdi satırları ile dersler aynıdır.
+        assertEquals(
+            DenemeTuru.AYT.dersleri.map { it.ders },
+            DenemeTuru.AYT.yapraklar.map { it.ders },
+        )
+    }
+
+    @Test
+    fun yaprakKotalariToplamSoruIleEsittir() {
+        // Girdi satırları kilitli kotaların tek kaynağıdır: satırların
+        // soru sayısı toplanıp sınav toplamına eşit olmalıdır — yoksa
+        // form, "120 soru" derken satırlar başka türlü toplanırdı.
+        DenemeTuru.entries.forEach { tur ->
+            assertEquals(
+                "${tur.name}: yaprak kotaları toplamı",
+                tur.toplamSoru,
+                tur.yapraklar.sumOf { it.soru },
+            )
+        }
+    }
+
+    @Test
+    fun altKotalarAnaKotayaEsittir() {
+        // Sosyal 20 = 5+5+5+5, Fen 20 = 7+7+6. Ana başlıktaki
+        // göstergenin satırlarla çelişmemesi bu eşitliğe bağlı.
+        val sosyal = DenemeTuru.TYT.dersleri.first { it.ders == "Sosyal" }
+        val fen = DenemeTuru.TYT.dersleri.first { it.ders == "Fen" }
+
+        assertEquals(sosyal.soru, sosyal.altlar.sumOf { it.soru })
+        assertEquals(fen.soru, fen.altlar.sumOf { it.soru })
+    }
+
+    @Test
+    fun kotaAraliklariYapraklarlaEslesir() {
+        // Aralıklar bitişik ve sıralıdır; form "bu başlık şu satırların
+        // toplamıdır" derken bu aralığı kullanır.
+        assertEquals(
+            listOf(0..0, 1..4, 5..5, 6..8),
+            DenemeTuru.TYT.kotaAraliklari,
+        )
+        assertEquals(
+            listOf(0..0, 1..1, 2..2, 3..3),
+            DenemeTuru.AYT.kotaAraliklari,
+        )
+
+        // Her aralık, ilgili kotaların yaprak sayısına birebir uymalı.
+        DenemeTuru.entries.forEach { tur ->
+            tur.dersleri.forEachIndexed { i, kota ->
+                val beklenen = kota.altlar.size.coerceAtLeast(1)
+                assertEquals(
+                    "${tur.name}/${kota.ders}: aralık genişliği",
+                    beklenen,
+                    tur.kotaAraliklari[i].count(),
+                )
+            }
+        }
+    }
+
     // ---- AYT kotaları ----
 
     @Test

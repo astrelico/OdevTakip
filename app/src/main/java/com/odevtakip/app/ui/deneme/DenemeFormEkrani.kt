@@ -81,6 +81,11 @@ private const val GUN_MS = 86_400_000L
  *    Türkçe satırı 40 soruyu, AYT'de Fizik satırı 14 soruyu aşamaz
  *    ([DersKotasi.asildiMi]). Kotalar ve toplam **kaynaktan** gelir;
  *    ekranda elle yazılmış ikinci bir kopya yoktur.
+ *  - **Bölünmüş dersler alt testleriyle girilir.** TYT'nin Sosyal ve
+ *    Fen satırları yalnızca **başlıktır**; asıl girdi satırları altlarında
+ *    duran Tarih/Coğrafya/… (Fizik/Kimya/…) satırlarıdır. Ana dersin
+ *    toplamı bu satırlardan hesaplanır, iki yerde aynı sayı tutulmaz
+ *    (bkz. [DenemeTuru.yapraklar]).
  *  - **Toplam ayrıca girilmez.** Doğru, yanlış ve net satırlardan
  *    hesaplanır; kaydın toplamları da [com.odevtakip.app.data.Deneme]
  *    içinde derslerden türetilir.
@@ -101,27 +106,31 @@ fun DenemeFormEkrani(
     onGeri: () -> Unit,
 ) {
     val duzenleme = denemeId > 0L
-    val kotalar = tur.dersleri
-    val kotaSayisi = kotalar.size
+    val yapraklar = tur.yapraklar
+    val yaprakSayisi = yapraklar.size
+    // Her ana dersin yaprakları [yapraklar]'daki yeri; başlık göstergesi
+    // ve alt satırlar bu aralıktan beslenir.
+    val kotaAraliklari = tur.kotaAraliklari
 
     var ad by rememberSaveable { mutableStateOf("") }
     var aciklama by rememberSaveable { mutableStateOf("") }
     var tarihMillis by rememberSaveable { mutableStateOf(baslangicTarihi()) }
     var puanMetin by rememberSaveable { mutableStateOf("") }
 
-    // Ders başına iki metin alanı. Liste boyutu türle birlikte sabittir
-    // (her iki türde de ders vardır); "boş metin" o derste soru
-    // çözülmemesi demektir (bkz. tamSayiCoz).
-    var dogruMetinleri by rememberSaveable { mutableStateOf(List(kotaSayisi) { "" }) }
-    var yanlisMetinleri by rememberSaveable { mutableStateOf(List(kotaSayisi) { "" }) }
+    // Yaprak başına iki metin alanı. Liste boyutu türle birlikte sabittir
+    // (TYT'de dokuz: dört ana ders + beş alt test satırı değil — Sosyal'un
+    // dördü, Fen'in üçü); "boş metin" o satırda soru çözülmemesi demektir
+    // (bkz. tamSayiCoz).
+    var dogruMetinleri by rememberSaveable { mutableStateOf(List(yaprakSayisi) { "" }) }
+    var yanlisMetinleri by rememberSaveable { mutableStateOf(List(yaprakSayisi) { "" }) }
 
     // Hatalar da liste hâlinde: her satır kendi hatasını taşır. Kota
     // aşımı ise **durum değildir** — anlık değerlerden hesaplanır, bkz.
-    // [kotaAsimlari].
+    // [yaprakAsimlari].
     var adHatasi by rememberSaveable { mutableStateOf(false) }
     var puanHatasi by rememberSaveable { mutableStateOf(false) }
-    var dogruHatalari by rememberSaveable { mutableStateOf(List(kotaSayisi) { false }) }
-    var yanlisHatalari by rememberSaveable { mutableStateOf(List(kotaSayisi) { false }) }
+    var dogruHatalari by rememberSaveable { mutableStateOf(List(yaprakSayisi) { false }) }
+    var yanlisHatalari by rememberSaveable { mutableStateOf(List(yaprakSayisi) { false }) }
 
     var tarihDialogGoster by remember { mutableStateOf(false) }
 
@@ -135,25 +144,29 @@ fun DenemeFormEkrani(
             tarihMillis = deneme.tarih
             puanMetin = deneme.puan?.let(::sayiMetni).orEmpty()
             // 0, boş yazılır: forma "0" basmak değil, boş bırakmak
-            // "bu derste soru çözmedim" demenin doğal yoludur.
-            dogruMetinleri = kotalar.map { kota ->
-                metinOl(deneme.sonuclar.firstOrNull { it.ders == kota.ders }?.dogru)
+            // "bu satırda soru çözmedim" demenin doğal yoludur. Yaprak
+            // adları tekildir (Tarih yalnız TYT'de vardır) — eşleşme
+            // yaprak üzerinden yapılır.
+            dogruMetinleri = yapraklar.map { yaprak ->
+                metinOl(deneme.sonuclar.firstOrNull { it.ders == yaprak.ders }?.dogru)
             }
-            yanlisMetinleri = kotalar.map { kota ->
-                metinOl(deneme.sonuclar.firstOrNull { it.ders == kota.ders }?.yanlis)
+            yanlisMetinleri = yapraklar.map { yaprak ->
+                metinOl(deneme.sonuclar.firstOrNull { it.ders == yaprak.ders }?.yanlis)
             }
         }
     }
 
-    // Satırlardaki anlık değerler: başlıktaki "12 / 40" göstergesi, canlı
+    // Satırlardaki anlık değerler: başlıktaki "15 / 20" göstergesi, canlı
     // toplam ve **kota aşımı** bunlardan beslenir. Aşım ayrıca saklanmaz —
-    // yazarken de görünür, kaydetmeye gerek yoktur.
+    // yazarken de görünür, kaydetmeye gerek yoktur. Kota aşımı yaprak
+    // seviyesinde kontrol edilir (Tarih 6/0 olamaz); ana dersin toplamı
+    // zaten yaprakların toplamı olduğu için ayrıca sınanmaz.
     val dogruSayilari = dogruMetinleri.map { tamSayiCoz(it) }
     val yanlisSayilari = yanlisMetinleri.map { tamSayiCoz(it) }
-    val kotaAsimlari = kotalar.indices.map { i ->
+    val yaprakAsimlari = yapraklar.indices.map { i ->
         val d = dogruSayilari[i]
         val y = yanlisSayilari[i]
-        d != null && y != null && kotalar[i].asildiMi(d, y)
+        d != null && y != null && yapraklar[i].asildiMi(d, y)
     }
     val toplamDogru = dogruSayilari.sumOf { it ?: 0 }
     val toplamYanlis = yanlisSayilari.sumOf { it ?: 0 }
@@ -162,7 +175,7 @@ fun DenemeFormEkrani(
         adHatasi = ad.isBlank()
 
         // Çözümleme tek yerde: sayılmayan giriş (null) satır hatası,
-        // kota aşımı ise kaydı durduran koşuldur (bkz. [kotaAsimlari]).
+        // kota aşımı ise kaydı durduran koşuldur (bkz. [yaprakAsimlari]).
         val dogru = dogruMetinleri.map { tamSayiCoz(it) }
         val yanlis = yanlisMetinleri.map { tamSayiCoz(it) }
         dogruHatalari = dogru.map { it == null }
@@ -175,17 +188,20 @@ fun DenemeFormEkrani(
             puanHatasi ||
             dogruHatalari.any { it } ||
             yanlisHatalari.any { it } ||
-            kotaAsimlari.any { it }
+            yaprakAsimlari.any { it }
         if (engelVar) return
 
+        // Kayıt yalnızca yaprakları taşır: Sosyal'un toplamı dört alt
+        // testin, Fen'in üç alt testin toplamıdır ve ayrıca yazılmaz
+        // (bkz. [Deneme.dogru]).
         viewModel.denemeFormunuKaydet(
             denemeId = denemeId,
             tur = tur,
             ad = ad,
             tarih = tarihMillis,
-            sonuclar = kotalar.indices.map { i ->
+            sonuclar = yapraklar.indices.map { i ->
                 DersSonucu(
-                    ders = kotalar[i].ders,
+                    ders = yapraklar[i].ders,
                     dogru = dogru[i] ?: 0,
                     yanlis = yanlis[i] ?: 0,
                 )
@@ -255,27 +271,58 @@ fun DenemeFormEkrani(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            kotalar.indices.forEach { i ->
-                DersSatiri(
-                    kota = kotalar[i],
-                    dogruMetin = dogruMetinleri[i],
-                    yanlisMetin = yanlisMetinleri[i],
-                    onDogruDegisim = { yeni ->
-                        dogruMetinleri = dogruMetinleri.koy(i, yeni)
-                        if (tamSayiCoz(yeni) != null) {
-                            dogruHatalari = dogruHatalari.koy(i, false)
-                        }
-                    },
-                    onYanlisDegisim = { yeni ->
-                        yanlisMetinleri = yanlisMetinleri.koy(i, yeni)
-                        if (tamSayiCoz(yeni) != null) {
-                            yanlisHatalari = yanlisHatalari.koy(i, false)
-                        }
-                    },
-                    dogruHatasi = dogruHatalari[i],
-                    yanlisHatasi = yanlisHatalari[i],
-                    kotaAsildi = kotaAsimlari[i],
-                )
+            // Satırlar: bölünmemiş ders tek başına; bölünmüş ders
+            // (Sosyal, Fen) belirgin bir ana başlık + altında alt test
+            // satırları. Ana başlık **tıklanamaz** — yalnızca toplamı
+            // gösterir; girdi hep alt satırlardan girilir ki iki yerde
+            // aynı sayı tutulmasın.
+            tur.dersleri.forEachIndexed { sira, kota ->
+                val aralik = kotaAraliklari[sira]
+                if (kota.altlar.isEmpty()) {
+                    val i = aralik.first
+                    DersSatiri(
+                        kota = kota,
+                        dogruMetin = dogruMetinleri[i],
+                        yanlisMetin = yanlisMetinleri[i],
+                        onDogruDegisim = { yeni ->
+                            dogruMetinleri = dogruMetinleri.koy(i, yeni)
+                            if (tamSayiCoz(yeni) != null) {
+                                dogruHatalari = dogruHatalari.koy(i, false)
+                            }
+                        },
+                        onYanlisDegisim = { yeni ->
+                            yanlisMetinleri = yanlisMetinleri.koy(i, yeni)
+                            if (tamSayiCoz(yeni) != null) {
+                                yanlisHatalari = yanlisHatalari.koy(i, false)
+                            }
+                        },
+                        dogruHatasi = dogruHatalari[i],
+                        yanlisHatasi = yanlisHatalari[i],
+                        kotaAsildi = yaprakAsimlari[i],
+                    )
+                } else {
+                    BolumDersi(
+                        kota = kota,
+                        yaprakIndicesi = aralik.first,
+                        dogruMetinleri = dogruMetinleri,
+                        yanlisMetinleri = yanlisMetinleri,
+                        dogruHatalari = dogruHatalari,
+                        yanlisHatalari = yanlisHatalari,
+                        yaprakAsimlari = yaprakAsimlari,
+                        onDogruDegisim = { i, yeni ->
+                            dogruMetinleri = dogruMetinleri.koy(i, yeni)
+                            if (tamSayiCoz(yeni) != null) {
+                                dogruHatalari = dogruHatalari.koy(i, false)
+                            }
+                        },
+                        onYanlisDegisim = { i, yeni ->
+                            yanlisMetinleri = yanlisMetinleri.koy(i, yeni)
+                            if (tamSayiCoz(yeni) != null) {
+                                yanlisHatalari = yanlisHatalari.koy(i, false)
+                            }
+                        },
+                    )
+                }
             }
 
             ToplamSatiri(
@@ -403,7 +450,7 @@ private fun TurKarti(tur: DenemeTuru) {
 // ---- Ders satırı ----
 
 /**
- * Tek dersin sonucu: ad + anlık kota, alt test bilgisi, doğru/yanlış.
+ * Tek dersin sonucu: ad + anlık kota, doğru/yanlış.
  *
  * Satırın sağ üstünde **"cevaplanan / kota"** göstergesi durur: kullanıcı
  * yazarken "Türkçe 39 / 40" gibi ilerler ve sınırı gözle takip eder. Kota
@@ -411,9 +458,9 @@ private fun TurKarti(tur: DenemeTuru) {
  * uyarı kırmızıya döner ve kaydetme durur — sayı klavyesi sınırı
  * zorlamayı engellemez, engelleyen şey bu kuraldır.
  *
- * Alt test dağılımı yalnızca tanımlıysa çizilir: TYT'nin Sosyal ve Fen
- * satırları "Tarih 5 · Coğrafya 5 …" gibi bir cümle taşır; Türkçe'de
- * bölünme olmadığı için satır sade kalır.
+ * Bu satır **bölünmemiş** dersler içindir (Türkçe, Matematik, AYT
+ * dersleri). Bölünmüş derslerin (Sosyal, Fen) girdisi [BolumDersi]
+ * üzerinden alt test satırlarına dağılır.
  */
 @Composable
 private fun DersSatiri(
@@ -429,59 +476,20 @@ private fun DersSatiri(
     val cevaplanan = (tamSayiCoz(dogruMetin) ?: 0) + (tamSayiCoz(yanlisMetin) ?: 0)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = kota.ders,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = stringResource(R.string.deneme_kota, cevaplanan, kota.soru),
-                style = MaterialTheme.typography.titleSmall,
-                color = if (kotaAsildi) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-        }
+        SatirBasligi(
+            ad = kota.ders,
+            gosterge = stringResource(R.string.deneme_kota, cevaplanan, kota.soru),
+            asildi = kotaAsildi,
+        )
 
-        if (kota.altDagilim != null) {
-            Text(
-                text = kota.altDagilim,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        // Doğru/yanlış yan yana: ikisi tek cevap anahtarının iki yüzüdür.
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Alan(
-                deger = dogruMetin,
-                onDegisim = onDogruDegisim,
-                etiket = stringResource(R.string.deneme_etiket_dogru),
-                ipucu = "0",
-                hata = if (dogruHatasi) stringResource(R.string.deneme_sayi_hata) else null,
-                tekSatir = true,
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next,
-                modifier = Modifier.weight(1f),
-            )
-            Alan(
-                deger = yanlisMetin,
-                onDegisim = onYanlisDegisim,
-                etiket = stringResource(R.string.deneme_etiket_yanlis),
-                ipucu = "0",
-                hata = if (yanlisHatasi) stringResource(R.string.deneme_sayi_hata) else null,
-                tekSatir = true,
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        DogruYanlisAlanlari(
+            dogruMetin = dogruMetin,
+            yanlisMetin = yanlisMetin,
+            onDogruDegisim = onDogruDegisim,
+            onYanlisDegisim = onYanlisDegisim,
+            dogruHatasi = dogruHatasi,
+            yanlisHatasi = yanlisHatasi,
+        )
 
         if (kotaAsildi) {
             Text(
@@ -490,6 +498,225 @@ private fun DersSatiri(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+    }
+}
+
+/**
+ * Bölünmüş bir ana ders (Sosyal, Fen): **belirgin başlık** + alt test
+ * satırları.
+ *
+ * Hiyerarşi bilinçlidir: ana ders başlığı kalın ve tam renkte durur,
+ * altında kendi kotasıyla ("15 / 20") toplamı gösterir; alt testler
+ * (Tarih, Coğrafya …) girintili, soluk ve ince satırlardır. Kullanıcı
+ * önce ana dala bakar, ayrıntıya inmek isterse indirilmiş satırlara iner
+ * — istediğimiz okuma sırası budur.
+ *
+ * Ana başlıkta ayrıca alt testlerin resmî kotası da yazılır
+ * ("Tarih 5 · Coğrafya 5 …") — sayılar [DersKotasi.altlar]'dan gelir.
+ *
+ * Önemli: ana dersin toplamı **burada girilmez**; yaprak satırların
+ * toplamıdır (bkz. [DenemeTuru.yapraklar]). Kota aşımı da yaprak
+ * seviyesinde denenir — "Tarih 6/0" yazıldığında kırmızı Tarih satırında
+ * görünür ve kaydet durur.
+ */
+@Composable
+private fun BolumDersi(
+    kota: DersKotasi,
+    yaprakIndicesi: Int,
+    dogruMetinleri: List<String>,
+    yanlisMetinleri: List<String>,
+    dogruHatalari: List<Boolean>,
+    yanlisHatalari: List<Boolean>,
+    yaprakAsimlari: List<Boolean>,
+    onDogruDegisim: (Int, String) -> Unit,
+    onYanlisDegisim: (Int, String) -> Unit,
+) {
+    val yapraklar = kota.altlar
+    val ilk = yaprakIndicesi
+    val toplamDogru = (0 until yapraklar.size).sumOf {
+        tamSayiCoz(dogruMetinleri[ilk + it]) ?: 0
+    }
+    val toplamYanlis = (0 until yapraklar.size).sumOf {
+        tamSayiCoz(yanlisMetinleri[ilk + it]) ?: 0
+    }
+    val cevaplanan = toplamDogru + toplamYanlis
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Ana başlık: ad + toplam göstergesi. Kota aşımı normalde
+        // yaprakta yakalanır (yaprak kotaları ana kotaya toplanır);
+        // başlık da aynı kuralı sınar ki yazarken görülen sayı ile
+        // uyarı asla ayrışmasın.
+        SatirBasligi(
+            ad = kota.ders,
+            gosterge = stringResource(R.string.deneme_kota, cevaplanan, kota.soru),
+            asildi = kota.asildiMi(toplamDogru, toplamYanlis),
+            anaDers = true,
+        )
+        Text(
+            text = kota.altDagilim.orEmpty(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        // Alt testler: girintili, soluk satırlar.
+        Column(
+            modifier = Modifier.padding(start = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            yapraklar.forEachIndexed { j, alt ->
+                val i = ilk + j
+                AltDersSatiri(
+                    kota = alt,
+                    dogruMetin = dogruMetinleri[i],
+                    yanlisMetin = yanlisMetinleri[i],
+                    onDogruDegisim = { onDogruDegisim(i, it) },
+                    onYanlisDegisim = { onYanlisDegisim(i, it) },
+                    dogruHatasi = dogruHatalari[i],
+                    yanlisHatasi = yanlisHatalari[i],
+                    kotaAsildi = yaprakAsimlari[i],
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Alt test satırı (Tarih, Fizik …): ad + anlık kota + doğru/yanlış.
+ *
+ * [DersSatiri] ile aynı aritmetiği taşır; fark yalnızca **görünümde**:
+ * başlık ince ve soluk, uyarı satırı yoktur (ana ders adı zaten
+ * üstte başlıkta durur, hata "Tarih: en fazla 5 soru" der).
+ */
+@Composable
+private fun AltDersSatiri(
+    kota: DersKotasi,
+    dogruMetin: String,
+    yanlisMetin: String,
+    onDogruDegisim: (String) -> Unit,
+    onYanlisDegisim: (String) -> Unit,
+    dogruHatasi: Boolean,
+    yanlisHatasi: Boolean,
+    kotaAsildi: Boolean,
+) {
+    val cevaplanan = (tamSayiCoz(dogruMetin) ?: 0) + (tamSayiCoz(yanlisMetin) ?: 0)
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SatirBasligi(
+            ad = kota.ders,
+            gosterge = stringResource(R.string.deneme_kota, cevaplanan, kota.soru),
+            asildi = kotaAsildi,
+            altDers = true,
+        )
+
+        DogruYanlisAlanlari(
+            dogruMetin = dogruMetin,
+            yanlisMetin = yanlisMetin,
+            onDogruDegisim = onDogruDegisim,
+            onYanlisDegisim = onYanlisDegisim,
+            dogruHatasi = dogruHatasi,
+            yanlisHatasi = yanlisHatasi,
+        )
+
+        if (kotaAsildi) {
+            Text(
+                text = stringResource(R.string.deneme_kota_hata, kota.ders, kota.soru),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+/**
+ * Satır başlığı: ders adı + "cevaplanan / kota" göstergesi.
+ *
+ * Üç kademe vardır: **ana ders** (Sosyal, Fen — titleMedium, kalın),
+ * normal ders (Türkçe, AYT dersleri — titleSmall) ve **alt test**
+ * (Tarih — bodyMedium, soluk). Kademe, formun okuma hiyerarşisidir:
+ * ana dal her zaman en belirgin olandır.
+ */
+@Composable
+private fun SatirBasligi(
+    ad: String,
+    gosterge: String,
+    asildi: Boolean,
+    anaDers: Boolean = false,
+    altDers: Boolean = false,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = ad,
+            style = when {
+                anaDers -> MaterialTheme.typography.titleMedium
+                altDers -> MaterialTheme.typography.bodyMedium
+                else -> MaterialTheme.typography.titleSmall
+            },
+            fontWeight = if (anaDers) FontWeight.SemiBold else null,
+            color = if (altDers) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = gosterge,
+            style = when {
+                altDers -> MaterialTheme.typography.bodySmall
+                else -> MaterialTheme.typography.titleSmall
+            },
+            fontWeight = if (anaDers) FontWeight.SemiBold else null,
+            color = when {
+                asildi -> MaterialTheme.colorScheme.error
+                altDers -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+    }
+}
+
+/**
+ * Doğru/yanlış alanları: ikisi tek cevap anahtarının iki yüzüdür.
+ *
+ * Hem normal hem alt test satırlarında aynı alanlar kullanılır — girdi
+ * rahatlığı hiyerarşiden bağımsızdır (alt test de tam boy dokunulur
+ * alandır).
+ */
+@Composable
+private fun DogruYanlisAlanlari(
+    dogruMetin: String,
+    yanlisMetin: String,
+    onDogruDegisim: (String) -> Unit,
+    onYanlisDegisim: (String) -> Unit,
+    dogruHatasi: Boolean,
+    yanlisHatasi: Boolean,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Alan(
+            deger = dogruMetin,
+            onDegisim = onDogruDegisim,
+            etiket = stringResource(R.string.deneme_etiket_dogru),
+            ipucu = "0",
+            hata = if (dogruHatasi) stringResource(R.string.deneme_sayi_hata) else null,
+            tekSatir = true,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next,
+            modifier = Modifier.weight(1f),
+        )
+        Alan(
+            deger = yanlisMetin,
+            onDegisim = onYanlisDegisim,
+            etiket = stringResource(R.string.deneme_etiket_yanlis),
+            ipucu = "0",
+            hata = if (yanlisHatasi) stringResource(R.string.deneme_sayi_hata) else null,
+            tekSatir = true,
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Next,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
