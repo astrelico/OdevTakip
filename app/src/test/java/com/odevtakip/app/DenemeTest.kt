@@ -76,14 +76,6 @@ class DenemeTest {
         assertEquals(22.0, d.net, 0.0)
     }
 
-    @Test
-    fun netCiktiliPuanAlanindanBagimsizdir() {
-        // Puan kullanıcının girdiği değer; net ondan türetilmez.
-        val d = deneme(dogru = 30, yanlis = 4).copy(puan = 85.5)
-        assertEquals(29.0, d.net, 0.0)
-        assertEquals(85.5, d.puan!!, 0.0)
-    }
-
     // ---- Toplamlar derslerden türetilir ----
 
     @Test
@@ -114,11 +106,6 @@ class DenemeTest {
     }
 
     // ---- Varsayılan alanlar ----
-
-    @Test
-    fun puanGirilmezseNullKalir() {
-        assertEquals(null, deneme().puan)
-    }
 
     @Test
     fun turVarsayilanTytDir() {

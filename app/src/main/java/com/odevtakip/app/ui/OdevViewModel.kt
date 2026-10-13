@@ -492,7 +492,6 @@ class OdevViewModel(
         ad: String,
         tarih: Long,
         sonuclar: List<DersSonucu>,
-        puan: Double?,
         aciklama: String,
         onBasarili: () -> Unit,
     ) {
@@ -506,7 +505,6 @@ class OdevViewModel(
                     tarih = tarih,
                     tur = tur,
                     sonuclar = sonuclar,
-                    puan = puan,
                     aciklama = aciklama.trim(),
                     olusturmaTarihi = mevcut?.olusturmaTarihi ?: System.currentTimeMillis(),
                 )

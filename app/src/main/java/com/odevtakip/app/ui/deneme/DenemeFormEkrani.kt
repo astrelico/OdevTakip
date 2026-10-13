@@ -89,6 +89,8 @@ private const val GUN_MS = 86_400_000L
  *  - **Toplam ayrıca girilmez.** Doğru, yanlış ve net satırlardan
  *    hesaplanır; kaydın toplamları da [com.odevtakip.app.data.Deneme]
  *    içinde derslerden türetilir.
+ *  - **Puan alanı yoktur.** Form yalnızca **sorular ve netler** ister;
+ *    okul puanı gibi bir türev değer kayda girilmez (bkz. [Deneme]).
  *  - **Tür formun başında kilitli karttır**: kullanıcı denemeyi hangi
  *    formatta kaydettiğini açar açmaz görür. Değiştirilemez — 120
  *    soruluk bir formun kaydı 80 soruya taşınamaz.
@@ -115,7 +117,6 @@ fun DenemeFormEkrani(
     var ad by rememberSaveable { mutableStateOf("") }
     var aciklama by rememberSaveable { mutableStateOf("") }
     var tarihMillis by rememberSaveable { mutableStateOf(baslangicTarihi()) }
-    var puanMetin by rememberSaveable { mutableStateOf("") }
 
     // Yaprak başına iki metin alanı. Liste boyutu türle birlikte sabittir
     // (TYT'de dokuz: dört ana ders + beş alt test satırı değil — Sosyal'un
@@ -128,7 +129,6 @@ fun DenemeFormEkrani(
     // aşımı ise **durum değildir** — anlık değerlerden hesaplanır, bkz.
     // [yaprakAsimlari].
     var adHatasi by rememberSaveable { mutableStateOf(false) }
-    var puanHatasi by rememberSaveable { mutableStateOf(false) }
     var dogruHatalari by rememberSaveable { mutableStateOf(List(yaprakSayisi) { false }) }
     var yanlisHatalari by rememberSaveable { mutableStateOf(List(yaprakSayisi) { false }) }
 
@@ -142,7 +142,6 @@ fun DenemeFormEkrani(
             ad = deneme.ad
             aciklama = deneme.aciklama
             tarihMillis = deneme.tarih
-            puanMetin = deneme.puan?.let(::sayiMetni).orEmpty()
             // 0, boş yazılır: forma "0" basmak değil, boş bırakmak
             // "bu satırda soru çözmedim" demenin doğal yoludur. Yaprak
             // adları tekildir (Tarih yalnız TYT'de vardır) — eşleşme
@@ -181,11 +180,7 @@ fun DenemeFormEkrani(
         dogruHatalari = dogru.map { it == null }
         yanlisHatalari = yanlis.map { it == null }
 
-        val puan = ondalikCoz(puanMetin)
-        puanHatasi = puan == null && puanMetin.isNotBlank()
-
         val engelVar = adHatasi ||
-            puanHatasi ||
             dogruHatalari.any { it } ||
             yanlisHatalari.any { it } ||
             yaprakAsimlari.any { it }
@@ -206,7 +201,6 @@ fun DenemeFormEkrani(
                     yanlis = yanlis[i] ?: 0,
                 )
             },
-            puan = puan,
             aciklama = aciklama,
             onBasarili = onGeri,
         )
@@ -329,20 +323,6 @@ fun DenemeFormEkrani(
                 dogru = toplamDogru,
                 yanlis = toplamYanlis,
                 net = toplamDogru - toplamYanlis / 4.0,
-            )
-
-            Alan(
-                deger = puanMetin,
-                onDegisim = {
-                    puanMetin = it
-                    if (ondalikCoz(it) != null || it.isBlank()) puanHatasi = false
-                },
-                etiket = stringResource(R.string.deneme_puan_etiket),
-                ipucu = stringResource(R.string.deneme_puan_ipucu),
-                hata = if (puanHatasi) stringResource(R.string.deneme_puan_hata) else null,
-                tekSatir = true,
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next,
             )
 
             Alan(

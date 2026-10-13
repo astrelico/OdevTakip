@@ -62,8 +62,10 @@ import com.odevtakip.app.util.formatliTarih
  * kaydırılabilir içerik kartları — çünkü kullanıcı iki detay ekranını da
  * aynı uygulamada kullanır. Farklar:
  *
- *  - **Üst kart sonuçtur**: net ve puan yan yana. Ödev detayındaki
- *    "durum + teslim" kartının yerini denemenin tek gerçeği, net, alır.
+ *  - **Üst kart sonuçtur**: yalnızca net, büyük ve birincil renkte. Ödev
+ *    detayındaki "durum + teslim" kartının yerini denemenin tek gerçeği,
+ *    net, alır. Puan satırı yoktur — bkz. [Deneme] (sadece sorular ve
+ *    netler kaydedilir).
  *  - **Ders dağılımı kartı** durur: her ders için doğru/yanlış/boş ve
  *    en altta "Toplam 92 / 120 soru". Formdaki satırların kayda
  *    dönüşmüş hâlidir — hangi derste ne kaldığını tek yerde okumak,
@@ -199,7 +201,7 @@ private fun Bulunamadi(modifier: Modifier = Modifier) {
 /**
  * Detayın gövdesi.
  *
- * Sıra bilinçlidir: kullanıcı önce **sonuca** bakar (net/puan kartı),
+ * Sıra bilinçlidir: kullanıcı önce **sonuca** bakar (net kartı),
  * sonra **kime ait** olduğuna (ad, tür, ders dağılımı), en sonda künyeye
  * (tarih, eklenme) iner. Açıklama arada durur — not, sayının hemen
  * altında okunmak ister.
@@ -274,12 +276,12 @@ private fun DenemeIcerik(
 }
 
 /**
- * Sonuç kartı: solda net, sağda puan; altında doğru/yanlış satırı.
+ * Sonuç kartı: üstte net, altında doğru/yanlış satırı.
  *
  * Net **birincil renkte ve büyük** yazılır — deneme ekranının tek
- * "kahraman" sayısıdır. Puan, okul puanı olduğu için ayrı durur ve
- * girilmemişse `—` ile boş bırakılır: "Puan girilmedi" yazısı, kullanıcının
- * zaten bildiği bir yokluğu tekrar anlatır.
+ * "kahraman" sayısıdır. Puan alanı bilinçli olarak **yoktur**: kaydın
+ * özü sorular ve netlerdir, kullanıcıdan gizlice eklenen bir türev
+ * değer okunacak bir şey katmaz.
  *
  * Doğru/yanlış ikonlu satır, sayının **nereden** geldiğini gösterir;
  * net formülünü bilmeyen kullanıcı da sonucu doğrular.
@@ -312,31 +314,6 @@ private fun SonucKarti(deneme: Deneme) {
                         text = sayiMetni(deneme.net),
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    Text(
-                        text = stringResource(R.string.deneme_puan_etiket),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = if (deneme.puan != null) {
-                            sayiMetni(deneme.puan)
-                        } else {
-                            "—"
-                        },
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = if (deneme.puan != null) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
                         fontWeight = FontWeight.SemiBold,
                     )
                 }

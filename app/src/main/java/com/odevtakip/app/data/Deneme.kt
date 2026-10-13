@@ -32,9 +32,6 @@ import androidx.room.PrimaryKey
  *   **alt testleriyle** saklanır — Sosyal'un toplamı dört alt testin
  *   toplamıdır, ayrıca yazılmaz (bkz. [kotaSonucu]). Veritabanında tek
  *   satırlık metin olarak saklanır (bkz. [sonuclariYaz]).
- * @property puan Öğrencinin girdiği puan; girilmediyse `null`. Okul
- *   puanlarıyla standart puan farklı olduğundan **hesaplanmaz**, kullanıcının
- *   yazdığı değer olduğu gibi korunur.
  * @property aciklama İsteğe bağlı not: "matematik kötüydü" gibi.
  */
 @Entity(tableName = "denemeler")
@@ -45,7 +42,6 @@ data class Deneme(
     val tarih: Long,
     val tur: DenemeTuru = DenemeTuru.TYT,
     val sonuclar: List<DersSonucu> = emptyList(),
-    val puan: Double? = null,
     val aciklama: String = "",
     val olusturmaTarihi: Long = System.currentTimeMillis(),
 ) {

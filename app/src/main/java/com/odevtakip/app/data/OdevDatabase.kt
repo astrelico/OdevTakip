@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 6. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 7. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
  *
  * ### Sürüm 2 (Faz 12)
  *
@@ -66,10 +66,27 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    olmak zorundadır (bkz. [MIGRATION_4_5] notları).
  *
  *  - Ödev, ders ve program tabloları bu geçişte hiç okunmaz/yazılmaz.
+ *
+ * ### Sürüm 7 (Puan alanı kaldırıldı)
+ *
+ *  - `denemeler`ten `puan` kolonu silindi. Puan alanı kullanıcı tarafından
+ *    giriliyordu ve uygulamanın asıl işi olan "sorular + netler" kaydından
+ *    bağımsız bir değeri temsil ediyordu — kaldırılarak deneme kaydı
+ *    **yalnızca sınavın kendisine** indirgendi.
+ *
+ *  - Yol, `ALTER TABLE DROP COLUMN` yerine **yeni tablo + taşı + ad
+ *    değiştirme**: `DROP COLUMN` her SQLite sürümünde bulunmaz (Android'in
+ *    SQLite'ı cihaza göre değişir). Fark [MIGRATION_5_6] ile burası
+ *    arasındaki tek önemli farktır: orada kayıtlar biçimsel olarak
+ *    taşınamazdı ve bilerek silindi; burada silinecek bir şey yok, yalnızca
+ *    `puan` atılır — **diğer bütün sütunlar aynen taşınır.**
+ *
+ *  - Sütun tanımları [MIGRATION_6_7] içinde [Deneme] entity'siyle **birebir**
+ *    aynı olmak zorundadır (bkz. [MIGRATION_4_5] notları).
  */
 @Database(
     entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -245,6 +262,47 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 6 → 7: `denemeler`ten `puan` kolonu kaldırılır.
+         *
+         * Puan, kullanıcının elle girdiği ve deneme kaydının özünden
+         * (sorular + netler) ayrı bir değerdi; artık yok. Tablo, `ALTER
+         * TABLE ... DROP COLUMN` her SQLite sürümünde bulunmadığı için
+         * **yeniden kurulur** — ama bu sefer eski kayıtlar **taşınır**:
+         * yalnızca `puan` kolonu atlanır, `id`'den `olusturmaTarihi`'ne
+         * kadar kalan her sütun aynen yazılır (bkz. sınıf açıklaması,
+         * Sürüm 7).
+         *
+         * [MIGRATION_5_6] ile aynı `internal` gerekçesi burada da geçerli:
+         * migration testi bunu doğrudan okur.
+         *
+         * Yeni tablonun sütun tanımları [Deneme] entity'siyle **birebir**
+         * aynı olmalıdır — Room açılışta ikisini karşılaştırır.
+         */
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `denemeler_yeni` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`ad` TEXT NOT NULL, " +
+                        "`tarih` INTEGER NOT NULL, " +
+                        "`tur` TEXT NOT NULL, " +
+                        "`sonuclar` TEXT NOT NULL, " +
+                        "`aciklama` TEXT NOT NULL, " +
+                        "`olusturmaTarihi` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "INSERT INTO `denemeler_yeni` " +
+                        "(`id`, `ad`, `tarih`, `tur`, `sonuclar`, `aciklama`, " +
+                        "`olusturmaTarihi`) " +
+                        "SELECT `id`, `ad`, `tarih`, `tur`, `sonuclar`, " +
+                        "`aciklama`, `olusturmaTarihi` FROM `denemeler`"
+                )
+                db.execSQL("DROP TABLE `denemeler`")
+                db.execSQL("ALTER TABLE `denemeler_yeni` RENAME TO `denemeler`")
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -273,6 +331,7 @@ abstract class OdevDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
+                        MIGRATION_6_7,
                     )
                     .addCallback(ILK_OLUSTURMA)
                     .build()

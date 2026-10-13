@@ -37,9 +37,8 @@ import com.odevtakip.app.util.formatliTarih
  * "bu kart başka şey mi?" sorusu doğar. Fark yalnızca **içeriktedir**:
  *
  *  - **Sağ sütun neti taşır.** Denemede tek bakışta bakılan değer netdir;
- *    ödev kartındaki durum rozetinin yerini o alır. Puan, girilmişse
- *    netin altında küçük satırda durur — ikisi aynı ağırlıkta olsaydı
- *    hangisinin asıl olduğu belirsizleşirdi.
+ *    ödev kartındaki durum rozetinin yerini o alır. Yanında tek başına
+ *    durur — listenin tek "sayısal" sonucudur.
  *  - **Sol üstte tür etiketi durur** ("TYT" / "AYT"): denemenin hangi
  *    formatta yapıldığı, kartın kategorisidir. Her kayıt bir tür taşır
  *    (bkz. [Deneme.tur]) — bu yüzden etiket hiç boş kalmaz, eski
@@ -143,19 +142,6 @@ fun DenemeKarti(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
-                // Puan girilmemişse satır hiç çizilmez: "Puan —" yazmak
-                // okunması gereken gereksiz bir boşluk üretir.
-                if (deneme.puan != null) {
-                    Text(
-                        text = stringResource(
-                            R.string.deneme_puan,
-                            sayiMetni(deneme.puan),
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
-                }
             }
         }
     }

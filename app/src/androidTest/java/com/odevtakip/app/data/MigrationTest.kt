@@ -20,9 +20,10 @@ import org.junit.runner.RunWith
  * uyuşsa bile **yanlış tablo** kurulmuş olabilir (ör. `NOT NULL` eksik
  * kolon → kullanıcı ilk kaydı atınca çökme). Bu test, gerçek bir v4 ya da
  * v5 veritabanı açıp güncel sürüme taşıyıp **içeriği de** okuyarak ikisini
- * birden kapatır. İki geçiş de ayrıca sıralanmıştır: 4 → 5 tabloyu
+ * birden kapatır. Üç geçiş de ayrıca sıralanmıştır: 4 → 5 tabloyu
  * açar, 5 → 6 onu TYT/AYT biçimine geçirir (ve eski deneme satırlarını
- * bilerek siler).
+ * bilerek siler), 6 → 7 `puan` kolonunu kaldırır — kaldırmadan önce
+ * diğer bütün sütunları yeni tabloya taşır.
  *
  * Şema JSON'ları `app/schemas/` altındadır ve androidTest asset'ine
  * kaynak olarak eklenmiştir (bkz. `app/build.gradle.kts`).
@@ -260,6 +261,107 @@ class MigrationTest {
                 assertEquals("TYT", imlec.getString(0))
                 assertEquals("Türkçe=35/4;Sosyal=12/3", imlec.getString(1))
                 assertTrue("puan yine NULL olabilmeli", imlec.isNull(2))
+            }
+        }
+    }
+
+    // ---- Sürüm 6 → 7: puan kolonu kaldırılır ----
+
+    /**
+     * v6 tablolarını kurar ve **puanı dolu** bir deneme yazar.
+     *
+     * Yazılan satır, v6'ya ait bütün sütunları kullanır; puan'a bir de
+     * değer verilir ki migration sonrası **kaybolup kaybolmadığı** ve
+     * kalan sütunların **taşınıp taşınmadığı** aynı testte görünsün.
+     */
+    private fun v6VeritabaniOlustur(): SupportSQLiteDatabase =
+        yardimci.createDatabase(TEST_DOSYA, 6).also { db ->
+            db.execSQL(
+                "INSERT INTO odevler (baslik, aciklama, ders, sonTarih, durum, olusturmaTarihi) " +
+                    "VALUES ('Matematik 1. ünite', 'sayfa 12', 'Matematik', ?, 'BEKLIYOR', ?)",
+                arrayOf(2_000_000_000_000L, 1_700_000_000_000L),
+            )
+            db.execSQL(
+                "INSERT INTO denemeler " +
+                    "(ad, tarih, tur, sonuclar, puan, aciklama, olusturmaTarihi) " +
+                    "VALUES ('2. TYT', 1700000000000, 'TYT', 'Türkçe=36/3;Matematik=30/5', 84.25, 'iyi gitti', 77)",
+            )
+        }
+
+    /** v6'dan 7'ye taşıyıp sonucu açık döndürür. */
+    private fun tasiVeAc7(): SupportSQLiteDatabase {
+        v6VeritabaniOlustur().close()
+        return yardimci.runMigrationsAndValidate(TEST_DOSYA, 7, true, OdevDatabase.MIGRATION_6_7)
+    }
+
+    /** `puan` kolonu tablodan tamamen kalkar; diğerleri durur. */
+    @Test
+    fun puanKolonuKaldirilir() {
+        tasiVeAc7().use { db ->
+            db.query("PRAGMA table_info(denemeler)").use { imlec ->
+                val sutunlar = mutableListOf<String>()
+                while (imlec.moveToNext()) sutunlar.add(imlec.getString(1))
+
+                assertFalse("puan kolonu kaldırılmalı", "puan" in sutunlar)
+                assertTrue("ad kalmalı", "ad" in sutunlar)
+                assertTrue("tur kalmalı", "tur" in sutunlar)
+                assertTrue("sonuclar kalmalı", "sonuclar" in sutunlar)
+                assertTrue("aciklama kalmalı", "aciklama" in sutunlar)
+                assertTrue("olusturmaTarihi kalmalı", "olusturmaTarihi" in sutunlar)
+            }
+        }
+    }
+
+    /**
+     * `puan` hariç **her sütun aynen taşınır**.
+     *
+     * Bu, 5 → 6 ile 6 → 7 arasındaki farkın kanıtıdır: orada tablo
+     * bilerek boş kurulmuştu, burada kayıp yoktur. `id`'nin de taşınması
+     * özellikle önemlidir — silinseymiş gibi görünse bile detay
+     * ekranındaki derin bağlantı o kimlikle açılır.
+     */
+    @Test
+    fun kayitlarPuanHariciAynenTasinir() {
+        tasiVeAc7().use { db ->
+            db.query(
+                "SELECT id, ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi FROM denemeler",
+            ).use { imlec ->
+                assertTrue("kayıt taşınmalı", imlec.moveToFirst())
+                assertEquals(1L, imlec.getLong(0))
+                assertEquals("2. TYT", imlec.getString(1))
+                assertEquals(1700000000000L, imlec.getLong(2))
+                assertEquals("TYT", imlec.getString(3))
+                assertEquals("Türkçe=36/3;Matematik=30/5", imlec.getString(4))
+                assertEquals("iyi gitti", imlec.getString(5))
+                assertEquals(77L, imlec.getLong(6))
+            }
+
+            // Taşınan kayıtla yeni kayıt yan yana yazılabilir; kimlik
+            // çakışması yoktur (AUTOINCREMENT devralınmış olmalı).
+            db.execSQL(
+                "INSERT INTO denemeler (ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi) " +
+                    "VALUES ('3. TYT', 0, 'TYT', '', '', 88)",
+            )
+            db.query("SELECT COUNT(*) FROM denemeler").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals(2, imlec.getInt(0))
+            }
+        }
+    }
+
+    /**
+     * Denemeler dışındaki tablolar bu geçişte de **okunmaz/yazılmaz**.
+     *
+     * `MIGRATION_6_7` yalnızca `denemeler` üzerinde dolaştığı için ödev
+     * kaydı aynen kalmalıdır.
+     */
+    @Test
+    fun digerTablolar6dan7deEtkilenmez() {
+        tasiVeAc7().use { db ->
+            db.query("SELECT baslik, ders FROM odevler").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals("Matematik 1. ünite", imlec.getString(0))
+                assertEquals("Matematik", imlec.getString(1))
             }
         }
     }
