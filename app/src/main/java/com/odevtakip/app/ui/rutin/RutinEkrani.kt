@@ -2,6 +2,7 @@
 
 package com.odevtakip.app.ui.rutin
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -472,6 +473,15 @@ private fun AylikIzgara(
  * göre ters çevrilir ki seçili günün toplamı da okunaklı kalsın.
  * Kaydı olmayan günde baloncuk **çizilmez** — soluk bir daire, "burada
  * sıfır var" der; hiçbir şey çizmemek ise "buraya bakmadım" demektir.
+ *
+ * **Bugün**, seçili olmasa bile ince bir halka ile belirginleşir: ızgarada
+ * onlarca sayı durur ve yalnızca kalın yazı, kalabalıkta kaybolur. Halka
+ * `primary`'in ince bir çizgisidir; seçili günün dolu zeminiyle
+ * çakışmaz, çünkü seçiliyken gereksizleşir.
+ *
+ * Baloncuk rengi, haftalık karttakiyle **aynı skaladan** geçer (bkz.
+ * [com.odevtakip.app.ui.rutin.RutinKarti]): iki görünüm aynı veriyi
+ * gösterdiği için aynı koyuluk diliyle konuşur.
  */
 @Composable
 private fun IzgaraHucre(
@@ -496,6 +506,13 @@ private fun IzgaraHucre(
         modifier = modifier.height(IZGARA_HUCRE),
         shape = RoundedCornerShape(12.dp),
         color = if (secili) renkler.primary else Color.Transparent,
+        // Bugünün halkası: yalnız seçili değilken çizilir. Seçili hücre
+        // zaten dolu mavi olduğu için halka orada okunmazdı.
+        border = if (bugun && !secili) {
+            BorderStroke(1.dp, renkler.primary.copy(alpha = 0.55f))
+        } else {
+            null
+        },
     ) {
         Column(
             modifier = Modifier
@@ -523,10 +540,13 @@ private fun IzgaraHucre(
                             (IZGARA_BALONCUK_EN_BUYUK - IZGARA_BALONCUK_EN_KUCUK) * oran)
                         .clip(CircleShape)
                         .background(
+                            // Aynı skala, daha geniş alfa: ızgaradaki
+                            // baloncuk karttakinden küçük olduğu için
+                            // koyuluk farkı daha da belirleyicidir.
                             if (secili) {
                                 renkler.onPrimary.copy(alpha = 0.35f + 0.35f * oran)
                             } else {
-                                renkler.primary.copy(alpha = 0.14f + 0.30f * oran)
+                                renkler.primary.copy(alpha = 0.18f + 0.77f * oran)
                             }
                         ),
                 )

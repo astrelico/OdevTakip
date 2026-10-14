@@ -2,7 +2,9 @@
 
 package com.odevtakip.app.ui.deneme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FormatQuote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -239,23 +243,12 @@ private fun DenemeIcerik(
         // Formdaki satırların kayda dönüşmüş hâli.
         DagilimKarti(deneme = deneme)
 
-        HorizontalDivider()
-
-        // Açıklama
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (deneme.aciklama.isBlank()) {
-                Text(
-                    text = stringResource(R.string.aciklama_yok),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Text(
-                    text = deneme.aciklama,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        }
+        // Açıklama, **kart** olarak çizilir: tırnak ikonu, notun sayı
+        // bloklarından farklı bir şey olduğunu — kullanıcının kendi
+        // cümlesi olduğunu — söyler. Düz metin olarak kalsaydı künye
+        // satırlarıyla aynı ağırlıkta dururdu ve göz kaydırırken
+        // "burası benim yazdığım" diye durmazdı.
+        AciklamaKarti(aciklama = deneme.aciklama)
 
         HorizontalDivider()
 
@@ -276,6 +269,68 @@ private fun DenemeIcerik(
 }
 
 /**
+ * Açıklama kartı: kullanıcının kendi cümlesi.
+ *
+ * Not, sayılardan **farklı bir nesnedir** ve öyle görünmelidir: sayılar
+ * tablodur, not ise günlüktür. Kart bu yüzden iki ayrı dille çizilir —
+ *
+ *  - Solunda tırnak ikonu durur (`FormatQuote`): metnin alıntı değil,
+ *    **kullanıcının kendi ifadesi** olduğunu söyler. İkon `primary`
+ *    rengindedir çünkü not, denemenin sayısız sonucu arasından
+ *    ayıklanmış tek insani işarettir.
+ *  - Gövde, tablo satırlarının aksine **serbest metin**tir: satır
+ *    uzunluğu değişir, çok satırlı olabilir. `bodyLarge` kullanılır —
+ *    sayılar `bodyMedium`/`labelMedium` okunduğu için not, bir kademe
+ *    büyük kalır ve gözün "burası farklı" demesi sağlanır.
+ *
+ * Not yoksa kart **çizilmez**, yalnız bir satır metin görünür. Boş bir
+ * kart, "buraya bir şey yazmamışsın" der; bu, kullanıcının hatası değil,
+ * kaydın durumudur — suçlayıcı değil bilgilendirici olmalıdır.
+ *
+ * @param aciklama Kaydın notu; boş olabilir.
+ */
+@Composable
+private fun AciklamaKarti(aciklama: String, modifier: Modifier = Modifier) {
+    if (aciklama.isBlank()) {
+        Text(
+            text = stringResource(R.string.aciklama_yok),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
+        return
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        border = kartCizgisi(),
+        elevation = kartElevasyonu(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.FormatQuote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = aciklama,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
  * Sonuç kartı: üstte net, altında doğru/yanlış satırı.
  *
  * Net **birincil renkte ve büyük** yazılır — deneme ekranının tek
@@ -284,7 +339,14 @@ private fun DenemeIcerik(
  * değer okunacak bir şey katmaz.
  *
  * Doğru/yanlış ikonlu satır, sayının **nereden** geldiğini gösterir;
- * net formülünü bilmeyen kullanıcı da sonucu doğrular.
+ * net formülünü bilmeyen kullanıcı da sonucu doğrular. Onların üstünde
+ * duran [OranSeridi] ise aynı üç sayıyı **orantısal** olarak çizer —
+ * metin "kaç tane", şerit "ne kadar temiz" der.
+ *
+ * Şerit burada **boş soruları da** taşır: detay ekranının işi ayrıntıdır
+ * ve "kaç soruya hiç dokunmadım" sorusunun yanıtı yalnız burada verilir.
+ * (Liste kartında şerit yalnız doğru/yanlış üzerinden ölçeklenir —
+ * bkz. [DenemeKarti].)
  */
 @Composable
 private fun SonucKarti(deneme: Deneme) {
@@ -318,6 +380,25 @@ private fun SonucKarti(deneme: Deneme) {
                     )
                 }
             }
+
+            // Oran şeridi: netin altında, sayının **orantısı**. Kartın
+            // kenarına dayanmaz — 16 dp içeride durur ki çerçevenin alt
+            // çizgisi gibi okunmasın, ayrı bir nesne olduğu belli olsun.
+            //
+            // Boş sayısı **kayda yazılmaz**, kota ile türetilir: soru
+            // sayısı sabittir (bkz. [DenemeTuru.toplamSoru]), geriye
+            // kalan boş olur. Elle düzenlenmiş bir kayıt kotaları
+            // aşabildiği için sayı `0`da da düşmez.
+            OranSeridi(
+                dogru = deneme.dogru,
+                yanlis = deneme.yanlis,
+                bos = (deneme.tur.toplamSoru - deneme.dogru - deneme.yanlis)
+                    .coerceAtLeast(0),
+                enKucukAgirlik = 0.015f,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+
+            Spacer(Modifier.height(12.dp))
 
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
@@ -415,6 +496,15 @@ private fun DagilimKarti(deneme: Deneme) {
                         sonuc.yanlis,
                         (kota.soru - sonuc.dogru - sonuc.yanlis).coerceAtLeast(0),
                     ),
+                    // Ana dala kendi oran şeridi çizilir: her dersin
+                    // "ne kadar temiz" olduğu metin satırının hemen
+                    // altında görsel olarak okunur. Toplam kartın
+                    // üstünde zaten global şerit taşıdığı için burada
+                    // yalnızca ana dallara çizilir — alt testler ayrı
+                    // şerit çizseydi kart görsel gürültüye boğulurdu.
+                    seritDogru = sonuc.dogru,
+                    seritYanlis = sonuc.yanlis,
+                    seritBos = (kota.soru - sonuc.dogru - sonuc.yanlis).coerceAtLeast(0),
                 )
 
                 // Alt testler: ana dalın altında soluk satırlar. Sıra
@@ -458,6 +548,17 @@ private fun DagilimKarti(deneme: Deneme) {
  * **ana dal** (normal ağırlık, tam renk), **alt dal** (küçük, soluk,
  * girintili). Alt dalın değeri de soluktur: ayrıntı, ana daldan daha
  * sessiz olmalıdır.
+ *
+ * Ana dallara **oran şeridi** çizilir ([seritDogru] verildiğinde):
+ * satırın altına inen 4 dp'lik çizgi, "Sosyal 14/6" metninin
+ * orantısını okumadan verir. Alt dallara şerit çizilmez — dört alt
+ * testin üst üste şeridi, kartı görsel gürültüye boğar; oran orada
+ * sayı olarak yeterlidir.
+ *
+ * Alt dalın soluna ayrıca **ince bir dikey çizgi** ([androidx.compose.foundation.layout.Box])
+ * çekilir: girintinin "hangi ana dala bağlı olduğu" tek bakışta
+ * anlaşılır. Çizgi yalnızca alt dalda bulunur; ana dal ona ihtiyaç
+ * duymaz, çünkü zaten kartın sol kenarına hizalıdır.
  */
 @Composable
 private fun DagilimSatiri(
@@ -465,46 +566,83 @@ private fun DagilimSatiri(
     deger: String,
     vurgu: Boolean = false,
     altDal: Boolean = false,
+    seritDogru: Int = 0,
+    seritYanlis: Int = 0,
+    seritBos: Int = 0,
 ) {
-    Row(
+    val cizgiVar = seritDogru + seritYanlis + seritBos > 0
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                start = if (altDal) 32.dp else 16.dp,
+                start = if (altDal) 28.dp else 16.dp,
                 end = 16.dp,
-                top = if (altDal) 4.dp else 10.dp,
-                bottom = if (altDal) 4.dp else 10.dp,
+                top = if (altDal) 3.dp else 10.dp,
+                bottom = if (altDal) 3.dp else if (cizgiVar) 8.dp else 10.dp,
             ),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = etiket,
-            style = if (altDal) {
-                MaterialTheme.typography.bodySmall
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            color = when {
-                vurgu || !altDal -> MaterialTheme.colorScheme.onSurface
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            fontWeight = if (vurgu) FontWeight.SemiBold else null,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = deger,
-            style = if (altDal) {
-                MaterialTheme.typography.bodySmall
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
-            color = if (altDal) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            fontWeight = if (vurgu) FontWeight.SemiBold else null,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (altDal) {
+                // Ana dala bağlayan dikey çizgi: girintinin görsel
+                // karşılığı. Çizgi ile metin arasında 10 dp bırakılır
+                // ki etiket çizgiye yapışmasın.
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(14.dp)
+                        .background(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                            RoundedCornerShape(1.dp),
+                        ),
+                )
+                Spacer(Modifier.width(10.dp))
+            }
+
+            Text(
+                text = etiket,
+                style = if (altDal) {
+                    MaterialTheme.typography.bodySmall
+                } else {
+                    MaterialTheme.typography.bodyMedium
+                },
+                color = when {
+                    vurgu || !altDal -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                fontWeight = if (vurgu) FontWeight.SemiBold else null,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = deger,
+                style = if (altDal) {
+                    MaterialTheme.typography.bodySmall
+                } else {
+                    MaterialTheme.typography.bodyMedium
+                },
+                color = if (altDal) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                fontWeight = if (vurgu) FontWeight.SemiBold else null,
+            )
+        }
+
+        if (cizgiVar) {
+            // Şerit, satırın **tam genişliğinde değil**, etiketin
+            // başladığı hizada durur: sağdaki sayı sütununu kesmez,
+            // iki sütun birbirine karışmaz.
+            OranSeridi(
+                dogru = seritDogru,
+                yanlis = seritYanlis,
+                bos = seritBos,
+                enKucukAgirlik = 0.015f,
+                modifier = Modifier
+                    .padding(top = 5.dp)
+                    .fillMaxWidth(),
+            )
+        }
     }
 }
 

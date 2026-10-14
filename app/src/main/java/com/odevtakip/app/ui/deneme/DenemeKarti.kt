@@ -39,11 +39,16 @@ import com.odevtakip.app.util.formatliTarih
  *  - **Sağ sütun neti taşır.** Denemede tek bakışta bakılan değer netdir;
  *    ödev kartındaki durum rozetinin yerini o alır. Yanında tek başına
  *    durur — listenin tek "sayısal" sonucudur.
- *  - **Sol üstte tür etiketi durur** ("TYT" / "AYT"): denemenin hangi
+ *  - **Sol üstte tür rozeti durur** ("TYT" / "AYT"): denemenin hangi
  *    formatta yapıldığı, kartın kategorisidir. Her kayıt bir tür taşır
- *    (bkz. [Deneme.tur]) — bu yüzden etiket hiç boş kalmaz, eski
- *    "ders seçilmedi" gizlemesinin yerini alır.
- *  - **Alt satır sonuçtur** (`45 doğru · 5 yanlış`), tarihin altındadır.
+ *    (bkz. [Deneme.tur]) — bu yüzden rozet hiç boş kalmaz, eski
+ *    "ders seçilmedi" gizlemesinin yerini alır. Metin değil **rozet**
+ *    çizilir (bkz. [TurRozeti]): zemini tonlu olduğundan kartın üst
+ *    satırı sayılarla yarışmaz, kategori olarak okunur.
+ *  - **Alt satır sonuçtur** (`45 doğru · 5 yanlış`), tarihin altındadır;
+ *    hemen altında **oran şeridi** (bkz. [OranSeridi]) aynı sayının
+ *    orantısını çizer. Metin sayıyı, şerit hissi verir — ikisi birbirini
+ *    tekrar etmez.
  *  - **Durum/kaydırma yoktur**: deneme bitmiştir, "tamamlanamaz";
  *    bkz. [Deneme] sınıfı.
  *
@@ -79,14 +84,12 @@ fun DenemeKarti(
             ) {
                 // Tür, ödev kartındaki kategori etiketi gibi başlığın
                 // üstünde durur: kartın hangi formatta olduğu tek
-                // bakışta okunur.
-                Text(
-                    text = turEtiketi(deneme.tur),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(bottom = 2.dp),
+                // bakışta okunur. Rozet zemini, kaydın kategorik
+                // olduğunu sayıdan önce söyler — okuma sırası
+                // "hangi tür → hangi deneme → ne sonuç" olur.
+                TurRozeti(
+                    tur = deneme.tur,
+                    modifier = Modifier.padding(bottom = 4.dp),
                 )
 
                 Text(
@@ -126,6 +129,20 @@ fun DenemeKarti(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+
+                // Oran şeridi: sayının **orantısını** taşıyan çizgi.
+                // "5 yanlış" tek başına iyi ya da kötü değildir; şeridin
+                // kırmızı tarafının ne kadar yer kapladığını görmek,
+                // judgment'ı sayıyı okumadan verir. Kartın genişliği
+                // sabit olmadığı için şerit `weight(1f)` ile sol sütuna
+                // yayılır — sağdaki net sütununa asla girmez.
+                OranSeridi(
+                    dogru = deneme.dogru,
+                    yanlis = deneme.yanlis,
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .fillMaxWidth(),
                 )
             }
 

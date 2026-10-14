@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,63 +73,122 @@ fun RutinKarti(
 ) {
     val renkler = MaterialTheme.colorScheme
     val bugun = LocalDate.now()
+    val buGunMu = gun == bugun
     val ozet = gunOzetiniHesapla(kayitlar)
     val oran = baloncukOrani(ozet.soru, enBuyukGunSoru)
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = renkler.surface),
+        // Bugün olan kart bir tık **açık** zeminde durur. Fark bilinçli
+        // olarak küçüktür: kart listede sıradan bir karttır, kutlama
+        // değildir. Amaç, kullanıcının yedi kartın içinde kaybolmaması —
+        // aradığı gün zeminin hafifçe farklı olduğunu hisseder.
+        colors = CardDefaults.cardColors(
+            containerColor = if (buGunMu) {
+                renkler.surfaceContainerLow
+            } else {
+                renkler.surface
+            },
+        ),
         border = kartCizgisi(),
         elevation = kartElevasyonu(),
     ) {
         Row(
+            // Yükseklik **içerikten** belirlenir (`IntrinsicSize.Min`) ve
+            // şerit bu yüksekliği doldurur. Şeritsiz `Row` sarmalayıcı
+            // olsaydı yükseklik zaten içerikten gelirdi; ama `fillMaxHeight`
+            // yalnızca **sınırlı** bir yükseklikte işe yarar — sarmalayıcı
+            // sınırsız verdiğinden şerit yok sayılıp sıfır kalırdı.
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .height(IntrinsicSize.Min),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    // Günün adı, bugünün rengiyle vurgulanır: yedi kartın
-                    // içinde kullanıcının nerede olduğunu tek bakışta
-                    // gösteren işaret budur.
-                    text = gun.gunUzunAdi(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (gun == bugun) renkler.primary else renkler.onSurface,
-                )
-                Text(
-                    text = gun.tarihMetni(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = renkler.onSurfaceVariant,
+            // Bugünün kartını ayıran **sol şerit**. Kartın yuvarlatılmış
+            // köşesi Compose tarafından kesilir — şerit kartın kendi
+            // gövdesine aitmiş gibi görünür, ayrı bir çerçeve değil.
+            if (buGunMu) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(renkler.primary),
                 )
             }
 
-            if (ozet.soru > 0) {
-                Baloncuk(soru = ozet.soru, oran = oran)
+            Column(modifier = Modifier.weight(1f)) {
+                BaslikSatiri(
+                    gun = gun,
+                    bugun = buGunMu,
+                    ozetSoru = ozet.soru,
+                    oran = oran,
+                )
+
+                if (kayitlar.isEmpty()) {
+                    // Boş gün: kart yok olmaz, "kayıt yok" der ve "+"yı
+                    // gösterir. Kayıt olan kartlarla aynı yükseklikte
+                    // kalır ki liste kaydırırken zıplamasın.
+                    Text(
+                        text = stringResource(R.string.rutin_gun_bos),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = renkler.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                } else {
+                    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+                        kayitlar.forEach { kayit ->
+                            DersSatiri(kayit = kayit, onDuzenle = { onDersDuzenle(kayit) })
+                        }
+                    }
+                }
+
+                DersEkleSatiri(onClick = onDersEkle)
             }
         }
+    }
+}
 
-        if (kayitlar.isEmpty()) {
-            // Boş gün: kart yok olmaz, "kayıt yok" der ve "+"yı gösterir.
-            // Kayıt olan kartlarla aynı yükseklikte kalır ki liste
-            // kaydırırken zıplamasın.
+/**
+ * Kartın başlık satırı: günün adı, tarihi ve sağında toplam baloncuk.
+ *
+ * Günün adı bugünün rengiyle vurgulanır: yedi kartın içinde
+ * kullanıcının nerede olduğunu tek bakışta gösteren işaret budur. Şerit
+ * ve zemin farkı bunu **destekler**, yerine geçmez — kullanıcı rengi
+ * ayırt edemese bile şeridi görür.
+ */
+@Composable
+private fun BaslikSatiri(
+    gun: LocalDate,
+    bugun: Boolean,
+    ozetSoru: Int,
+    oran: Float,
+    modifier: Modifier = Modifier,
+) {
+    val renkler = MaterialTheme.colorScheme
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.rutin_gun_bos),
+                text = gun.gunUzunAdi(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (bugun) renkler.primary else renkler.onSurface,
+            )
+            Text(
+                text = gun.tarihMetni(),
                 style = MaterialTheme.typography.bodySmall,
                 color = renkler.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-        } else {
-            Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-                kayitlar.forEach { kayit ->
-                    DersSatiri(kayit = kayit, onDuzenle = { onDersDuzenle(kayit) })
-                }
-            }
         }
 
-        DersEkleSatiri(onClick = onDersEkle)
+        if (ozetSoru > 0) {
+            Baloncuk(soru = ozetSoru, oran = oran)
+        }
     }
 }
 
@@ -245,11 +307,26 @@ private fun Baloncuk(
     val renkler = MaterialTheme.colorScheme
     val boyut = BALONCUK_EN_KUCUK + (BALONCUK_EN_BUYUK - BALONCUK_EN_KUCUK) * oran
 
+    // Zemin, [oran]la birlikte **açık maviden dolu maviye** geçer.
+    // Eskiden yalnız alfa değişiyordu (0.12 → 0.30); bu kadar küçük bir
+    // aralık, koyu zeminde neredeyse ayırt edilemiyordu — 20 soru ile
+    // 60 soru aynı gri daire gibi duruyordu. Şimdi aralık 0.14 → 0.95:
+    // az çözülmüş gün kartın rengine karışır, çok çözülmüş gün neredeyse
+    // **dolu mavi** bir madde olur. İki işaretin (boyut + koyuluk) aynı
+    // yönde olması, renk körü kullanıcıda dahi sıralamayı okunur kılar.
+    val zemin = renkler.primary.copy(alpha = 0.14f + 0.81f * oran)
+
+    // Zemin koyulaştıkça rakam tersine döner: dolu mavinin üstünde
+    // `primary` (koyu temada açık mavi) yazılmaz, `onPrimary` yazılır.
+    // Eşik bilinçli olarak yüksektir — 0.6'nın altında zemin hâlâ
+    // kartın rengine yakın olduğu için birincil renk daha okunuktur.
+    val metinRengi = if (oran >= 0.6f) renkler.onPrimary else renkler.primary
+
     Box(
         modifier = modifier
             .size(boyut)
             .clip(CircleShape)
-            .background(renkler.primary.copy(alpha = 0.12f + 0.18f * oran)),
+            .background(zemin),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -260,7 +337,7 @@ private fun Baloncuk(
                 MaterialTheme.typography.titleSmall
             },
             fontWeight = FontWeight.Bold,
-            color = renkler.primary,
+            color = metinRengi,
         )
     }
 }
