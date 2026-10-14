@@ -131,7 +131,29 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   başlıktır — asıl girdi altlarındaki Tarih / Coğrafya / Felsefe /
   Din Kültürü ve Fizik / Kimya / Biyoloji satırlarıdır, ana dersin toplamı
   bunlardan hesaplanır. Kayıt yalnızca sorular ve netlerden oluşur: toplam
-  doğru / yanlış / net derslerden türetilir, ayrıca girilmez
+  doğru / yanlış / net derslerden türetilir, ayrıca girilmez. Liste ve
+  detay ekranı aynı görsel dili paylaşır: tür **rozet** olarak durur,
+  doğru/yanlış oranı **renkli bir şeritte** (mavi doğru, kırmızı yanlış,
+  gerekirse gri boş) akar ve açıklamalar ayrı bir kartta, sayılardan
+  hafifçe uzakta yazılır
+- **Ders Rutinim** — Yan menüden açılan ikinci bölüm: her gün hangi
+  dersten kaç soru çözüldüğünü kaydeder. Aynı veri **iki biçimde** görünür
+  ve üst bardaki tek düğme aralarında geçiş yapar (etiket her zaman
+  hedefi söyler, seçili gün ikisinde de ortaktır):
+  - **Haftalık** — haftanın yedi günü kart kart: günün adı ve tarihi,
+    toplam sorunun baloncuğu ve ders satırları. Kaydı olmayan gün de
+    karttır, "Bu gün için kayıt yok" der.
+  - **Aylık** — ay ızgarası: çözülen soruyla büyüyen baloncuklar, altında
+    seçili günün kartı.
+
+  Ekleme ve düzenleme ayrı bir sayfada değil, gün kartındaki ders
+  satırından ya da "+ Satır ekle"den açılan **alt paneldedir**; bir günde
+  bir dersten tek kayıt durur (tekrar girilen değer ikinci satır açmaz,
+  mevcut satırı değiştirir) ve düzenleme sırasında ders **kilittir**.
+  Baloncuk karekökle ölçülür — 10 ile 20 arasındaki fark okunur kalır —
+  rengi ise mavi bir ölçekte koyulaşır; sayı daima gerçek toplamdır,
+  baloncuk yalnızca görsel kısayoldur. Bugün, haftalık kartta mavi bir
+  şeritle, aylık ızgarada ince bir halkayla belirginleşir
 - Açık ve koyu tema, dinamik renk kapalı
 - WorkManager ile durum senkronu (arka planda gecikenlerin güncellenmesi)
   ve teslim öncesi hatırlatmalar
@@ -213,6 +235,7 @@ app/src/main/java/com/odevtakip/app/
     ├── liste/  takvim/  form/  detay/  ayarlar/
     ├── dersler/           # ders seçim paneli + ders ekle-değiştir ekranı
     ├── deneme/            # deneme sınavları: liste / detay / form ekranları
+    ├── rutin/             # ders rutini: haftalık kartlar + aylık baloncuk ızgarası
     ├── program/           # haftalık ders programı: gün çipleri + ders saatleri
     └── theme/               # Odak Mavisi paleti (açık/koyu)
 ```

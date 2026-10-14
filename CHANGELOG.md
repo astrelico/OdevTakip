@@ -5,7 +5,7 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
-## [1.5] - 2026-10-13
+## [1.5] - 2026-10-14
 
 ### Eklendi
 
@@ -18,8 +18,8 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
   - **Form** — ekleme ve düzenleme tek ekranda; kaydet düğmesi formun
     sonunda tam genişliktedir.
 - **Hamburger menü ve yan menü** — Sol üstte yeni bir çizim; "Deneme
-  sınavlarım" ve "Hakkında" burada durur. Ana gezinme alttaki dört
-  sekmeyle aynen sürer.
+  sınavlarım", "Ders Rutinim" ve "Hakkında" burada durur. Ana gezinme
+  alttaki dört sekmeyle aynen sürer.
 - **Kilitli soru kotaları** — Deneme formunda her dersin soru sayısı
   ÖSYM'nin kotasıyla kilitli: TYT 120 (Türkçe 40, Sosyal 20, Matematik
   40, Fen 20), AYT sayısal 80 (Matematik 40, Fizik 14, Kimya 13,
@@ -32,6 +32,42 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
   toplamı bu satırlardan hesaplanır, iki yerde aynı sayı tutulmaz.
   Detay ekranında ana dallar kalın ve öne çıkarken alt dallar
   girintili ve sönüktür — hangisinin toplam olduğu bakışta anlaşılır.
+- **Ders Rutinim** — Yan menüden açılan yeni bir bölüm: kullanıcı her
+  gün hangi dersten kaç soru çözdüğünü tutar. Aynı veri iki biçimde
+  gösterilir, üst bardaki tek düğme aralarında geçiş yapar ve etiket
+  her zaman **hedefi** söyler (Takvim ekranındaki kural aynen):
+  - **Haftalık** — haftanın yedi günü kart kart. Her kartta günün adı ve
+    tarihi, günün toplam sorusunu taşıyan baloncuk ve ders satırları
+    durur; kayıt olmayan gün de karttır ve "Bu gün için kayıt yok" der.
+  - **Aylık** — ay ızgarası: çözülen soruyla büyüyen baloncuklar,
+    altında seçili günün kartı. Seçili gün iki biçimde ortaktır.
+  - **Giriş tek yerdedir:** gün kartındaki ders satırı ya da "+ Satır
+    ekle" alttan açılan paneli çağırır; ayrı bir form sayfası yoktur.
+    Düzenlemede ders **kilittir** — (gün, ders) çifti değişirse unique
+    indeks ikinci satır açar ve gün toplamı iki katına çıkardı;
+    düzenlemenin iki eylemi sayıları düzeltmek ve kaydı silmektir.
+  - Baloncuk **karekökle** ölçülür: 10 ile 20 soru arasındaki fark
+    okunur kalırken 200 ile 210 arasındaki fark ayırt edilemez. Rakam
+    daima gerçek toplamdır; baloncuk yalnızca görsel kısayoldur.
+- **Deneme ekranlarında rozet, oran şeridi ve not kartı** — Liste ve
+  detay ekranı artık aynı görsel dili paylaşır (`DenemeOranSeridi.kt`):
+  - **Tür rozeti** — TYT / AYT artık düz metin değil tonlu zeminli
+    rozet. Zemin `primaryContainer` / `secondaryContainer`'dan gelir;
+    TYT ile AYT aynı mavi ailesinde kalır, yalnızca doygunluk değişir.
+    Kartın üst satırı artık sayıyla yarışmıyor, kategori olarak okunuyor.
+  - **Oran şeridi** — mavi doğru, kırmızı yanlış, gerekirse gri boş
+    parça. "5 yanlış" tek başına iyi ya da kötü değildir; şeridin
+    kırmızı oranı hükümü sayıyı okumadan verir. Sayısal olarak küçük ama
+    görünmesi gereken parçalar kaybolmaz: sıfırdan büyük her parçanın en
+    az **%2 payı** vardır — 3 yanlışın 120 sorudaki payı çizgiye dönerdi.
+    Liste kartında şerit doğru/yanlış üzerinden, detayda kota (boş
+    sorular dahil) üzerinden ölçeklenir.
+  - **Ana dallara kendi şeridi** çizilir; alt testlere şerit çizilmez —
+    kart gürültüye boğulurdu. Onun yerine alt testlerin soluna ana dala
+    bağlayan **dikey kılavuz çizgisi** eklenir.
+  - **Açıklama kartı** — not, tırnak ikonlu ve gövde boyutunda bir
+    kartta durur. Sayılar tablodur, not günlüktür; ikisi aynı ağırlıkta
+    olmamalı. Not yoksa kart çizilmez, tek satır metin görünür.
 
 ### Değişti
 
@@ -39,6 +75,22 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
   yanlış ve net ders sonuçlarından hesaplanır; ayrıca girilmez, dolayısıyla
   iki yer arasındaki tutarsızlık doğamaz. Net dört seçenekli varsayımla
   (doğru − yanlış ÷ 4) her okumada yeniden türetilir.
+- **Ders rutini baloncukları mavi ölçekte koyulaşır** — alfa artık
+  0.14–0.95. Eski aralık 0.12–0.30 idi ve koyu zeminde 20 ile 60 soru
+  aynı soluk daire gibi duruyordu; boyut (karekök) ile koyuluk artık
+  aynı yönde çalışır, renk körü olmayan kullanıcı sıralamayı okur. 0.6
+  eşiğinin üstünde baloncuk metni `onPrimary`'a döner — dolu mavinin
+  üstünde `primary` yazılmaz.
+- **Bugün olan gün daha belirgin** — haftalık kartta bugünün kartı
+  solunda 4 dp mavi şerit taşır ve zemini çevresinden daha açıktır;
+  şerit kartın yuvarlatılmış köşesinde kesilir. Aylık izgarada bugün,
+  **seçili değilken** ince bir halka ile belirginleşir (seçili hücre
+  zaten dolu mavi olduğundan halka orada okunmaz).
+- **Veritabanı sürümü 7 → 8**: `rutin_kayitlari` tablosu açıldı.
+  Yükseltme yalnızca yeni tabloyu ve unique indeksini ekler; mevcut
+  ödev, ders ve deneme kayıtlarına dokunmaz. `exportSchema = true` ve
+  yıkıcı yedek yol kapalıdır — migration eksikse uygulama veriyi silmek
+  yerine hata verir.
 
 ### Düzeltildi
 
