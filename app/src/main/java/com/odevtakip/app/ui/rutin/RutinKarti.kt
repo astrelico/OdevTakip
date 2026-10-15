@@ -197,6 +197,11 @@ private fun BaslikSatiri(
  *
  * Satırın **tamamı** dokunulabilir — düzenlemenin yolu satırdır; ok yalnızca
  * bunu gösteren işarettir, ayrıca bir hedef değildir.
+ *
+ * Ad, **başlıktır**: kullanıcının "Matematik 2" gibi özel ismi varsa o
+ * görünür; yoksa (`baslik` boş — 9. sürüm öncesi bütün kayıtlar böyledir)
+ * yalnız ders adı görünür. Aynı günün aynı dersinden iki satır varsa
+ * ayırt edici olan da yine bu isimdir.
  */
 @Composable
 private fun DersSatiri(
@@ -217,7 +222,7 @@ private fun DersSatiri(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = kayit.ders,
+                    text = kayit.baslik.ifBlank { kayit.ders },
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                 )

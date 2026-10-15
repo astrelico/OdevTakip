@@ -50,9 +50,11 @@ fun donemOzetiniHesapla(
 /**
  * Bir günün bütün kayıtlarından gün özeti.
  *
- * Aynı dersten iki kayıt **gelmez** (tablo unique indeksi bunu
- * engeller); yine de savunma olarak toplamlar `sumOf` ile alınır —
- * bir veri bozulursa ekran yanlış toplam gösterir ama çökmez.
+ * Aynı dersten birden fazla kayıt **gelir** (9. sürümünden beri aynı
+ * günün aynı dersi serbesttir — bkz. [RutinKaydi]); bu yüzden toplamlar
+ * `sumOf` ile **bütün** satırlardan alınır. [RutinGunOzeti.dersSayisi]
+ * ise farklı ders **adlarını** sayar: aynı dersten iki oturum tek ders
+ * sayılır, toplam ise iki kaydı da içerir.
  */
 fun gunOzetiniHesapla(kayitlar: List<RutinKaydi>): RutinGunOzeti =
     if (kayitlar.isEmpty()) {

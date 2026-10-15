@@ -195,6 +195,9 @@
     <string name="rutin_panel_baslik">Çalışma ekle</string>
     <string name="rutin_panel_duzenle">Çalışmayı düzenle</string>
     <string name="rutin_etiket_ders">Ders</string>
+    <string name="rutin_etiket_baslik">Ders başlığı</string>
+    <string name="rutin_baslik_ipucu">Örn. Matematik 2</string>
+    <string name="rutin_baslik_yardim">Boş bırakırsan kartta yalnız ders adı görünür</string>
     <string name="rutin_etiket_soru">Toplam soru</string>
     <string name="rutin_etiket_dogru">Doğru</string>
     <string name="rutin_etiket_yanlis">Yanlış</string>

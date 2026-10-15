@@ -32,12 +32,14 @@ class RutinHesapTest {
         soru: Int,
         dogru: Int = 0,
         yanlis: Int = 0,
+        baslik: String = "",
     ) = RutinKaydi(
         tarih = gun.gunBaslangici(),
         ders = ders,
         soru = soru,
         dogru = dogru,
         yanlis = yanlis,
+        baslik = baslik,
     )
 
     // ---- Gün özeti ----
@@ -73,6 +75,29 @@ class RutinHesapTest {
         )
 
         assertEquals(2, ozet.dersSayisi)
+    }
+
+    /**
+     * Aynı günün aynı dersten **iki oturumu** artık serbesttir (sürüm 9).
+     *
+     * İkisi de gün toplamına girer; `dersSayisi` ise farklı ders
+     * **adlarını** saydığı için aynı dersten iki satır tek sayılır —
+     * "kaç derse girdim" sorusu oturum sayısını değil, dersi sorar.
+     */
+    @Test
+    fun ayniDersinIkiOturumuAyniGunToplanir() {
+        val gun = LocalDate.of(2026, 10, 13)
+        val ozet = gunOzetiniHesapla(
+            listOf(
+                kayit(gun, "Matematik", soru = 40, dogru = 35, yanlis = 5, baslik = "Matematik 1"),
+                kayit(gun, "Matematik", soru = 30, dogru = 20, yanlis = 5, baslik = "Matematik 2"),
+            ),
+        )
+
+        assertEquals(70, ozet.soru)
+        assertEquals(55, ozet.dogru)
+        assertEquals(10, ozet.yanlis)
+        assertEquals("iki oturum tek derstir", 1, ozet.dersSayisi)
     }
 
     @Test

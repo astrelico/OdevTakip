@@ -19,36 +19,33 @@ import kotlinx.coroutines.flow.Flow
 interface RutinDao {
 
     /**
-     * Aralıktaki kayıtları yayınlar; **gün ve ders adına** göre sıralı.
+     * Aralıktaki kayıtları yayınlar; **gün, ders adına ve kimliğe** göre sıralı.
      *
      * Sıra bilinçlidir: ekran kayıtları güne göre gruplar, her günün
-     * içinde dersler alfabetik dizilir. Kartta "Matematik" hep aynı
-     * yerde durur — kayıt ekleme sırasına göre zıplamasın diye.
+     * içinde dersler alfabetik dizilir. Aynı dersten birden fazla kayıt
+     * varsa ([RutinKaydi.baslik]) **ekleme sırasına** göre durur — son
+     * `id` bağlayıcıdır ki kullanıcı kayda sonradan bir başlık yazdığında
+     * satır listede zıplamasın.
      */
     @Query(
         "SELECT * FROM rutin_kayitlari " +
             "WHERE tarih >= :baslangic AND tarih < :bitis " +
-            "ORDER BY tarih ASC, ders ASC",
+            "ORDER BY tarih ASC, ders ASC, id ASC",
     )
     fun araligiIzle(baslangic: Long, bitis: Long): Flow<List<RutinKaydi>>
 
     /**
-     * Aynı günün aynı dersini bir kez okur.
+     * Kaydı ekler; kimlik çakışırsa var olanı günceller.
      *
-     * Panel açıldığında "bu ders bugün zaten girilmiş mi" sorusunun
-     * yanıtıdır; girilmişse panel **düzenleme** olarak açılır ve eski
-     * değerler dolar.
-     */
-    @Query("SELECT * FROM rutin_kayitlari WHERE tarih = :tarih AND ders = :ders")
-    suspend fun gununDersiniAl(tarih: Long, ders: String): RutinKaydi?
-
-    /**
-     * Kaydı ekler ya da var olanı günceller.
+     * Artık `(tarih, ders)` unique indeksi **yoktur** (9. sürümde
+     * kaldırıldı), dolayısıyla [OnConflictStrategy.REPLACE] yalnızca
+     * `id` çakışmasına bakar:
      *
-     * Unique indeks `(tarih, ders)` olduğu için [OnConflictStrategy.REPLACE]
-     * aynı günün aynı dersini **sessizce değiştirir** — kullanıcının
-     * "Matematik"i ikinci kez girmesi ayrı bir satır değil, tek satırın
-     * güncellenmesidir. Böylece gün toplamı iki katma çıkmaz.
+     *  - **Ekleme** modunda `id = 0` gelir → autoincrement yeni bir
+     *    kimlik verir, her Kaydet **yeni satır** açar. Aynı günün aynı
+     *    dersi ikinci kez girilse bile eski satıra dokunulmaz.
+     *  - **Düzenleme** modunda satırın kendi `id`si gelir → yalnız o
+     *    satır güncellenir.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun kaydet(kaydi: RutinKaydi): Long

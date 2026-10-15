@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Uygulamanın tek veritabanı.
  *
- * Şema sürümü 8. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
+ * Şema sürümü 9. Şema JSON'ları `app/schemas/` altına KSP ile kaydediliyor.
  *
  * ### Sürüm 2 (Faz 12)
  *
@@ -94,14 +94,35 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  - **Unique indeks `(tarih, ders)`** — tablonun tek gerçek kuralı. Bir
  *    günde bir dersten yalnızca bir satır durur; ikinci kez girilen
  *    değer satırı **değiştirir**, ikinci satır açmaz. Böylece gün
- *    toplamı iki katma çıkmaz.
+ *    toplamı iki katma çıkmaz. *(Bu kural 9. sürümde kaldırıldı:
+ *    aynı dersten çok kayıt, başlıkla ayrıştırılarak serbest bırakıldı.)*
  *
  *  - Yalnızca **ekleme**: mevcut hiçbir tablo okunmaz ya da yazılmaz.
  *    `DROP`+`CREATE` gibi bir yol gerekmedi (bkz. [MIGRATION_7_8]).
+ *
+ * ### Sürüm 9 (Rutin başlığı, aynı dersten çok kayıt)
+ *
+ *  - `rutin_kayitlari.baslik` kolonu eklendi: aynı günün aynı dersinden
+ *    **birden fazla** kaydı birbirinden ayıran isteğe bağlı etiket
+ *    (ör. "Matematik 2"). `DEFAULT ''` ile eklenir ve migration
+ *    **hiçbir satıra dokunmaz** — eski kayıtlar `''` alır, kartta
+ *    oldukları gibi ders adını gösterir, hiçbir veri silinmez ya da
+ *    yeniden yazılmaz (bkz. [MIGRATION_8_9]).
+ *
+ *  - **`(tarih, ders)` unique indeksi kaldırılır.** Sürüm 8'in tek
+ *    kuralıydı; sürüm 9'da bilinçli olarak terk edilir, çünkü kullanıcı
+ *    aynı dersi ikinci kez girdiğinde artık **ayrı bir satır** ister —
+ *    eski kaydın sorularının sessizce değişmesi yerine ikinci kayıt
+ *    açılacaktır. Gün toplamı yine doğrudur: her satır kendi
+ *    çözümünün dökümüdür, ikisi de toplama girer.
+ *
+ *  - Yol saf `ALTER TABLE` + `DROP INDEX`'tir: tablo yeniden kurulmaz,
+ *    satırlar kopyalanmaz, tek bir hücre bile okunmaz/yazılmaz. Eski
+ *    kayıtları koruma sözünün en güçlü hâlidir.
  */
 @Database(
     entities = [Odev::class, Ders::class, ProgramSatiri::class, Deneme::class, RutinKaydi::class],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -360,6 +381,42 @@ abstract class OdevDatabase : RoomDatabase() {
         }
 
         /**
+         * Sürüm 8 → 9: `baslik` kolonu eklenir, `(tarih, ders)` unique
+         * indeksi kaldırılır.
+         *
+         * İki SQL, **tek bir satır okunmadan ya da yazılmadan**:
+         *
+         *  - `ALTER TABLE ... ADD COLUMN` sütunu sona ekler; `DEFAULT ''`
+         *    sayesinde migration'ın çalıştırılması gerekmez — mevcut
+         *    bütün satırlar `''` alır ve kartta eskisi gibi yalnız
+         *    [RutinKaydi.ders] adını gösterir. `DEFAULT` bilinçli ve
+         *    zorunludur: `NOT NULL` sütun SQLite'ta sabit bir varsayılan
+         *    olmadan eklenemez. Entity'deki
+         *    `@ColumnInfo(defaultValue = "''")` ile birebir aynıdır.
+         *
+         *  - `DROP INDEX` aynı günün aynı dersinin ikinci kez
+         *    yazılamaması kuralını kaldırır — sürüm 9'un sözü budur:
+         *    ikinci "Matematik" artık ayrı bir satır, eski kaydın
+         *    **değişmesi** değil. İndeks adı [MIGRATION_7_8] içinde
+         *    birebir yazıldığı için `IF EXISTS` ile emniyete alınır.
+         *
+         * Tablonun kendisi yeniden kurulmaz, satırlar kopyalanmaz: eski
+         * kayıtlar dosyada oldukları yerde, aynen durur (bkz. sınıf
+         * açıklaması, Sürüm 9).
+         *
+         * [MIGRATION_5_6] ile başlayan `internal` gerekçesi burada da
+         * geçerli: migration testi bunu doğrudan okur.
+         */
+        internal val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE rutin_kayitlari ADD COLUMN `baslik` TEXT NOT NULL DEFAULT ''"
+                )
+                db.execSQL("DROP INDEX IF EXISTS `index_rutin_kayitlari_tarih_ders`")
+            }
+        }
+
+        /**
          * Dosya ilk kez oluşturulurken (yükseltme değil, taze kurulum) çağrılır.
          *
          * Room bu callback'i tabloları oluşturduktan sonra çalıştırır; migration
@@ -390,6 +447,7 @@ abstract class OdevDatabase : RoomDatabase() {
                         MIGRATION_5_6,
                         MIGRATION_6_7,
                         MIGRATION_7_8,
+                        MIGRATION_8_9,
                     )
                     .addCallback(ILK_OLUSTURMA)
                     .build()

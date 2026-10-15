@@ -31,7 +31,7 @@ import com.odevtakip.app.R
 /**
  * Alttan kayan ders listesi — **tek seçimli**.
  *
- * Üç yerde kullanılır, aradaki tek fark [ilkSecenekMetni]dir:
+ * Dört yerde kullanılır, aradaki tek fark [ilkSecenekMetni]dir:
  *
  *  - **Ödev formu**: yalnızca dersler. Ders zorunlu olduğu için "boş bırak"
  *    seçeneği yoktur (`ilkSecenekMetni = null`); kullanıcı birine dokunmadan
@@ -41,6 +41,9 @@ import com.odevtakip.app.R
  *  - **Ders programı**: en üstte "Bu dersi boşalt" satırı durur; boş bir
  *    saatte bu satır gösterilmez, böylece radyo "seçili" bir seçenekle
  *    kullanıcıyı yanıltmaz.
+ *  - **Ders rutini paneli**: çalışma kaydının dersi seçilir; panel
+ *    seçimden sonra formun **üstünde** kapanır ki doldurulan sayılar
+ *    kaybolmasın (bkz. [com.odevtakip.app.ui.rutin.RutinGirisiPaneli]).
  *
  * Seçim anında [onSecim] çağrılıp panel kendisi kapanır; ayrı bir "Tamam"
  * düğmesi yoktur — listede tek dokunuşla iş bitirilsin diye.

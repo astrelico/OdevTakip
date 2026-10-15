@@ -201,17 +201,14 @@ class OdevRepository(
     fun rutinAraligi(baslangic: Long, bitis: Long): Flow<List<RutinKaydi>> =
         rutinDao.araligiIzle(baslangic, bitis)
 
-    /** Bir günün bir dersini bir kez okur; yoksa `null`. */
-    suspend fun rutinDersiniAl(tarih: Long, ders: String): RutinKaydi? =
-        rutinDao.gununDersiniAl(tarih, ders)
-
     /**
-     * Rutin kaydını ekler ya da var olanı günceller.
+     * Rutin kaydını ekler ya da **kimliği verilen** satırı günceller.
      *
-     * Unique indeks `(tarih, ders)` olduğundan [rutinDao.kaydet]'teki
-     * `REPLACE` stratejisi aynı günün aynı dersini **sessizce değiştirir**
-     * — kartta iki "Matematik" satırı belmez, gün toplamı iki katma
-     * çıkmaz.
+     * Unique indeks kalktığından beri (sürüm 9) çakışma yalnız `id`
+     * üzerindendir: ekleme modu (`id = 0`) her zaman **yeni satır**
+     * açar — aynı günün aynı dersi ikinci kez girilse bile eski
+     * kaydın soruları değişmez. Düzenleme modu satırın kendi kimliğini
+     * taşır, dolayısıyla yalnız o satır güncellenir.
      *
      * Tarih [com.odevtakip.app.data.OdevRepository.denemeKaydet] ile aynı
      * yoldan, cihazın saat diliminde günün başına indirgenir.

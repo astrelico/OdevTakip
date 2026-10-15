@@ -1,8 +1,8 @@
 package com.odevtakip.app.data
 
 import androidx.annotation.StringRes
+import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.odevtakip.app.R
 import java.time.LocalDate
@@ -11,9 +11,13 @@ import java.time.LocalDate
  * Bir gün için bir dersten çözülen sorular.
  *
  * Rutin, denemeden farklı olarak **sınav değildir**: her günün kendi
- * dökümü vardır ve günler birbirini dize getirmez. Bu yüzden kaydın
- * omurgası [tarih] + [ders]dir — bir günde bir dersten **tek** kayıt
- * durur.
+ * dökümü vardır ve günler birbirini dize getirmez. Kaydın kimliği
+ * [id]dir; **aynı günün aynı dersten birden fazla** satırı olabilir
+ * (ör. pazartesi "Matematik" ve ondan ayrı bir "Matematik 2" kaydı).
+ * Birinci sürümdeki `(tarih, ders)` unique indeksi 9. sürümde
+ * kaldırıldı: artık aynı ders ikinci kez girildiğinde mevcut satır
+ * **değişmez**, ayrı bir satır açılır — bkz.
+ * [com.odevtakip.app.data.OdevDatabase] sürüm 9 notları.
  *
  * @property tarih Kaydın ait olduğu günün **başlangıcı**, epoch millis.
  *   Saat bilinçli olarak tutulmaz: "12 Ekim'de Matematik çalıştım" bir
@@ -24,6 +28,11 @@ import java.time.LocalDate
  * @property soru O derste o gün çözülen **toplam** soru.
  * @property dogru Çözülenlerin doğruları.
  * @property yanlis Çözülenlerin yanlışları.
+ * @property baslik Kaydın **özel adı** — aynı dersin aynı güne ikinci,
+ *   üçüncü kayıtlarını birbirinden ayıran etiket (ör. "Matematik 2").
+ *   **İsteğe bağlıdır**: boş bırakılırsa kartta yalnız [ders] adı
+ *   görünür. 9. sürümdeki migration mevcut satırları `''` ile taşır —
+ *   eski kayıtlar içerik olarak hiç değişmez, görünüşleri de aynı kalır.
  *
  * [dogru] + [yanlis] ≤ [soru] olmak zorunda değildir: kullanıcı "40
  * soru çözdüm, 35'i doğru, 5'i yanlış" der; kalanı **boştur** ve ayrıca
@@ -31,12 +40,7 @@ import java.time.LocalDate
  * göstermek, kullanıcının zaten bildiği bir bilgiyi ikinci kez girmesini
  * isterdi.
  */
-@Entity(
-    tableName = "rutin_kayitlari",
-    indices = [
-        Index(value = ["tarih", "ders"], unique = true),
-    ],
-)
+@Entity(tableName = "rutin_kayitlari")
 data class RutinKaydi(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -45,6 +49,11 @@ data class RutinKaydi(
     val soru: Int,
     val dogru: Int,
     val yanlis: Int,
+    // Sütun **en sonda** durur: migration `ALTER TABLE ... ADD COLUMN`
+    // sütunu sona ekler; entity ile aynı sırada olması hem taze hem
+    // yükseltilmiş veritabanında tek bir şema düzeni demektir.
+    @ColumnInfo(defaultValue = "''")
+    val baslik: String = "",
 )
 
 /**

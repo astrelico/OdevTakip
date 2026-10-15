@@ -19,12 +19,18 @@ import org.junit.runner.RunWith
  * **Neden var:** migration yanlış yazıldığında hata hemen fırlamaz. Room
  * migration sonrası şemayı karşılaştırır ve uyuşmazsa açılışta patlar; ama
  * uyuşsa bile **yanlış tablo** kurulmuş olabilir (ör. `NOT NULL` eksik
- * kolon → kullanıcı ilk kaydı atınca çökme). Bu test, gerçek bir v4 ya da
- * v5 veritabanı açıp güncel sürüme taşıyıp **içeriği de** okuyarak ikisini
- * birden kapatır. Üç geçiş de ayrıca sıralanmıştır: 4 → 5 tabloyu
- * açar, 5 → 6 onu TYT/AYT biçimine geçirir (ve eski deneme satırlarını
- * bilerek siler), 6 → 7 `puan` kolonunu kaldırır — kaldırmadan önce
- * diğer bütün sütunları yeni tabloya taşır.
+ * kolon → kullanıcı ilk kaydı atınca çökme). Bu test, gerçek bir v4'ten
+ * v8'e veritabanı açıp güncel sürüme taşıyıp **içeriği de** okuyarak ikisini
+ * birden kapatır. Geçişler ayrıca sıralanmıştır:
+ *
+ *  - 4 → 5 `denemeler` tablosunu açar,
+ *  - 5 → 6 onu TYT/AYT biçimine geçirir (ve eski deneme satırlarını
+ *    bilerek siler),
+ *  - 6 → 7 `puan` kolonunu kaldırır — kaldırmadan önce diğer bütün
+ *    sütunları yeni tabloya taşır,
+ *  - 7 → 8 `rutin_kayitlari` tablosunu **ekler**,
+ *  - 8 → 9 `baslik` kolonunu ekler ve `(tarih, ders)` unique indeksini
+ *    **kaldırır** — eski satırlara dokunmadan.
  *
  * Şema JSON'ları `app/schemas/` altındadır ve androidTest asset'ine
  * kaynak olarak eklenmiştir (bkz. `app/build.gradle.kts`).
@@ -494,6 +500,154 @@ class MigrationTest {
                 assertTrue(imlec.moveToFirst())
                 assertEquals("yeni tablo baştan boştur", 0, imlec.getInt(0))
             }
+        }
+    }
+
+    // ---- Sürüm 8 → 9: rutin başlığı, aynı dersten çok kayıt ----
+
+    /**
+     * v8 tablolarını kurar ve **rutin kayıtları** yazar.
+     *
+     * Yazılan iki satır `(tarih, ders)` unique indeksinin **altındadır**
+     * (farklı dersler, aynı gün — v8'de serbest). Taşımadan sonra bu
+     * tabloya bakılacak: kolon eklenmiş, satırlar aynen duruyor olmalı.
+     * Bir de deneme yazılır ki 9'un yalnız rutina dokunduğu görünsün.
+     */
+    private fun v8VeritabaniOlustur(): SupportSQLiteDatabase =
+        yardimci.createDatabase(TEST_DOSYA, 8).also { db ->
+            db.execSQL(
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) " +
+                    "VALUES (100, 'Matematik', 40, 35, 5)",
+            )
+            db.execSQL(
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis) " +
+                    "VALUES (100, 'Fizik', 20, 15, 3)",
+            )
+            db.execSQL(
+                "INSERT INTO denemeler (ad, tarih, tur, sonuclar, aciklama, olusturmaTarihi) " +
+                    "VALUES ('2. TYT', 1700000000000, 'TYT', 'Türkçe=36/3', 'iyi gitti', 77)",
+            )
+        }
+
+    /** v8'den 9'a taşıyıp sonucu açık döndürür. */
+    private fun tasiVeAc9(): SupportSQLiteDatabase {
+        v8VeritabaniOlustur().close()
+        return yardimci.runMigrationsAndValidate(TEST_DOSYA, 9, true, OdevDatabase.MIGRATION_8_9)
+    }
+
+    /**
+     * `baslik` sütunu sona eklenir; mevcut altı sütun yerinden oynamaz.
+     *
+     * Sıra bilinçlidir: `ALTER TABLE ... ADD COLUMN` sütunu sona koyar ve
+     * entity'deki alan da en sonda durur — taze kurulum da yükseltilmiş
+     * veritabanı da aynı düzeni paylaşır.
+     */
+    @Test
+    fun baslikKolonuSonaEklenir() {
+        tasiVeAc9().use { db ->
+            db.query("PRAGMA table_info(rutin_kayitlari)").use { imlec ->
+                val sutunlar = mutableListOf<String>()
+                while (imlec.moveToNext()) sutunlar.add(imlec.getString(1))
+
+                assertEquals(
+                    listOf("id", "tarih", "ders", "soru", "dogru", "yanlis", "baslik"),
+                    sutunlar,
+                )
+            }
+        }
+    }
+
+    /**
+     * Eski kayıtlar **aynen** kalır: sayılar değişmez, `baslik` `''`
+     * gelir.
+     *
+     * Bu, sürüm 9'un en temel sözüdür: uygulamayı güncelleyen kullanıcının
+     * rutin kayıtları silinmez, taşınmaz, yeniden yazılmaz — yalnız yeni
+     * sütun belirir ve boş geldiği için kartta eskisi gibi ders adı
+     * görünür.
+     */
+    @Test
+    fun eskiRutinKayitlariAyneKalir() {
+        tasiVeAc9().use { db ->
+            db.query("SELECT ders, soru, dogru, yanlis, baslik FROM rutin_kayitlari ORDER BY id")
+                .use { imlec ->
+                    assertEquals("iki kayıt da taşınmalı", 2, imlec.count)
+
+                    assertTrue(imlec.moveToFirst())
+                    assertEquals("Matematik", imlec.getString(0))
+                    assertEquals(40, imlec.getInt(1))
+                    assertEquals(35, imlec.getInt(2))
+                    assertEquals(5, imlec.getInt(3))
+                    assertEquals("başlık boş gelmeli", "", imlec.getString(4))
+
+                    assertTrue(imlec.moveToNext())
+                    assertEquals("Fizik", imlec.getString(0))
+                    assertEquals(20, imlec.getInt(1))
+                    assertEquals(15, imlec.getInt(2))
+                    assertEquals(3, imlec.getInt(3))
+                    assertEquals("başlık boş gelmeli", "", imlec.getString(4))
+                }
+        }
+    }
+
+    /**
+     * Unique indeks kalkar: aynı günün aynı dersi **ikinci kez** yazılır.
+     *
+     * Kullanıcının şikâyetinin tam karşılığı budur — v8'de "Matematik"
+     * tekrar girilince mevcut satırın soruları değişiyordu; taşımadan
+     * sonra ayrı bir satır açılmalıdır.
+     */
+    @Test
+    fun ayniGununAyniDersiArtikIkinciKezYazilabilir() {
+        tasiVeAc9().use { db ->
+            db.execSQL(
+                "INSERT INTO rutin_kayitlari (tarih, ders, soru, dogru, yanlis, baslik) " +
+                    "VALUES (100, 'Matematik', 30, 25, 5, 'Matematik 2')",
+            )
+
+            db.query("SELECT COUNT(*) FROM rutin_kayitlari").use { imlec ->
+                assertTrue(imlec.moveToFirst())
+                assertEquals("eski satır silinmemiş, yenisi açılmış", 3, imlec.getInt(0))
+            }
+            db.query("SELECT soru FROM rutin_kayitlari WHERE ders = 'Matematik' ORDER BY id")
+                .use { imlec ->
+                    assertTrue(imlec.moveToFirst())
+                    assertEquals("eski kayıt aynen durur", 40, imlec.getInt(0))
+                    assertTrue(imlec.moveToNext())
+                    assertEquals("yeni kayıt ayrı satırdır", 30, imlec.getInt(0))
+                }
+        }
+    }
+
+    /** İndeks gerçekten dosyadan kalkmıştır — kural koda değil, şemaya sorulur. */
+    @Test
+    fun rutinIndeksiKaldirilir() {
+        tasiVeAc9().use { db ->
+            db.query(
+                "SELECT name FROM sqlite_master WHERE type = 'index' " +
+                    "AND name = 'index_rutin_kayitlari_tarih_ders'",
+            ).use { imlec ->
+                assertFalse("unique indeks kalkmalı", imlec.moveToFirst())
+            }
+        }
+    }
+
+    /**
+     * 9 yalnız rutina dokunur: deneme kaydı taşıma boyunca **okunmaz,
+     * yazılmaz** — 7 → 8'in sözüyle aynı, her geçişin ölçütü.
+     */
+    @Test
+    fun digerTablolar8den9deEtkilenmez() {
+        tasiVeAc9().use { db ->
+            db.query("SELECT ad, tarih, tur, sonuclar, aciklama FROM denemeler")
+                .use { imlec ->
+                    assertTrue("deneme taşınmalı", imlec.moveToFirst())
+                    assertEquals("2. TYT", imlec.getString(0))
+                    assertEquals(1700000000000L, imlec.getLong(1))
+                    assertEquals("TYT", imlec.getString(2))
+                    assertEquals("Türkçe=36/3", imlec.getString(3))
+                    assertEquals("iyi gitti", imlec.getString(4))
+                }
         }
     }
 
