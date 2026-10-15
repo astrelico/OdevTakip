@@ -47,6 +47,7 @@ import com.odevtakip.app.data.DenemeTuru
 import com.odevtakip.app.ui.DenemeSiralamasi
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.UstBar
+import com.odevtakip.app.ui.kartCizgisi
 import com.odevtakip.app.ui.theme.vurguGradyani
 import com.odevtakip.app.ui.theme.vurguMetni
 
@@ -57,13 +58,13 @@ import com.odevtakip.app.ui.theme.vurguMetni
  * barda geri oku taşır ve alt menü görünmez — burası dört ana sekmeden
  * biri değildir, dönülecek bir **ara sayfadır**.
  *
- * **Sıralama üst sağdadır**: [DenemeSiralamaDugmesi] tuşu
- * [DenemeSiralamaPaneli]ni açar — tarihe göre yeni/eski, son eklenen,
- * ada göre ve nete göre seçenekleri taşır. Varsayılan
- * [DenemeSiralamasi.TARIH_YENI]dir: DAO'nun kendi sırası (tarih azalan),
- * yani liste ilk açılışta bugüne kadar hep gördüğü sırayı gösterir.
- * Varsayılandan çıkıldığında tuşun rengi `primary`e döner — "liste neden
- * bu sırada?" sorusunun cevabı ekranda kalır.
+ * **Sıralama, sağ üstte yüzen bir baloncuktur**: [DenemeSiralamaBaloncugu]
+ * listenin köşesinde durur ve [DenemeSiralamaPaneli]ni açar — tarihe göre
+ * yeni/eski, son eklenen, ada göre ve nete göre seçenekleri taşır.
+ * Varsayılan [DenemeSiralamasi.TARIH_YENI]dir: DAO'nun kendi sırası
+ * (tarih azalan), yani liste ilk açılışta bugüne kadar hep gördüğü sırayı
+ * gösterir. Varsayılandan çıkıldığında baloncuğun rengi `primary`e döner
+ * — "liste neden bu sırada?" sorusunun cevabı ekranda kalır.
  *
  * Filtre ve arama **yoktur** — denemelerin tek mantığı zaman olduğu için
  * ayrı bir süzgeç, kullanıcıya yalnızca "neden boş" sorusu sorardı.
@@ -115,62 +116,72 @@ fun DenemeListeEkrani(
                         )
                     }
                 },
-                eylemler = {
-                    DenemeSiralamaDugmesi(
-                        secili = siralama,
-                        onClick = { siralamaPanelGoster = true },
-                    )
-                },
             )
         },
         floatingActionButton = {
             DenemeEkleDugmesi(onClick = { turSecimiGoster = true })
         },
     ) { innerPadding ->
-        Column(
+        // Baloncuk listenin **üzerinde** durduğu için içerik bir Box'ın
+        // içindedir: Column altta, baloncuk onun üstünde, köşede.
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            if (denemeler.isEmpty()) {
-                BosDurum(
-                    metin = stringResource(R.string.deneme_bos),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                )
-            } else {
-                // Kayıt sayısı listenin üstünde küçük bir başlık satırıdır:
-                // kullanıcı kaç denemesi olduğunu listeyi saymadan görür.
-                Text(
-                    text = stringResource(R.string.deneme_sayisi, denemeler.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (denemeler.isEmpty()) {
+                    BosDurum(
+                        metin = stringResource(R.string.deneme_bos),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                    )
+                } else {
+                    // Kayıt sayısı listenin üstünde küçük bir başlık satırıdır:
+                    // kullanıcı kaç denemesi olduğunu listeyi saymadan görür.
+                    Text(
+                        text = stringResource(R.string.deneme_sayisi, denemeler.size),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 4.dp,
-                        // FAB yüzünden: son kart, düğmenin altında kalmasın.
-                        bottom = 80.dp,
-                    ),
-                ) {
-                    items(denemeler, key = { it.id }) { deneme ->
-                        DenemeKarti(
-                            deneme = deneme,
-                            onSec = { onDenemeSec(deneme.id) },
-                            // Kayıt silinince kart yeni sırasına kayarak
-                            // animasyonla çıkar; liste "ani" kesilmez.
-                            modifier = Modifier.animateItem(),
-                        )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 4.dp,
+                            // FAB yüzünden: son kart, düğmenin altında kalmasın.
+                            bottom = 80.dp,
+                        ),
+                    ) {
+                        items(denemeler, key = { it.id }) { deneme ->
+                            DenemeKarti(
+                                deneme = deneme,
+                                onSec = { onDenemeSec(deneme.id) },
+                                // Kayıt silinince kart yeni sırasına kayarak
+                                // animasyonla çıkar; liste "ani" kesilmez.
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
                     }
                 }
             }
+
+            // Sıralama baloncuğu: listenin sağ üst köşesinde yüzer. Üst
+            // barı meşgul etmez; kartlar kaydıkça altında kayar.
+            DenemeSiralamaBaloncugu(
+                secili = siralama,
+                onClick = { siralamaPanelGoster = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 16.dp, top = 12.dp),
+            )
         }
     }
 
@@ -272,30 +283,42 @@ private fun DenemeEkleDugmesi(onClick: () -> Unit) {
     }
 }
 
-// ---- Sıralama tuşu ----
+// ---- Sıralama baloncuğu ----
 
 /**
- * Üst bardaki sıralama düğmesi — deneme listesine özel.
+ * Listenin sağ üst köşesinde **üzerinde yüzen** sıralama baloncuğu.
  *
- * Kural [com.odevtakip.app.ui.liste.OdevListeEkrani]deki tuşla **aynıdır**:
- * varsayılan sıralamadayken nötr (`onSurfaceVariant`), başka bir seçenek
- * seçilince `primary`. Böylece ekranın neden o sırada olduğu, düğmeye
- * bakılınca anlaşılır; seçim değişmedikçe de dikkat çekmez.
+ * Bir düğme değil bir **nesnedir**: yuvarlak zemin, hairline çerçeve ve
+ * gölge — kartların dili, yalnızca şekli daire. Üst barı meşgul etmez;
+ * liste kaydıkça altında kayar, tıpkı alttaki ekleme düğmesi gibi
+ * ekranın bir köşesine yerleşmiş bir araçtır.
+ *
+ * Renk kuralı [com.odevtakip.app.ui.liste.OdevListeEkrani]deki tuşla
+ * aynıdır: varsayılan sıralamadayken nötr, seçim değişince `primary`.
  */
 @Composable
-private fun DenemeSiralamaDugmesi(
+private fun DenemeSiralamaBaloncugu(
     secili: DenemeSiralamasi,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onClick) {
-        Icon(
-            imageVector = Icons.Rounded.SwapVert,
-            contentDescription = stringResource(R.string.siralama),
-            tint = if (secili == DenemeSiralamasi.TARIH_YENI) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-        )
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = if (secili == DenemeSiralamasi.TARIH_YENI) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        border = kartCizgisi(),
+        shadowElevation = 4.dp,
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Rounded.SwapVert,
+                contentDescription = stringResource(R.string.siralama),
+            )
+        }
     }
 }
