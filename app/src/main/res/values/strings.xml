@@ -153,6 +153,23 @@
     <string name="deneme_toplam">Toplam</string>
     <string name="deneme_soru_dogrulugu">%1$d / %2$d soru</string>
 
+    <!-- Deneme listesinin sıralama seçenekleri: etiket + altında ne
+         yaptığını anlatan açıklama satırı (bkz. DenemeSiralamasi). -->
+    <string name="deneme_siralama_tarih_yeni">Tarihe göre: yeni → eski</string>
+    <string name="deneme_siralama_tarih_yeni_aciklama">En son yapılan deneme en üstte</string>
+    <string name="deneme_siralama_tarih_eski">Tarihe göre: eski → yeni</string>
+    <string name="deneme_siralama_tarih_eski_aciklama">İlk yapılan deneme en üstte</string>
+    <string name="deneme_siralama_eklenen">Son eklenen önce</string>
+    <string name="deneme_siralama_eklenen_aciklama">Kaydı en son açılan deneme en üstte</string>
+    <string name="deneme_siralama_ad_az">Adına göre: A → Z</string>
+    <string name="deneme_siralama_ad_az_aciklama">A\'dan Z\'ye alfabetik</string>
+    <string name="deneme_siralama_ad_za">Adına göre: Z → A</string>
+    <string name="deneme_siralama_ad_za_aciklama">Z\'den A\'ya alfabetik</string>
+    <string name="deneme_siralama_net_dusen">Nete göre: yüksek → düşük</string>
+    <string name="deneme_siralama_net_dusen_aciklama">En yüksek net en üstte</string>
+    <string name="deneme_siralama_net_artan">Nete göre: düşük → yüksek</string>
+    <string name="deneme_siralama_net_artan_aciklama">En düşük net en üstte</string>
+
     <!-- Ders rutini: ekran, gün kartı ve girdi paneli.
          Rutin denemeden farklı olarak **sınav değildir**: her günün kendi
          dökümü vardır, kota ya da net yoktur. Yalnızca "o gün bu dersten

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odevtakip.app.R
 import com.odevtakip.app.data.DenemeTuru
+import com.odevtakip.app.ui.DenemeSiralamasi
 import com.odevtakip.app.ui.OdevViewModel
 import com.odevtakip.app.ui.UstBar
 import com.odevtakip.app.ui.theme.vurguGradyani
@@ -55,10 +57,18 @@ import com.odevtakip.app.ui.theme.vurguMetni
  * barda geri oku taşır ve alt menü görünmez — burası dört ana sekmeden
  * biri değildir, dönülecek bir **ara sayfadır**.
  *
- * Sıralama DAO'dan gelir (tarih azalan): en son yapılan deneme en üstte.
- * Liste ekranındaki gibi filtre, arama ya da sıralama **yoktur** —
- * denemelerin tek mantığı zaman olduğu için ayrı bir süzgeç, kullanıcıya
- * yalnızca "neden boş" sorusu sorardı.
+ * **Sıralama üst sağdadır**: [DenemeSiralamaDugmesi] tuşu
+ * [DenemeSiralamaPaneli]ni açar — tarihe göre yeni/eski, son eklenen,
+ * ada göre ve nete göre seçenekleri taşır. Varsayılan
+ * [DenemeSiralamasi.TARIH_YENI]dir: DAO'nun kendi sırası (tarih azalan),
+ * yani liste ilk açılışta bugüne kadar hep gördüğü sırayı gösterir.
+ * Varsayılandan çıkıldığında tuşun rengi `primary`e döner — "liste neden
+ * bu sırada?" sorusunun cevabı ekranda kalır.
+ *
+ * Filtre ve arama **yoktur** — denemelerin tek mantığı zaman olduğu için
+ * ayrı bir süzgeç, kullanıcıya yalnızca "neden boş" sorusu sorardı.
+ * Sıralama ise süzgeç değildir: kayıtların **tamamını** gösterir,
+ * hiçbirini saklamaz; yalnızca sırayı değiştirir.
  *
  * **Sağ altta "Deneme ekle" düğmesi** durur; boş durum metni de onu
  * işaret eder. Düğme, ana ekranların [com.odevtakip.app.MainActivity]'deki
@@ -84,10 +94,14 @@ fun DenemeListeEkrani(
     onGeri: () -> Unit,
 ) {
     val denemeler by viewModel.denemeler.collectAsStateWithLifecycle()
+    val siralama by viewModel.denemeSiralama.collectAsStateWithLifecycle()
 
     // Tür seçimi, ekleme akışının ilk adımıdır: düğmeye basınca panel
     // açılır, seçimle birlikte [onEkle] çağrılır ve panel kapanır.
     var turSecimiGoster by remember { mutableStateOf(false) }
+
+    // Sıralama paneli de tek dokunuşla açılıp kapanır; seçim anında biter.
+    var siralamaPanelGoster by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -100,6 +114,12 @@ fun DenemeListeEkrani(
                             contentDescription = stringResource(R.string.geri),
                         )
                     }
+                },
+                eylemler = {
+                    DenemeSiralamaDugmesi(
+                        secili = siralama,
+                        onClick = { siralamaPanelGoster = true },
+                    )
                 },
             )
         },
@@ -161,6 +181,14 @@ fun DenemeListeEkrani(
                 onEkle(tur)
             },
             onKapat = { turSecimiGoster = false },
+        )
+    }
+
+    if (siralamaPanelGoster) {
+        DenemeSiralamaPaneli(
+            secili = siralama,
+            onSecim = viewModel::denemeSiralamaAyarla,
+            onKapat = { siralamaPanelGoster = false },
         )
     }
 }
@@ -240,6 +268,34 @@ private fun DenemeEkleDugmesi(onClick: () -> Unit) {
                 )
             },
             text = { Text(stringResource(R.string.deneme_ekle)) },
+        )
+    }
+}
+
+// ---- Sıralama tuşu ----
+
+/**
+ * Üst bardaki sıralama düğmesi — deneme listesine özel.
+ *
+ * Kural [com.odevtakip.app.ui.liste.OdevListeEkrani]deki tuşla **aynıdır**:
+ * varsayılan sıralamadayken nötr (`onSurfaceVariant`), başka bir seçenek
+ * seçilince `primary`. Böylece ekranın neden o sırada olduğu, düğmeye
+ * bakılınca anlaşılır; seçim değişmedikçe de dikkat çekmez.
+ */
+@Composable
+private fun DenemeSiralamaDugmesi(
+    secili: DenemeSiralamasi,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.Rounded.SwapVert,
+            contentDescription = stringResource(R.string.siralama),
+            tint = if (secili == DenemeSiralamasi.TARIH_YENI) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
         )
     }
 }

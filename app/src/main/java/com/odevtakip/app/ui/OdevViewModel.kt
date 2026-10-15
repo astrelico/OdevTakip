@@ -183,15 +183,34 @@ class OdevViewModel(
     // ---- Deneme sınavları ----
 
     /**
-     * Denemeler, **tarih azalan** sırayla — en son yapılan en üstte.
+     * Deneme listesinin sıralaması; varsayılan [DenemeSiralamasi.TARIH_YENI]
+     * — DAO'nun kendi sırası (tarih azalan), yani sıralamaya dokunulmaz.
      *
-     * Ödev listesindeki filtre/arama/sıralama üçlüsü burada **yoktur**:
-     * denemelerin tek sıralanma mantığı zaman olduğu için süzgeç eklemek
-     * yalnızca "neden boş" sorusunu gündeme getirirdi. Sıralama kararı
-     * DAO'nun kendisine gömülüdür ([com.odevtakip.app.data.DenemeDao]).
+     * Tıpkı [siralama] gibi yalnızca kendi ekranını etkiler ve yalnızca
+     * ViewModel'de tutulur: sekme değiştirilince seçim korunur, uygulama
+     * kapanınca varsayılanına döner.
      */
-    val denemeler: StateFlow<List<Deneme>> = repository.tumDenemeleri()
+    private val _denemeSiralama = MutableStateFlow(DenemeSiralamasi.TARIH_YENI)
+    val denemeSiralama: StateFlow<DenemeSiralamasi> = _denemeSiralama.asStateFlow()
+
+    /**
+     * Denemeler, seçili sıralamayla — varsayılan tarih azalan (en son
+     * yapılan en üstte).
+     *
+     * Sıralama **ekran yerine burada** uygulanır: akış her değiştiğinde
+     * tek bir noktada yeniden dizilir, ekran yalnızca sırayı çizer.
+     * Ayrıntı için [denemeleriSirala] fonksiyonuna bak.
+     */
+    val denemeler: StateFlow<List<Deneme>> = _denemeSiralama
+        .flatMapLatest { siralama ->
+            repository.tumDenemeleri().map { it.denemeleriSirala(siralama) }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Üst bardaki sıralama tuşunun seçimi; panel satırı da bundan okur. */
+    fun denemeSiralamaAyarla(siralama: DenemeSiralamasi) {
+        _denemeSiralama.value = siralama
+    }
 
     /**
      * "Tamamlananları gizle" anahtarının anlık değeri.
