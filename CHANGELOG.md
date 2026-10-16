@@ -5,6 +5,45 @@
 Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 [Semantic Versioning][semver] ile uyumludur (büyük.küçük.yama).
 
+## [1.5.5] - 2026-10-16
+
+### Eklendi
+
+- **Deneme sıralaması** — Liste ekranındaki sıralama kontrolü sağ üstte
+  **yüzen bir baloncuğa** taşındı: kart dilinde daire (yüzey, ince
+  çerçeve, hafif gölge), listenin üstünde durur. Varsayılanda gri, başka
+  bir sıralama seçiliyken mavinin kendisindedir — ödevler listesindeki
+  düğmeyle aynı kural. Baloncuğa dokununca alttan yedi seçenek açılır:
+  tarihe göre (en yeni / en eski), eklenme sırasına göre (en yeni / en
+  eski), ada göre (A→Z / Z→A) ve nete göre (artan / azalan). Varsayılan
+  DAO sırasıdır (tarih, en yeni en üstte) ve sıralama yalnızca düzeni
+  değiştirir — **hiçbir kaydı gizlemez**.
+- **Rutine ders başlığı** — Çalışma panelinde isteğe bağlı "Ders
+  başlığı" alanı: aynı günün aynı dersten ikinci, üçüncü kayıtlarını
+  birbirinden ayıran isimdir ("Matematik 2"). Boş bırakılırsa kartta
+  yalnız ders adı görünür — tek kayıt giren kullanıcı hiçbir şey yazmak
+  zorunda değildir.
+
+### Değişti
+
+- **Aynı dersten birden fazla kayıt** — Rutinde "bir günde bir dersten
+  tek kayıt" kuralı kalktı: aynı ders tekrar girildiğinde mevcut satırın
+  soruları değişmek yerine **ayrı bir satır** açılır, gün toplamı her iki
+  kaydı da sayar. Düzenleme yalnızca o satırın kimliğiyle çalışır, başka
+  bir kayda dokunmaz.
+- **Rutin panelinde ders seçimi listeden** — Çip satırının yerini ödev
+  formundakiyle aynı seçici kart aldı: dokununca alttan ders listesi
+  açılır ve form, seçim sırasında arkada açık kalır ki doldurulan sayılar
+  kaybolmasın. Düzenlemede ders artık **kilitli değil** — kilidin tek
+  gerekçesi (gün, ders) unique indeksiydi, o indeks kalktı.
+- **Veritabanı sürümü 8 → 9** — İki SQL: `rutin_kayitlari`'ne
+  `baslik TEXT NOT NULL DEFAULT ''` kolonu eklenir, `(tarih, ders)`
+  unique indeksi kaldırılır. Yükseltme **hiçbir satıra dokunmaz**: eski
+  rutin kayıtları silinmez, taşınmaz, yeniden yazılmaz; yalnız yeni
+  kolon belirir ve boş geldiği için kartta eskisi gibi ders adı görünür.
+  `exportSchema = true` ve yıkıcı yedek yolu yine kapalıdır — migration
+  eksikse uygulama veriyi silmek yerine hata verir.
+
 ## [1.5] - 2026-10-14
 
 ### Eklendi
@@ -301,6 +340,7 @@ Biçim [Keep a Changelog][keep-a-changelog] düzenindedir; sürüm adları
 
 [keep-a-changelog]: https://keepachangelog.com/tr/1.1.0/
 [semver]: https://semver.org/lang/tr/
+[1.5.5]: https://github.com/astrelico/OdevTakip/releases/tag/v1.5.5
 [1.5]: https://github.com/astrelico/OdevTakip/releases/tag/v1.5
 [1.4]: https://github.com/astrelico/OdevTakip/releases/tag/v1.4
 [1.3]: https://github.com/astrelico/OdevTakip/releases/tag/v1.3

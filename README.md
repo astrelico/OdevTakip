@@ -135,7 +135,10 @@ görünür. Arayüz tamamen **Türkçe**'dir.
   detay ekranı aynı görsel dili paylaşır: tür **rozet** olarak durur,
   doğru/yanlış oranı **renkli bir şeritte** (mavi doğru, kırmızı yanlış,
   gerekirse gri boş) akar ve açıklamalar ayrı bir kartta, sayılardan
-  hafifçe uzakta yazılır
+  hafifçe uzakta yazılır. Sağ üstte yüzen **sıralama baloncuğu** yedi
+  düzenle sıralar (tarih, eklenme sırası, ad ve net; varsayılan tarihin
+  en yenisidir) ve yalnızca diziyi değiştirir — **hiçbir kaydı gizlemez**;
+  varsayılanda gri, başka bir sıralama seçiliyken mavidir
 - **Ders Rutinim** — Yan menüden açılan ikinci bölüm: her gün hangi
   dersten kaç soru çözüldüğünü kaydeder. Aynı veri **iki biçimde** görünür
   ve üst bardaki tek düğme aralarında geçiş yapar (etiket her zaman
@@ -147,9 +150,13 @@ görünür. Arayüz tamamen **Türkçe**'dir.
     seçili günün kartı.
 
   Ekleme ve düzenleme ayrı bir sayfada değil, gün kartındaki ders
-  satırından ya da "+ Satır ekle"den açılan **alt paneldedir**; bir günde
-  bir dersten tek kayıt durur (tekrar girilen değer ikinci satır açmaz,
-  mevcut satırı değiştirir) ve düzenleme sırasında ders **kilittir**.
+  satırından ya da "+ Satır ekle"den açılan **alt paneldedir**; ders
+  seçimi ödevdeki gibi alttan açılan **listeden** yapılır ve aynı günde
+  aynı dersten **birden fazla** kayıt durur — tekrar girilen değer ayrı
+  bir satır açar, mevcut satırın soruları değişmez. Ayırt edici olan
+  isteğe bağlı **ders başlığı**dır ("Matematik 2"); boş bırakılırsa
+  kartta yalnız ders adı görünür. Düzenleme yalnız o satırı değiştirir,
+  ders kilitli değildir.
   Baloncuk karekökle ölçülür — 10 ile 20 arasındaki fark okunur kalır —
   rengi ise mavi bir ölçekte koyulaşır; sayı daima gerçek toplamdır,
   baloncuk yalnızca görsel kısayoldur. Bugün, haftalık kartta mavi bir
